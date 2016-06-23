@@ -1,0 +1,35 @@
+
+import modules ;
+
+use-project boost : [ modules.peek user-config : boost-loc ] ;
+
+project gdb-runner :
+	source-location src	
+	: requirements
+	<include>./include
+	<toolset>gcc:<cxxflags>-std=gnu++1y
+	<toolset>gcc:<cxxflags>-ftemplate-depth=512
+	;
+	
+
+use-project boost : [ modules.peek user-config : boost-loc ] ;
+
+
+alias system 			 : /boost//system 			 : <link>static ;
+alias program_options  	 : /boost//program_options   : <link>static ;
+alias filesystem 		 : /boost//filesystem 		 : <link>static ;
+alias locale 			 : /boost//locale 			 : <link>static ;
+alias context 		 	 : /boost//context 			 : <link>static ;
+alias coroutine 		 : /boost//coroutine         : <link>static ;
+
+alias boosts : system program_options filesystem locale context coroutine  ;
+
+import testing ;
+
+exe mw-gdb-runner : 
+		gdb-runner.cpp 
+		mw/gdb-runner/gdb_process.cpp 
+		boosts : <link>static <linkflags>-static-libstdc++  ;
+
+exe target : ../test/target.cpp  :  <linkflags>-static-libstdc++ <debug-symbols>on <optimization>off ;
+install targ : target mw-gdb-runner : <location>bin  ;

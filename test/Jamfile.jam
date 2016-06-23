@@ -1,0 +1,29 @@
+import testing ;
+import path ;
+import regex ;
+
+project gdb-test :
+	source-location .	
+	: requirements
+	<define>UNIT_TEST
+	<dependency>/boost//headers
+	;
+	
+rule test-all
+{
+
+   local all_rules = ;
+   local headers_path = [ path.make ../include/mw/gdb/parsers ] ;
+   for file in [ path.glob-tree $(headers_path) : *.hpp : detail ]
+   {
+        local rel_file = [ path.relative-to $(headers_path) $(file)  ] ;
+        local test_name = [ regex.replace $(rel_file) "/" "-" ] ;
+        
+   		echo Testing Parser $(rel_file) ;
+   		all_rules += [ run parser.cpp : : : <define>"MW_GDB_HEADER=$(rel_file)" <dependency>$(file) : ~$(test_name) ] ;
+   }
+   return $(all_rules) ;
+}	
+
+test-suite gdb-parser : [ test-all r ] ;
+	
