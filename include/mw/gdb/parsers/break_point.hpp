@@ -16,6 +16,7 @@
 #define MW_GDB_PARSERS_BREAK_POINT_HPP_
 
 #include <cstdint>
+#include <vector>
 #include <boost/variant.hpp>
 #include <mw/gdb/parsers/config.hpp>
 #include <mw/gdb/parsers/location.hpp>
@@ -38,7 +39,25 @@ struct bp_decl
     boost::variant<location, bp_mult_loc> locs;
 };
 
+struct var
+{
+    std::string value;
+    std::string policy;
+    std::string cstring;
+};
 
+struct arg : var
+{
+    std::string id;
+};
+
+struct bp_stop
+{
+    int index;
+    std::string name;
+    std::vector<arg> args;
+    location loc;
+};
 
 }
 }
@@ -55,6 +74,34 @@ BOOST_FUSION_ADAPT_STRUCT(
     (std::uint64_t, ptr),
     (decltype(mw::gdb::bp_decl::locs), locs)
 );
+
+
+BOOST_FUSION_ADAPT_STRUCT
+(
+    mw::gdb::var,
+    (std::string, value)
+    (std::string, policy)
+    (std::string, cstring)
+);
+
+BOOST_FUSION_ADAPT_STRUCT
+(
+    mw::gdb::arg,
+    (std::string, id)
+    (std::string, value)
+    (std::string, policy)
+    (std::string, cstring)
+);
+
+BOOST_FUSION_ADAPT_STRUCT
+(
+    mw::gdb::bp_stop,
+    (int, index),
+    (std::string, name),
+    (std::vector<mw::gdb::arg>, args),
+    (mw::gdb::location, loc)
+);
+
 
 namespace mw
 {
@@ -79,6 +126,35 @@ auto bp_decl_def = "Breakpoint" >> x3::int_ >> "at" >> x3::lexeme["0x" >> x3::he
 BOOST_SPIRIT_DEFINE(bp_decl);
 
 
+
+
+x3::rule<class bp_arg_list_step, arg> bp_arg_list_step;
+
+auto bp_arg_list_step_def = +(!(x3::lit('=') | ',' | ')') >> x3::char_) >> '=' >>
+                    x3::lexeme[+(!(x3::space | ',' | ')') >> x3::char_) ] >>
+                    -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>' ] >>
+                    -x3::lexeme['"' >> *(!x3::lit('"') >> x3::char_) >> '"' ];
+
+BOOST_SPIRIT_DEFINE(bp_arg_list_step);
+
+x3::rule<class bp_arg_list, std::vector<arg>> bp_arg_list;
+
+auto bp_arg_list_def = '(' >> -(bp_arg_list_step % ',' ) >> ')'; //)[set_bp_arg_list];
+
+BOOST_SPIRIT_DEFINE(bp_arg_list);
+
+
+x3::rule<class bp_stop, mw::gdb::bp_stop> bp_stop;
+
+auto bp_stop_def = ("Breakpoint" >> x3::int_ >> "," >> x3::lexeme[+(!x3::space >> x3::char_)] >>
+               bp_arg_list >>
+               x3::lit("at") >>
+               x3::lexeme[+(!x3::space >> x3::char_) >> ':' >> x3::int_]
+               >> *(!x3::lit("(gdb)") >> x3::char_)) >> "(gdb)";
+
+BOOST_SPIRIT_DEFINE(bp_stop);
+
+
 }
 
 }
@@ -99,6 +175,42 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_decl,
      (boost::get<mw::gdb::bp_mult_loc>(attr.locs).num, 2)));
 
 
+MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list_step, "c=0x0",
+                   mw::gdb::arg,
+                   ((attr.id, "c"),
+                    (attr.value, "0x0"),
+                    (attr.policy, ""),
+                    (attr.cstring, "")
+                    ));
+
+MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list_step, "c=0x496048 <__gnu_cxx::__default_lock_policy+4> \"Thingy\"",
+                   mw::gdb::arg,
+                   ((attr.id, "c"),
+                    (attr.value, "0x496048"),
+                    (attr.policy, "__gnu_cxx::__default_lock_policy+4"),
+                    (attr.cstring, "Thingy")
+                    ));
+
+
+
+MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list, "()",
+                   std::vector<mw::gdb::arg>,
+                   ((attr.size(), 0)));
+
+
+MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list, "(c=0x0)",
+                   std::vector<mw::gdb::arg>,
+                   ((attr.size(), 1),
+                    (attr.at(0).id, "c"),
+                    (attr.at(0).value, "0x0")));
+
+MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list, "(c=0x496048 <__gnu_cxx::__default_lock_policy+4> \"Thingy\")",
+                   std::vector<mw::gdb::arg>,
+                   ((attr.size(), 1),
+                   (attr.at(0).id, "c"),
+                   (attr.at(0).value, "0x496048"),
+                   (attr.at(0).policy, "__gnu_cxx::__default_lock_policy+4"),
+                   (attr.at(0).cstring, "Thingy")));
 
 
 #endif /* MW_GDB_PARSERS_INFO_HPP_ */
