@@ -19,7 +19,7 @@ rule test-all
         local rel_file = [ path.relative-to $(headers_path) $(file)  ] ;
         local test_name = [ regex.replace $(rel_file) "/" "-" ] ;
         
-   		echo Testing Parser $(rel_file) ;
+   		echo Testing Parser $(file) ;
    		all_rules += [ run parser.cpp : : : <define>"MW_GDB_HEADER=$(rel_file)" <dependency>$(file) : ~$(test_name) ] ;
    }
    return $(all_rules) ;
