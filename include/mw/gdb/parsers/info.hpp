@@ -78,7 +78,7 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::info,
     "Type \"apropos word\" to search for commands related to \"word\".\n"
     "(gdb)",
     mw::gdb::info,
-    ((toolset,"GDB"), (version, "7.10.1"), (config, "x86_64-w64-mingw32")))
+    ((attr.toolset,"GDB"), (attr.version, "7.10.1"), (attr.config, "x86_64-w64-mingw32")))
 
 MW_GDB_TEST_PARSER(mw::gdb::parsers::info,
     "GNU gdb (GNU Tools for ARM Embedded Processors) 7.10.1.20151217-cvs\n"
@@ -97,9 +97,9 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::info,
     "Type \"apropos word\" to search for commands related to \"word\".\n"
     "(gdb)",
     mw::gdb::info,
-    ((toolset,"GNU Tools for ARM Embedded Processors"),
-     (version, "7.10.1.20151217-cvs"),
-     (config, "--host=i686-w64-mingw32 --target=arm-none-eabi")))
+    ((attr.toolset,"GNU Tools for ARM Embedded Processors"),
+     (attr.version, "7.10.1.20151217-cvs"),
+     (attr.config, "--host=i686-w64-mingw32 --target=arm-none-eabi")))
 
 
 

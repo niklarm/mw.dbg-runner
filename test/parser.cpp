@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(BOOST_PP_CAT(mw_gdb_test_, __LINE__), *boost::unit_test::ti
     BOOST_CHECK(itr == data.cend()); \
 }
 
-#define CHECK_EQUAL(lhs, rhs) BOOST_CHECK_EQUAL ( attr.lhs , rhs );
+#define CHECK_EQUAL(lhs, rhs) BOOST_CHECK_EQUAL ( lhs , rhs );
 #define CHECK_MACRO(r, data, elem) CHECK_EQUAL elem
 
 
