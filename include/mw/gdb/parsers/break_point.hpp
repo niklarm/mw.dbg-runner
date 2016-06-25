@@ -154,6 +154,14 @@ auto bp_stop_def = ("Breakpoint" >> x3::int_ >> "," >> x3::lexeme[+(!x3::space >
 
 BOOST_SPIRIT_DEFINE(bp_stop);
 
+x3::rule<class var_, mw::gdb::var> var;
+
+auto var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
+                x3::lexeme[+(!x3::space >> x3::char_)] >>
+                -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>' ] >>
+                -x3::lexeme['"' >> *(!x3::lit('"') >> x3::char_) >> '"' ] >> "(gdb)";
+
+BOOST_SPIRIT_DEFINE(var);
 
 }
 
@@ -211,6 +219,14 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list, "(c=0x496048 <__gnu_cxx::__def
                    (attr.at(0).value, "0x496048"),
                    (attr.at(0).policy, "__gnu_cxx::__default_lock_policy+4"),
                    (attr.at(0).cstring, "Thingy")));
+
+MW_GDB_TEST_PARSER(mw::gdb::parsers::var, "$3 = 0x4a5048 <__gnu_cxx::__default_lock_policy+4> \"Thingy\" (gdb)",
+                   mw::gdb::var,
+                   ((attr.value, "0x4a5048"),
+                    (attr.policy, "__gnu_cxx::__default_lock_policy+4"),
+                    (attr.cstring, "Thingy")));
+
+
 
 
 #endif /* MW_GDB_PARSERS_INFO_HPP_ */

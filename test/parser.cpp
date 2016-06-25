@@ -23,7 +23,7 @@
 #include <string>
 
 #define TEST_2(Rule, String)                                          \
-BOOST_AUTO_TEST_CASE(BOOST_PP_CAT(Rule, __LINE__), *boost::unit_test::timeout(2))\
+BOOST_AUTO_TEST_CASE(BOOST_PP_CAT(mw_gdb_test_, __LINE__), *boost::unit_test::timeout(2))\
 {                                                                     \
     std::string data = String;                                        \
                                                                       \
@@ -64,8 +64,5 @@ BOOST_AUTO_TEST_CASE(BOOST_PP_CAT(mw_gdb_test_, __LINE__), *boost::unit_test::ti
 
 #define MW_GDB_TEST_PARSER(args...) BOOST_PP_OVERLOAD(TEST_, args)(args)
 
-#define MW_GDB_INCLUDE_HEADER() <mw/gdb/parsers/MW_GDB_HEADER>
+#include <mw/gdb/parsers.hpp>
 
-#include MW_GDB_INCLUDE_HEADER()
-
-BOOST_AUTO_TEST_CASE(dummy) {}
