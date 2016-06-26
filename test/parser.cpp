@@ -13,6 +13,8 @@
  </pre>
  */
 
+#include <boost/asio/spawn.hpp>
+
 #define BOOST_TEST_MAIN
 #include <boost/test/included/unit_test.hpp>
 #include <boost/preprocessor/cat.hpp>
@@ -64,5 +66,8 @@ BOOST_AUTO_TEST_CASE(BOOST_PP_CAT(mw_gdb_test_, __LINE__), *boost::unit_test::ti
 
 #define MW_GDB_TEST_PARSER(args...) BOOST_PP_OVERLOAD(TEST_, args)(args)
 
-#include <mw/gdb/parsers.hpp>
+#define INCLUDE() <mw/gdb/parsers/MW_GDB_HEADER>
 
+#include INCLUDE()
+
+BOOST_AUTO_TEST_CASE(dummy) {}

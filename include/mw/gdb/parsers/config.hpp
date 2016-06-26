@@ -18,10 +18,10 @@
 #define MW_GDB_PARSER_CONFIG_HPP_
 
 #include <boost/spirit/home/x3.hpp>
-#include <boost/fusion/sequence/intrinsic/at_c.hpp>
-#include <iterator>
 #include <boost/spirit/home/support/multi_pass.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
+#include <boost/fusion/sequence/intrinsic/at_c.hpp>
+#include <iterator>
 
 
 #if !defined ( MW_GDB_TEST_PARSER )

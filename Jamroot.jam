@@ -28,7 +28,7 @@ import testing ;
 
 exe mw-gdb-runner : 
 		gdb-runner.cpp 
-		mw/gdb-runner/gdb_process.cpp 
+		mw/gdb/process.cpp 
 		boosts : <link>static <linkflags>-static-libstdc++  ;
 
 exe target : ../test/target.cpp  :  <linkflags>-static-libstdc++ <debug-symbols>on <optimization>off ;

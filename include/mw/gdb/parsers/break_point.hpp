@@ -15,6 +15,7 @@
 #ifndef MW_GDB_PARSERS_BREAK_POINT_HPP_
 #define MW_GDB_PARSERS_BREAK_POINT_HPP_
 
+#include <mw/gdb/frame.hpp>
 #include <cstdint>
 #include <vector>
 #include <boost/variant.hpp>
@@ -37,18 +38,6 @@ struct bp_decl
     int cnt;
     std::uint64_t ptr;
     boost::variant<location, bp_mult_loc> locs;
-};
-
-struct var
-{
-    std::string value;
-    std::string policy;
-    std::string cstring;
-};
-
-struct arg : var
-{
-    std::string id;
 };
 
 struct bp_stop
@@ -110,6 +99,15 @@ namespace gdb
 namespace parsers
 {
 
+x3::rule<class quoted_string, std::string> quoted_string;
+auto quoted_string_def = x3::lexeme[ x3::char_('"') >> *(!x3::lit('"') >> x3::char_) >> x3::char_('"') ];
+
+BOOST_SPIRIT_DEFINE(quoted_string);
+
+x3::rule<class id, std::string> id;
+auto id_def = x3::lexeme[+(!x3::space >> x3::char_)];
+
+BOOST_SPIRIT_DEFINE(id);
 
 x3::rule<class bp_multiple_loc, mw::gdb::bp_mult_loc> bp_multiple_loc;
 
@@ -131,7 +129,7 @@ BOOST_SPIRIT_DEFINE(bp_decl);
 x3::rule<class bp_arg_list_step, arg> bp_arg_list_step;
 
 auto bp_arg_list_step_def = +(!(x3::lit('=') | ',' | ')') >> x3::char_) >> '=' >>
-                    x3::lexeme[+(!(x3::space | ',' | ')') >> x3::char_) ] >>
+                    (quoted_string | x3::lexeme[+(!(x3::space | ',' | ')') >> x3::char_) ] ) >>
                     -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>' ] >>
                     -x3::lexeme['"' >> *(!x3::lit('"') >> x3::char_) >> '"' ];
 
@@ -144,13 +142,13 @@ auto bp_arg_list_def = '(' >> -(bp_arg_list_step % ',' ) >> ')'; //)[set_bp_arg_
 BOOST_SPIRIT_DEFINE(bp_arg_list);
 
 
-x3::rule<class bp_stop, mw::gdb::bp_stop> bp_stop;
+x3::rule<class bp_stop_, mw::gdb::bp_stop> bp_stop;
 
 auto bp_stop_def = ("Breakpoint" >> x3::int_ >> "," >> x3::lexeme[+(!x3::space >> x3::char_)] >>
                bp_arg_list >>
                x3::lit("at") >>
-               x3::lexeme[+(!x3::space >> x3::char_) >> ':' >> x3::int_]
-               >> *(!x3::lit("(gdb)") >> x3::char_)) >> "(gdb)";
+               x3::lexeme[+(!(x3::space | ':') >> x3::char_) >> ':' >> x3::int_]
+               >> x3::omit[*(!x3::lit("(gdb)") >> x3::char_)]) >> "(gdb)";
 
 BOOST_SPIRIT_DEFINE(bp_stop);
 
@@ -212,6 +210,12 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list, "(c=0x0)",
                     (attr.at(0).id, "c"),
                     (attr.at(0).value, "0x0")));
 
+MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list, "(st=\"original data\")",
+                   std::vector<mw::gdb::arg>,
+                   ((attr.size(), 1),
+                    (attr.at(0).id, "st"),
+                    (attr.at(0).value, "\"original data\"")));
+
 MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list, "(c=0x496048 <__gnu_cxx::__default_lock_policy+4> \"Thingy\")",
                    std::vector<mw::gdb::arg>,
                    ((attr.size(), 1),
@@ -226,7 +230,14 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::var, "$3 = 0x4a5048 <__gnu_cxx::__default_l
                     (attr.policy, "__gnu_cxx::__default_lock_policy+4"),
                     (attr.cstring, "Thingy")));
 
+MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_stop,
+        "Breakpoint 1, st (st=\"original data\") at src\\..\\test\\target.cpp:31\n"
+        "31      }\n"
+        "(gdb)");
 
-
+MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_stop,
+        "Breakpoint 2, test_func (c=0x0, i=0) at src\\..\\test\\target.cpp:15\n"
+        "15      }\n"
+        "(gdb)");
 
 #endif /* MW_GDB_PARSERS_INFO_HPP_ */
