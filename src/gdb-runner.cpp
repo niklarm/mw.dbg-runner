@@ -38,6 +38,7 @@ struct options_t
     string gdb;
     string exe;
     string log;
+    vector<string> args;
     vector<string> gdb_args;
     vector<string> other_cmds;
     vector<fs::path> dlls;
@@ -54,6 +55,7 @@ struct options_t
         desc.add_options()
            ("help,H",      bool_switch(&help),             "produce help message")
            ("exe,E",       value<string>(&exe)->required(), "executable to run")
+           ("args,A",      value<vector<string>>(&args),   "Arguments passed to the target")
            ("gdb,G",       value<string>(&gdb)->default_value("gdb"), "gdb command"  )
            ("gdb-args,A",  value<vector<string>>(&gdb_args)->multitoken(), "gdb arguments")
            ("other,O",     value<vector<string>>(&other_cmds)->multitoken(), "other arguments")
@@ -84,6 +86,8 @@ int main(int argc, char * argv[])
     if (!opt.log.empty())
         proc.set_log(opt.log);
 
+    if (!opt.args.empty())
+        proc.set_args(opt.args);
     //just for me:
     if (opt.debug)
         proc.log().rdbuf(cerr.rdbuf());
@@ -96,6 +100,7 @@ int main(int argc, char * argv[])
     for (auto & dll : opt.dlls)
     {
         auto f = boost::dll::import<std::vector<std::unique_ptr<mw::gdb::break_point>>()>(dll, "mw_gdb_setup_bps");
+        proc.add_break_points(f());
     }
 
     proc.run();

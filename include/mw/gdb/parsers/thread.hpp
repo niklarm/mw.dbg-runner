@@ -99,7 +99,7 @@ BOOST_SPIRIT_DEFINE(start_thread);
 //[Inferior 1 (process 5304) exited with code 052]
 
 x3::rule<class proc_end, mw::gdb::exit_proc> exit_proc;
-auto exit_proc_def = '[' >> x3::lit("Inferior") >> x3::int_ >> '(' >> x3::lit("process") >> x3::int_ >> ')' >>
+auto exit_proc_def = -x3::lit('[') >> x3::lit("Inferior") >> x3::int_ >> '(' >> x3::lit("process") >> x3::int_ >> ')' >>
                      x3::lit("exited") >> "with" >> x3::lit("code") >> x3::oct >> ']';
 
 BOOST_SPIRIT_DEFINE(exit_proc);

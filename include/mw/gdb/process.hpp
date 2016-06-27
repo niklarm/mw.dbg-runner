@@ -61,7 +61,7 @@ class process
     std::string _program;
     int _pid = -1;
     std::vector<std::uint64_t> _thread_id;
-
+    std::vector<std::string> _args;
     std::vector<std::unique_ptr<break_point>> _break_points;
     std::map<int, break_point*>               _break_point_map;
     void _run_impl(boost::asio::yield_context &yield);
@@ -89,6 +89,10 @@ class process
     template<typename Yield> void _start(Yield & yield_);
     template<typename Yield> void _handle_bps(Yield & yield_);
 public:
+    void set_args(const std::vector<std::string> & args)
+    {
+        _args = args;
+    }
     using buf_iterator = std::istreambuf_iterator<char>;
     using iterator =  boost::spirit::multi_pass<buf_iterator>;
 

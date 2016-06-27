@@ -63,7 +63,7 @@ auto process::_read(const std::string & input, Yield & yield_) -> iterator
 
 struct frame_impl : frame
 {
-    std::unordered_map<std::string, std::uint64_t> regs()
+    std::unordered_map<std::string, std::uint64_t> regs() override
     {
         std::unordered_map<std::string, std::uint64_t> mp;
 
@@ -76,19 +76,19 @@ struct frame_impl : frame
             mp[r.id] = r.loc;
         return mp;
     }
-    void set(const std::string &var, const std::string & val)
+    void set(const std::string &var, const std::string & val) override
     {
         auto itr = proc._read("set variable " + var + "=" + val + "\n", yield_);
         if (!x3::phrase_parse(itr, proc._end(), x3::lit("(gdb)"), x3::space))
             throw std::runtime_error("Parser error for setting variable");
     }
-    void set(const std::string &var, std::size_t idx, const std::string & val)
+    void set(const std::string &var, std::size_t idx, const std::string & val) override
     {
         auto itr = proc._read("set variable " + var + "[" + std::to_string(idx) + "]=" + val + "\n", yield_);
         if (!x3::phrase_parse(itr, proc._end(), x3::lit("(gdb)"), x3::space))
             throw std::runtime_error("Parser error for setting variable");
     }
-    boost::optional<var> call(const std::string & cl)
+    boost::optional<var> call(const std::string & cl) override
     {
         boost::optional<var> val;
         auto itr = proc._read("call " + cl + "\n", yield_);
@@ -98,7 +98,7 @@ struct frame_impl : frame
         return val;
 
     }
-    var print(const std::string & pt)
+    var print(const std::string & pt) override
     {
         var val;
         auto itr = proc._read("print " + pt + "\n", yield_);
@@ -106,7 +106,7 @@ struct frame_impl : frame
             throw std::runtime_error("Parser error for print command");
         return val;
     }
-    void return_(const std::string & value)
+    void return_(const std::string & value) override
     {
         auto itr = proc._read("return " + value + "\n", yield_);
         if (!x3::phrase_parse(itr, proc._end(), *(!x3::lit("(gdb)") >> x3::char_) >> "(gdb)", x3::space))
@@ -208,7 +208,13 @@ void process::_start(Yield & yield_)
 {
     namespace p = mw::gdb::parsers;
 
-    auto itr = _read("run\n", yield_);
+
+    string cmd = "run";
+
+    for (auto & a : _args)
+        cmd += " " + a;
+
+    auto itr = _read(cmd +"\n", yield_);
 
     std::string prog_name;
     if (x3::phrase_parse(itr, _end(), p::start_prog, x3::space, prog_name))
@@ -246,10 +252,6 @@ void process::_handle_bps(Yield &yield_)
     //parse the break-point entry
     while (x3::phrase_parse(itr, _end(), p::bp_stop, x3::space, b))
     {
-        cout << "Stop thingy" << endl;
-
-        std::unique_ptr<frame_impl> frame;
-
         break_point *bp = _break_point_map.at(b.index);
 
         vector<mw::gdb::arg> a;
@@ -262,9 +264,9 @@ void process::_handle_bps(Yield &yield_)
                     auto & d = b.loc;
                     std::string file = d.file;
                     int line         = d.line;
-                    frame = std::make_unique<frame_impl>(std::move(b.args), *this, yield_);
+                    frame_impl fr(std::move(b.args), *this, yield_);
                     try {
-                        bp->invoke(*frame, file, line);
+                        bp->invoke(fr, file, line);
                     }
                     catch (std::runtime_error & er)
                     {
@@ -279,10 +281,17 @@ void process::_handle_bps(Yield &yield_)
             _io_service.post(yield_);//now let the thing run.
 
 
+        auto itr = _read("continue\n", yield_);
+
+        if (!x3::phrase_parse(itr, _end(), x3::lit("Continuing."), x3::space))
+        {
+            _log << "Continue parser error";
+            _terminate();
+        }
+
         //parse if there's more threading stuff
         while (x3::phrase_parse(itr, _end(), thread, x3::space));
     }
-
 }
 
 void process::_run_impl(boost::asio::yield_context &yield_)
@@ -293,11 +302,31 @@ void process::_run_impl(boost::asio::yield_context &yield_)
 
     asio::async_read_until(_out, _out_buf, "(gdb)", yield_);
     _read_info();
+
+    auto itr = _read("set new-console on\n", yield_);
+    if (!x3::phrase_parse(itr, _end(), x3::lit("(gdb)"), x3::space))
+    {
+        _log << "Set new console errror" << endl;
+        _terminate();
+    }
+
     _init_bps(yield_);
    _start(yield_);
 
 
    _handle_bps(yield_);
+
+   itr = _begin();
+
+   mw::gdb::exit_proc exit;
+
+   if (x3::phrase_parse(itr, _end(), mwp::exit_proc, x3::space, exit))
+       _exit_code = exit.code;
+   else
+   {
+       _log << "Exit code not found" << endl;
+       _terminate();
+   }
 
    _set_timer();
    async_write(_in, buffer("quit\n", 5), yield_);
