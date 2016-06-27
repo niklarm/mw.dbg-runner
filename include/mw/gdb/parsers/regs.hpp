@@ -63,7 +63,7 @@ auto reg_def = id >> ("0x") >> x3::hex >>
 BOOST_SPIRIT_DEFINE(reg);
 
 x3::rule<class regs, std::vector<mw::gdb::reg>> regs;
-auto regs_def = *reg;
+auto regs_def = *reg >> "(gdb)";
 
 BOOST_SPIRIT_DEFINE(regs);
 
@@ -100,7 +100,8 @@ MW_GDB_TEST_PARSER(*mw::gdb::parsers::reg,
     "ds             0x2b     43\n"
     "es             0x2b     43\n"
     "fs             0x53     83\n"
-    "gs             0x2b     43",
+    "gs             0x2b     43\n"
+    "(gdb)",
     std::vector<mw::gdb::reg>,
     ((attr.at(0).id, "rax"),  (attr.at(0).loc, 0x6ffe10),
      (attr.at(16).id, "rip"), (attr.at(16).loc, 0x4016a1),

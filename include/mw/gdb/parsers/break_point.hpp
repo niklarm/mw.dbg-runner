@@ -104,11 +104,6 @@ auto quoted_string_def = x3::lexeme[ x3::char_('"') >> *(!x3::lit('"') >> x3::ch
 
 BOOST_SPIRIT_DEFINE(quoted_string);
 
-x3::rule<class id, std::string> id;
-auto id_def = x3::lexeme[+(!x3::space >> x3::char_)];
-
-BOOST_SPIRIT_DEFINE(id);
-
 x3::rule<class bp_multiple_loc, mw::gdb::bp_mult_loc> bp_multiple_loc;
 
 auto bp_multiple_loc_def = x3::lexeme[+(!(x3::space | '.') >> x3::char_ ) ] >> x3::lit('.') >>
@@ -147,7 +142,7 @@ x3::rule<class bp_stop_, mw::gdb::bp_stop> bp_stop;
 auto bp_stop_def = ("Breakpoint" >> x3::int_ >> "," >> x3::lexeme[+(!x3::space >> x3::char_)] >>
                bp_arg_list >>
                x3::lit("at") >>
-               x3::lexeme[+(!(x3::space | ':') >> x3::char_) >> ':' >> x3::int_]
+               loc_short //x3::lexeme[+(!(x3::space | ':') >> x3::char_) >> ':' >> x3::int_]
                >> x3::omit[*(!x3::lit("(gdb)") >> x3::char_)]) >> "(gdb)";
 
 BOOST_SPIRIT_DEFINE(bp_stop);
@@ -238,6 +233,11 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_stop,
 MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_stop,
         "Breakpoint 2, test_func (c=0x0, i=0) at src\\..\\test\\target.cpp:15\n"
         "15      }\n"
-        "(gdb)");
+        "(gdb)",
+        mw::gdb::bp_stop,
+        ((attr.index, 2),
+         (attr.name, "test_func"),
+         (attr.args.size(), 2),
+         (attr.loc.line, 15)));
 
 #endif /* MW_GDB_PARSERS_INFO_HPP_ */
