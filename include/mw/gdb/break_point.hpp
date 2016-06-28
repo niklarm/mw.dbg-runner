@@ -20,6 +20,7 @@
 #include <mw/gdb/frame.hpp>
 #include <string>
 #include <unordered_map>
+#include <iostream>
 
 namespace mw {
 namespace gdb {
@@ -35,14 +36,15 @@ public:
     break_point(const std::string & func_name) : _identifier(func_name) {}
     break_point(const std::string & file_name, std::size_t size)
             : _identifier(file_name + ":" + std::to_string(size)) {}
-    virtual ~break_point() = default;
     virtual void invoke(frame & fr, const std::string & file, int line) = 0;
-    virtual void set_at(std::uint64_t addr, const std::string & file, int line) {};
-    virtual void set_multiple(std::uint64_t addr, std::string & name, int line) {};
+    virtual void set_at(std::uint64_t addr, const std::string & file, int line) {}
+    virtual void set_multiple(std::uint64_t addr, std::string & name, int line) {}
     virtual void set_not_found() {};
     virtual void stopped(const std::vector<arg> & vec, const std::string & file, int line) {};
     virtual void set_regs(const std::unordered_map<std::string, std::uint64_t>&) {}
     virtual bool registers() const {return false;}
+    virtual ~break_point() = default;
+
 };
 
 

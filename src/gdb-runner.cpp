@@ -81,6 +81,14 @@ int main(int argc, char * argv[])
     for (auto & o : opt.other_cmds)
         other.emplace_back(o, bp::std_in < bp::null, bp::std_out > bp::null, bp::std_err > bp::null);
 
+
+
+
+    std::vector<boost::dll::shared_library> libs;
+    for (auto & dll : opt.dlls)
+        libs.emplace_back(dll);
+
+
     mw::gdb::process proc(opt.gdb, opt.exe, opt.gdb_args);
 
     if (!opt.log.empty())
@@ -92,14 +100,13 @@ int main(int argc, char * argv[])
     if (opt.debug)
         proc.log().rdbuf(cerr.rdbuf());
 
-
     if (opt.dlls.empty())
     {
         proc.log() << "No Dll provided, thus no breakpoints will be executed." << endl;
     }
-    for (auto & dll : opt.dlls)
+    for (auto & lib : libs)
     {
-        auto f = boost::dll::import<std::vector<std::unique_ptr<mw::gdb::break_point>>()>(dll, "mw_gdb_setup_bps");
+        auto f = boost::dll::import<std::vector<std::unique_ptr<mw::gdb::break_point>>()>(lib, "mw_gdb_setup_bps");
         proc.add_break_points(f());
     }
 
@@ -109,10 +116,18 @@ int main(int argc, char * argv[])
 
     for (auto & o : other)
         o.terminate();
+
+    return proc.exit_code();
+
     }
     catch (std::exception & e)
     {
         cout << e.what() << endl;
+        return -1;
     }
- 	return 1;
+    catch (...)
+    {
+        cout << "Unknown error" << endl;
+        return -1;
+    }
 }

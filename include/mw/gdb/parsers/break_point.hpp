@@ -254,6 +254,11 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_stop,
         "(gdb)");
 
 MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_stop,
+        "Breakpoint 1, f (p=0x61fe40) at target.cpp:21\n"
+        "21  }\n"
+        "(gdb)");
+
+MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_stop,
         "Breakpoint 2, test_func (c=0x0, i=0) at src\\..\\test\\target.cpp:15\n"
         "15      }\n"
         "(gdb)",

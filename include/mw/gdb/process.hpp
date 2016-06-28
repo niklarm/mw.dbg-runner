@@ -91,7 +91,7 @@ class process
 public:
     void set_exit(int code)
     {
-        _log << "Set Exit code: " << code << std::endl;
+        _log << "Exited with " << code << std::endl;
         _exit_code = code;
     }
 
@@ -116,8 +116,10 @@ public:
     void add_break_point(std::unique_ptr<break_point> && ptr) { _break_points.push_back(std::move(ptr)); }
     void add_break_points(std::vector<std::unique_ptr<break_point>> && ptrs)
     {
-        _break_points.insert(_break_points.end(),
-                std::make_move_iterator(ptrs.begin()), std::make_move_iterator(ptrs.end()));
+     /*   _break_points.insert(_break_points.end(),
+                std::make_move_iterator(ptrs.begin()), std::make_move_iterator(ptrs.end()));*/
+        for (auto & in : ptrs)
+            _break_points.emplace_back(in.release());
     }
     void run();
 };

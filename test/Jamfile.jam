@@ -7,8 +7,14 @@ project gdb-test :
 	: requirements
 	<define>UNIT_TEST
 	<dependency>/boost//headers
+	<include>../include
 	;
 	
+
+lib plugin : plugin.cpp : <link>shared ;
+alias filesystem : /boost//filesystem : <link>static ;
+exe target : target.cpp /boost//filesystem :  <debug-symbols>on <link>static ;
+
 
 rule test-all
 {
@@ -26,4 +32,7 @@ rule test-all
    return $(all_rules) ;
 }	
 
-test-suite gdb-parser : [ test-all r ] ;
+test-suite gdb-parser : 
+	#[ test-all r ] 
+	[ run test_runner.cpp filesystem : : /gdb-runner//mw-gdb-runner plugin target  ]
+	;
