@@ -76,7 +76,7 @@ BOOST_SPIRIT_DEFINE(regs);
 MW_GDB_TEST_PARSER(mw::gdb::parsers::reg_pointy,
     "<st(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&)+8>");
 
-MW_GDB_TEST_PARSER(*mw::gdb::parsers::reg,
+MW_GDB_TEST_PARSER(mw::gdb::parsers::regs,
     "rax            0x6ffe10 7339536\n"
     "rbx            0x1      1\n"
     "rcx            0x6ffe10 7339536\n"

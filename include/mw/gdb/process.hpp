@@ -89,6 +89,12 @@ class process
     template<typename Yield> void _start(Yield & yield_);
     template<typename Yield> void _handle_bps(Yield & yield_);
 public:
+    void set_exit(int code)
+    {
+        _log << "Set Exit code: " << code << std::endl;
+        _exit_code = code;
+    }
+
     void set_args(const std::vector<std::string> & args)
     {
         _args = args;

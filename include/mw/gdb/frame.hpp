@@ -25,8 +25,12 @@
 namespace mw {
 namespace gdb {
 
+
+
+
 struct var
 {
+    boost::optional<std::uint64_t> ref;
     std::string value;
     std::string policy;
     std::string cstring;
@@ -42,7 +46,7 @@ struct arg : var
     arg& operator=(const arg &) = default;
     arg& operator=(arg &&) = default;
     arg(const std::string& id, const std::string& value, const std::string& policy, const std::string& cstring)
-        : var{value, policy, cstring}, id(id) {}
+        : var{{}, value, policy, cstring}, id(id) {}
 };
 
 struct frame
@@ -54,6 +58,7 @@ struct frame
     virtual boost::optional<var> call(const std::string & cl)        = 0;
     virtual var print(const std::string & pt)       = 0;
     virtual void return_(const std::string & value) = 0;
+    virtual void set_exit(int) = 0;
     frame(std::vector<arg> && args)
             : _arg_list(std::move(args))
     {

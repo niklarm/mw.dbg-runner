@@ -119,6 +119,10 @@ struct frame_impl : frame
             : frame(std::move(args)), proc(proc), yield_(yield_)
     {
     }
+    void set_exit(int code) override
+    {
+        proc.set_exit(code);
+    }
 
     process & proc;
     boost::asio::yield_context & yield_;
@@ -303,12 +307,12 @@ void process::_run_impl(boost::asio::yield_context &yield_)
     asio::async_read_until(_out, _out_buf, "(gdb)", yield_);
     _read_info();
 
-    auto itr = _read("set new-console on\n", yield_);
+  /*  auto itr = _read("set new-console on\n", yield_);
     if (!x3::phrase_parse(itr, _end(), x3::lit("(gdb)"), x3::space))
     {
         _log << "Set new console errror" << endl;
         _terminate();
-    }
+    }*/
 
     _init_bps(yield_);
    _start(yield_);
@@ -316,12 +320,12 @@ void process::_run_impl(boost::asio::yield_context &yield_)
 
    _handle_bps(yield_);
 
-   itr = _begin();
+   auto itr = _begin();
 
    mw::gdb::exit_proc exit;
 
    if (x3::phrase_parse(itr, _end(), mwp::exit_proc, x3::space, exit))
-       _exit_code = exit.code;
+       set_exit(exit.code);
    else
    {
        _log << "Exit code not found" << endl;

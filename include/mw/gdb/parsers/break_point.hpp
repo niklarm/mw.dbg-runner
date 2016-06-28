@@ -68,6 +68,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT
 (
     mw::gdb::var,
+    (boost::optional<std::uint64_t>, ref)
     (std::string, value)
     (std::string, policy)
     (std::string, cstring)
@@ -77,6 +78,7 @@ BOOST_FUSION_ADAPT_STRUCT
 (
     mw::gdb::arg,
     (std::string, id)
+    (boost::optional<std::uint64_t>, ref)
     (std::string, value)
     (std::string, policy)
     (std::string, cstring)
@@ -118,12 +120,10 @@ auto bp_decl_def = "Breakpoint" >> x3::int_ >> "at" >> x3::lexeme["0x" >> x3::he
 
 BOOST_SPIRIT_DEFINE(bp_decl);
 
-
-
-
 x3::rule<class bp_arg_list_step, arg> bp_arg_list_step;
 
 auto bp_arg_list_step_def = +(!(x3::lit('=') | ',' | ')') >> x3::char_) >> '=' >>
+                    -("@0x" >> x3::hex >> ":") >>
                     (quoted_string | x3::lexeme[+(!(x3::space | ',' | ')') >> x3::char_) ] ) >>
                     -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>' ] >>
                     -x3::lexeme['"' >> *(!x3::lit('"') >> x3::char_) >> '"' ];
@@ -147,9 +147,17 @@ auto bp_stop_def = ("Breakpoint" >> x3::int_ >> "," >> x3::lexeme[+(!x3::space >
 
 BOOST_SPIRIT_DEFINE(bp_stop);
 
+
+x3::rule<class round_brace, std::string> round_brace;
+
+auto round_brace_def = '(' >> *((!(x3::lit('(') | ')') >> x3::char_) | round_brace ) >> ')';
+
+BOOST_SPIRIT_DEFINE(round_brace);
+
 x3::rule<class var_, mw::gdb::var> var;
 
 auto var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
+                -(-x3::omit[round_brace] >> "@0x" >> x3::hex >> ':') >>
                 x3::lexeme[+(!x3::space >> x3::char_)] >>
                 -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>' ] >>
                 -x3::lexeme['"' >> *(!x3::lit('"') >> x3::char_) >> '"' ] >> "(gdb)";
@@ -175,6 +183,13 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_decl,
      (boost::get<mw::gdb::bp_mult_loc>(attr.locs).name, "test2")
      (boost::get<mw::gdb::bp_mult_loc>(attr.locs).num, 2)));
 
+
+MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list_step, "ref=@0x61fe4c: 0",
+                   mw::gdb::arg,
+                   ((attr.id, "ref"),
+                    (*attr.ref, 0x61fe4c),
+                    (attr.value, "0")
+                    ));
 
 MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list_step, "c=0x0",
                    mw::gdb::arg,
@@ -224,6 +239,14 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::var, "$3 = 0x4a5048 <__gnu_cxx::__default_l
                    ((attr.value, "0x4a5048"),
                     (attr.policy, "__gnu_cxx::__default_lock_policy+4"),
                     (attr.cstring, "Thingy")));
+
+
+MW_GDB_TEST_PARSER(mw::gdb::parsers::round_brace, "(int &)");
+
+MW_GDB_TEST_PARSER(mw::gdb::parsers::var, "$1 = (int &) @0x61fe4c: 0 \n (gdb)",
+                   mw::gdb::var,
+                   ((attr.value, "0"),
+                    (*attr.ref, 0x61fe4c)));
 
 MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_stop,
         "Breakpoint 1, st (st=\"original data\") at src\\..\\test\\target.cpp:31\n"
