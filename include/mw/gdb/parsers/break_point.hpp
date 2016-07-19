@@ -120,9 +120,23 @@ auto bp_decl_def = "Breakpoint" >> x3::int_ >> "at" >> x3::lexeme["0x" >> x3::he
 
 BOOST_SPIRIT_DEFINE(bp_decl);
 
+//arg0=arg0@entry=0x0
+x3::rule<class bp_arg_name, std::string> bp_arg_name;
+
+auto bp_arg_name_set = [](auto & ctx){x3::_val(ctx)  = x3::_attr(ctx);};
+auto bp_arg_name_cmp = [](auto & ctx){x3::_pass(ctx) = (x3::_attr(ctx) == x3::_val(ctx));};
+
+auto bp_arg_name_def =
+        (+(!(x3::lit('=') | ',' | ')') >> x3::char_))[bp_arg_name_set] >>
+        -('=' >> (+(!(x3::lit('=') | ',' | '@') >> x3::char_))[bp_arg_name_cmp] >> '@' >> x3::lit("entry"));
+
+
+
 x3::rule<class bp_arg_list_step, arg> bp_arg_list_step;
 
-auto bp_arg_list_step_def = +(!(x3::lit('=') | ',' | ')') >> x3::char_) >> '=' >>
+BOOST_SPIRIT_DEFINE(bp_arg_name);
+
+auto bp_arg_list_step_def = bp_arg_name >> '=' >>
                     -("@0x" >> x3::hex >> ":") >>
                     (quoted_string | x3::lexeme[+(!(x3::space | ',' | ')') >> x3::char_) ] ) >>
                     -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>' ] >>
@@ -267,5 +281,16 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_stop,
          (attr.name, "test_func"),
          (attr.args.size(), 2),
          (attr.loc.line, 15)));
+
+MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_name,
+        "arg0=arg0@entry",
+        std::string,
+        ((attr, "arg0")));
+
+MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_name,
+        "arg1",
+        std::string,
+        ((attr, "arg1")));
+
 
 #endif /* MW_GDB_PARSERS_INFO_HPP_ */

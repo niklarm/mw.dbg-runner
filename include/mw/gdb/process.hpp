@@ -88,9 +88,11 @@ class process
     template<typename Yield> void _init_bps(Yield & yield_);
     template<typename Yield> void _start(Yield & yield_);
     template<typename Yield> void _handle_bps(Yield & yield_);
+    bool _exited = false;
 public:
     void set_exit(int code)
     {
+        _exited=true;
         _log << "Exited with " << code << std::endl;
         _exit_code = code;
     }

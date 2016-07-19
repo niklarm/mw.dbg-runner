@@ -320,7 +320,7 @@ void process::_run_impl(boost::asio::yield_context &yield_)
 
    mw::gdb::exit_proc exit;
 
-   if (x3::phrase_parse(itr, _end(), mwp::exit_proc, x3::space, exit))
+   if (!_exited && x3::phrase_parse(itr, _end(), mwp::exit_proc, x3::space, exit))
        set_exit(exit.code);
    _set_timer();
    async_write(_in, buffer("quit\n", 5), yield_);
