@@ -32,4 +32,7 @@ exe mw-gdb-runner :
 		boosts : <link>static <linkflags>-static-libstdc++  ;
 
 exe target : ../test/target.cpp /boost//filesystem :  <linkflags>-static-libstdc++ <debug-symbols>on <optimization>off ;
-install targ : target mw-gdb-runner : <location>bin  ;
+
+lib mw-syscalls : mw_newlib.cpp : <link>shared <dependency>/boost//headers ;
+
+install targ : target mw-gdb-runner mw-syscalls : <location>bin  ;
