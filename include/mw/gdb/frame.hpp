@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <ostream>
 #include <boost/optional.hpp>
 
 namespace mw {
@@ -59,6 +60,7 @@ struct frame
     virtual var print(const std::string & pt)       = 0;
     virtual void return_(const std::string & value) = 0;
     virtual void set_exit(int) = 0;
+    virtual std::ostream & log() = 0;
     frame(std::vector<arg> && args)
             : _arg_list(std::move(args))
     {

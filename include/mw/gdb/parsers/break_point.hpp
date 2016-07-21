@@ -173,8 +173,10 @@ x3::rule<class var_, mw::gdb::var> var;
 auto var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
                 -(-x3::omit[round_brace] >> "@0x" >> x3::hex >> ':') >>
                 x3::lexeme[+(!x3::space >> x3::char_)] >>
-                -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>' ] >>
-                -x3::lexeme['"' >> *(!x3::lit('"') >> x3::char_) >> '"' ] >> "(gdb)";
+                -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>'] >>
+                -x3::lexeme['"' >> *(!x3::lit('"') >> x3::char_) >> '"'] >>
+                -x3::omit[x3::lexeme['\'' >> +(
+                           x3::lit("\\\\") |  "\\'" | (!x3::lit('\'') >> x3::char_)) >> '\''] ];
 
 BOOST_SPIRIT_DEFINE(var);
 

@@ -104,6 +104,7 @@ struct frame_impl : frame
         itr = proc._read("print " + pt + "\n", yield_);
         if (!x3::phrase_parse(itr, proc._end(), mwp::var >> "(gdb)", x3::space, val))
             throw std::runtime_error("Parser error for print command");
+
         return val;
     }
     void return_(const std::string & value) override
@@ -116,8 +117,9 @@ struct frame_impl : frame
     frame_impl(std::vector<arg> && args,
                process & proc,
                process::iterator & itr,
-               boost::asio::yield_context & yield_)
-            : frame(std::move(args)), proc(proc), itr(itr), yield_(yield_)
+               boost::asio::yield_context & yield_,
+               std::ostream & log_)
+            : frame(std::move(args)), proc(proc), itr(itr), yield_(yield_), _log(log_)
     {
     }
     void set_exit(int code) override
@@ -125,9 +127,13 @@ struct frame_impl : frame
         proc.set_exit(code);
     }
 
+    std::ostream & log() { return _log; }
+
+
     process & proc;
     process::iterator & itr;
     boost::asio::yield_context & yield_;
+    std::ostream & _log;
 };
 
 
@@ -212,6 +218,16 @@ void process::_init_bps(Yield & yield_)
 template<typename Yield>
 void process::_start(Yield & yield_)
 {
+    if (_remote.empty())
+        _start_local(yield_);
+    else
+        _start_remote(yield_);
+
+}
+
+template<typename Yield>
+void process::_start_local(Yield & yield_)
+{
     namespace p = mw::gdb::parsers;
 
 
@@ -235,6 +251,57 @@ void process::_start(Yield & yield_)
     }
 
 }
+
+template<typename Yield>
+void process::_start_remote(Yield & yield_)
+{
+    namespace p = mw::gdb::parsers;
+
+    //connect
+    string cmd = "target remote " + _remote;
+    auto itr = _read(cmd +"\n", yield_);
+
+    std::string target;
+    if (x3::phrase_parse(itr, _end(),
+            "Remote" >> x3::lit("debugging") >> "using"
+            >> x3::lexeme[+x3::char_("_:A-Za-z0-9")]
+            >> x3::omit[*(!x3::lit("(gdb)") >> x3::char_)] //this may already be the first break-point here
+            >> "(gdb)"
+            , x3::space, target))
+    {
+        _log << " Connected to remote target " << target << endl;
+        _program = "**remote**";
+    }
+    else
+    {
+        _log << "Parser Error while trying to establish remote connection" << endl;
+        _terminate();
+    }
+    //halt the thingy
+
+    itr = _read("monitor reset halt\n", yield_);
+    if (x3::phrase_parse(itr, _end(), *(!x3::lit("(gdb)") >> x3::char_) >> "(gdb)", x3::space))
+        _log << "Reseted the target" << endl;
+
+    itr = _read("load\n", yield_);
+    std::string load_log(itr, _end());
+
+    load_log.resize(load_log.size() - 6);
+    _log << "\n" << load_log << "\n" << endl;
+
+    itr = _read("continue\n", yield_);
+
+    if (x3::phrase_parse(itr, _end(), x3::lit("Continuing."), x3::space))
+        _log << "Starting" << endl;
+
+    {
+
+        for (auto it2 = itr; x3::phrase_parse(itr, _end(),
+                x3::lexeme["Note: " >> +(!(x3::lit('\n') | '\r') >> x3::char_)], x3::space); )
+            _log << string(it2, itr) << endl;
+    }
+}
+
 template<typename Yield>
 void process::_handle_bps(Yield &yield_)
 {
@@ -270,7 +337,7 @@ void process::_handle_bps(Yield &yield_)
                     auto & d = b.loc;
                     std::string file = d.file;
                     int line         = d.line;
-                    frame_impl fr(std::move(b.args), *this, itr, yield_);
+                    frame_impl fr(std::move(b.args), *this, itr, yield_, _log);
                     try {
                         bp->invoke(fr, file, line);
                     }
@@ -286,6 +353,8 @@ void process::_handle_bps(Yield &yield_)
         while (!invoked.load())
             _io_service.post(yield_);//now let the thing run.
 
+        if (_exited)
+            break;
 
         itr = _read("continue\n", yield_);
 

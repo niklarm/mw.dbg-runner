@@ -57,7 +57,7 @@ class process
     boost::process::child _child;
 
 
-
+    std::string _remote;
     std::string _program;
     int _pid = -1;
     std::vector<std::uint64_t> _thread_id;
@@ -87,6 +87,8 @@ class process
     void _read_info();
     template<typename Yield> void _init_bps(Yield & yield_);
     template<typename Yield> void _start(Yield & yield_);
+    template<typename Yield> void _start_remote(Yield & yield_);
+    template<typename Yield> void _start_local (Yield & yield_);
     template<typename Yield> void _handle_bps(Yield & yield_);
     bool _exited = false;
 public:
@@ -100,6 +102,10 @@ public:
     void set_args(const std::vector<std::string> & args)
     {
         _args = args;
+    }
+    void set_remote(const std::string & remote)
+    {
+        _remote = remote;
     }
     using buf_iterator = std::istreambuf_iterator<char>;
     using iterator =  boost::spirit::multi_pass<buf_iterator>;

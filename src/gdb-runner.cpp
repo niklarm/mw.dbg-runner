@@ -43,6 +43,8 @@ struct options_t
     vector<string> other_cmds;
     vector<fs::path> dlls;
 
+    string remote;
+
     po::options_description desc;
     po::variables_map vm;
 
@@ -53,8 +55,8 @@ struct options_t
         using namespace boost::program_options;
 
         desc.add_options()
-           ("help,H",      bool_switch(&help),             "produce help message")
-           ("exe,E",       value<string>(&exe)->required(), "executable to run")
+           ("help",        bool_switch(&help), "produce help message")
+           ("exe,E",       value<string>(&exe),             "executable to run")
            ("args,A",      value<vector<string>>(&args),   "Arguments passed to the target")
            ("gdb,G",       value<string>(&gdb)->default_value("gdb"), "gdb command"  )
            ("gdb-args,A",  value<vector<string>>(&gdb_args)->multitoken(), "gdb arguments")
@@ -63,8 +65,8 @@ struct options_t
            ("log,L",       value<string>(&log), "log file")
            ("debug,D",     bool_switch(&debug), "output the log data to stderr")
            ("lib,L",       value<vector<fs::path>>(&dlls)->multitoken(), "break-point libraries")
+           ("remote,R",      value<string>(&remote), "Remote settings")
             ;
-
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
     }
@@ -75,6 +77,17 @@ int main(int argc, char * argv[])
     try {
     options_t opt(argc, argv);
 
+    if (opt.help)
+    {
+        cout << opt.desc << endl;
+        return 0;
+    }
+
+    if (opt.exe.empty())
+    {
+        cout << "No executable defined\n" << endl;
+        return 1;
+    }
 
     std::vector<bp::child> other;
 
@@ -101,9 +114,11 @@ int main(int argc, char * argv[])
         proc.log().rdbuf(cerr.rdbuf());
 
     if (opt.dlls.empty())
-    {
         proc.log() << "No Dll provided, thus no breakpoints will be executed." << endl;
-    }
+
+    if (!opt.remote.empty())
+        proc.set_remote(opt.remote);
+
     for (auto & lib : libs)
     {
         auto f = boost::dll::import<std::vector<std::unique_ptr<mw::gdb::break_point>>()>(lib, "mw_gdb_setup_bps");
