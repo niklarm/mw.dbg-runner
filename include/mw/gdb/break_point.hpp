@@ -40,9 +40,6 @@ public:
     virtual void set_at(std::uint64_t addr, const std::string & file, int line) {}
     virtual void set_multiple(std::uint64_t addr, std::string & name, int line) {}
     virtual void set_not_found() {};
-    virtual void stopped(const std::vector<arg> & vec, const std::string & file, int line) {};
-    virtual void set_regs(const std::unordered_map<std::string, std::uint64_t>&) {}
-    virtual bool registers() const {return false;}
     virtual ~break_point() = default;
 
 };
