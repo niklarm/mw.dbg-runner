@@ -98,7 +98,7 @@ struct open_flags
         s_isgid = std::stoi(fr.print("S_ISGID").value);
         s_isvtx = std::stoi(fr.print("S_ISVTX").value);
 
-        inited = false;
+        inited = true;
     }
     int get_flags(int in)
     {
@@ -161,7 +161,7 @@ struct seek_flags
         seek_set = std::stoi(fr.print("SEEK_SET").value);
         seek_cur = std::stoi(fr.print("SEEK_CUR").value);
         seek_end = std::stoi(fr.print("SEEK_END").value);
-        inited = false;
+        inited = true;
     }
     int get_flags(int in)
     {
@@ -261,8 +261,8 @@ struct mw_func_stub : break_point
 
     void link(frame & fr)
     {
-        auto existing = fr.arg_list().at(1).cstring;
-        auto _new = fr.arg_list().at(2).cstring;
+        auto existing = fr.get_cstring(1);
+        auto _new     = fr.get_cstring(2);
 #if defined (BOOST_POSIX_API)
         auto ret = link(existing, _new);
 #else
@@ -299,7 +299,7 @@ struct mw_func_stub : break_point
 
     void open(frame & fr)
     {
-        auto file  = fr.arg_list().at(1).cstring;
+        auto file  = fr.get_cstring(1);
         auto flags_in = std::stoi(fr.arg_list().at(3).value);
         auto mode_in  = std::stoi(fr.arg_list().at(4).value);
         boost::algorithm::replace_all(file, "\\\\", "/");
@@ -367,8 +367,8 @@ struct mw_func_stub : break_point
 
     void symlink(frame & fr)
     {
-        auto existing = fr.arg_list().at(1).cstring;
-        auto _new = fr.arg_list().at(2).cstring;
+        auto existing = fr.get_cstring(1);
+        auto _new     = fr.get_cstring(2);
 #if defined (BOOST_POSIX_API)
         auto ret = ::symlink(existing.c_str(), _new.c_str());
 #else
@@ -390,7 +390,7 @@ struct mw_func_stub : break_point
 
     void unlink(frame & fr)
     {
-        auto name = fr.arg_list().at(6).cstring;
+        auto name = fr.get_cstring(6);
 #if defined (BOOST_POSIX_API)
         auto ret = ::unlink(name.c_str());
 #else

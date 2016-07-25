@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <vector>
 #include <boost/variant.hpp>
+#include <boost/optional.hpp>
 #include <mw/gdb/parsers/config.hpp>
 #include <mw/gdb/parsers/location.hpp>
 
@@ -52,6 +53,12 @@ struct bp_stop
 }
 
 BOOST_FUSION_ADAPT_STRUCT(
+    mw::gdb::cstring_t,
+    (std::string, value)
+    (bool, ellipsis)
+);
+
+BOOST_FUSION_ADAPT_STRUCT(
     mw::gdb::bp_mult_loc,
     (std::string, name),
     (int, num)
@@ -71,7 +78,7 @@ BOOST_FUSION_ADAPT_STRUCT
     (boost::optional<std::uint64_t>, ref)
     (std::string, value)
     (std::string, policy)
-    (std::string, cstring)
+    (mw::gdb::cstring_t, cstring)
 );
 
 BOOST_FUSION_ADAPT_STRUCT
@@ -81,7 +88,7 @@ BOOST_FUSION_ADAPT_STRUCT
     (boost::optional<std::uint64_t>, ref)
     (std::string, value)
     (std::string, policy)
-    (std::string, cstring)
+    (mw::gdb::cstring_t, cstring)
 );
 
 BOOST_FUSION_ADAPT_STRUCT
@@ -101,11 +108,26 @@ namespace gdb
 namespace parsers
 {
 
+auto ellipsis_enable  = [](auto & ctx){x3::_val(ctx) = true;};
+auto ellipsis_disable = [](auto & ctx){x3::_val(ctx) = false;};
+
+x3::rule<class ellipsis, bool> ellipsis;
+auto ellipsis_def = x3::lit("...")[ellipsis_enable] | x3::eps[ellipsis_disable];
+
+BOOST_SPIRIT_DEFINE(ellipsis);
+
+
 x3::rule<class quoted_string, std::string> quoted_string;
 auto quoted_string_def =
-        x3::lexeme[ x3::char_('"') >> *(x3::string("\\\"") | (!x3::lit('"') >> x3::char_)) >> x3::char_('"') ];
+        x3::lexeme['"' >> *(x3::string("\\\"") | (!x3::lit('"') >> x3::char_)) >> '"'];
 
 BOOST_SPIRIT_DEFINE(quoted_string);
+
+x3::rule<class cstring, mw::gdb::cstring_t> cstring;
+auto cstring_def =
+        quoted_string >> ellipsis;
+
+BOOST_SPIRIT_DEFINE(cstring);
 
 x3::rule<class bp_multiple_loc, mw::gdb::bp_mult_loc> bp_multiple_loc;
 
@@ -141,7 +163,7 @@ auto bp_arg_list_step_def = bp_arg_name >> '=' >>
                     -("@0x" >> x3::hex >> ":") >>
                     (quoted_string | x3::lexeme[+(!(x3::space | ',' | ')') >> x3::char_) ] ) >>
                     -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>' ] >>
-                    -x3::lexeme[quoted_string];
+                    -x3::lexeme[cstring];
 
 BOOST_SPIRIT_DEFINE(bp_arg_list_step);
 
@@ -175,7 +197,7 @@ auto var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
                 -(-x3::omit[round_brace] >> "@0x" >> x3::hex >> ':') >>
                 x3::lexeme[+(!x3::space >> x3::char_)] >>
                 -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>'] >>
-                -x3::lexeme[quoted_string] >>
+                -x3::lexeme[cstring] >>
                 -x3::omit[x3::lexeme['\'' >> +(
                            x3::lit("\\\\") |  "\\'" | (!x3::lit('\'') >> x3::char_)) >> '\''] ];
 
@@ -213,7 +235,7 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list_step, "c=0x0",
                    ((attr.id, "c"),
                     (attr.value, "0x0"),
                     (attr.policy, ""),
-                    (attr.cstring, "")
+                    (attr.cstring.value, "")
                     ));
 
 MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list_step, "c=0x496048 <__gnu_cxx::__default_lock_policy+4> \"Thingy\"",
@@ -221,7 +243,7 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list_step, "c=0x496048 <__gnu_cxx::_
                    ((attr.id, "c"),
                     (attr.value, "0x496048"),
                     (attr.policy, "__gnu_cxx::__default_lock_policy+4"),
-                    (attr.cstring, "Thingy")
+                    (attr.cstring.value, "Thingy")
                     ));
 
 
@@ -249,7 +271,7 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list, "(c=0x496048 <__gnu_cxx::__def
                    (attr.at(0).id, "c"),
                    (attr.at(0).value, "0x496048"),
                    (attr.at(0).policy, "__gnu_cxx::__default_lock_policy+4"),
-                   (attr.at(0).cstring, "Thingy")));
+                   (attr.at(0).cstring.value, "Thingy")));
 
 MW_GDB_TEST_PARSER(mw::gdb::parsers::var, "$3 = 0x4a5048 <__gnu_cxx::__default_lock_policy+4> \"Thingy\" (gdb)",
                    mw::gdb::var,

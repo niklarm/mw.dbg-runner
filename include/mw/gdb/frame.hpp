@@ -26,7 +26,11 @@
 namespace mw {
 namespace gdb {
 
-
+struct cstring_t
+{
+    std::string value;
+    bool ellipsis;
+};
 
 
 struct var
@@ -34,7 +38,7 @@ struct var
     boost::optional<std::uint64_t> ref;
     std::string value;
     std::string policy;
-    std::string cstring;
+    cstring_t   cstring;
 };
 
 struct arg : var
@@ -46,13 +50,15 @@ struct arg : var
     arg(arg &&) = default;
     arg& operator=(const arg &) = default;
     arg& operator=(arg &&) = default;
-    arg(const std::string& id, const std::string& value, const std::string& policy, const std::string& cstring)
+    arg(const std::string& id, const std::string& value, const std::string& policy, const cstring_t& cstring)
         : var{{}, value, policy, cstring}, id(id) {}
 };
 
 struct frame
 {
     const std::vector<arg> &arg_list() const {return _arg_list;}
+    const arg &arg_list(std::size_t index) const {return _arg_list.at(index);}
+    inline std::string get_cstring(std::size_t index);
     virtual std::unordered_map<std::string, std::uint64_t> regs() = 0;
     virtual void set(const std::string &var, const std::string & val)   = 0;
     virtual void set(const std::string &var, std::size_t idx, const std::string & val) = 0;
@@ -71,7 +77,28 @@ protected:
 
 };
 
+std::string frame::get_cstring(std::size_t index)
+{
+    auto &entry = arg_list(index);
 
+    if (entry.cstring.ellipsis)
+        return entry.cstring.value;
+    //has ellipsis, so I'll need to get the rest manually
+    auto val = entry.cstring.value;
+    auto idx = val.size();
+
+    while(true)
+    {
+        auto p = print(entry.id + '[' + std::to_string(idx++) + ']');
+        auto i = std::stoi(p.value);
+        auto value  = static_cast<char>(i);
+        if (value == '\0')
+            break;
+        else
+            val.push_back(value);
+    }
+    return val;
+}
 
 } /* namespace gdb_runner */
 } /* namespace mw */
