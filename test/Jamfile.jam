@@ -33,6 +33,6 @@ rule test-all
 }	
 
 test-suite gdb-parser : 
-	[ test-all r ] 
+	#[ test-all r ] 
 	[ run test_runner.cpp filesystem : : /gdb-runner//mw-gdb-runner plugin target  ]
 	;

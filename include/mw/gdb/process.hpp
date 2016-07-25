@@ -43,6 +43,7 @@ namespace gdb {
 
 class process
 {
+    bool _enable_debug = false;
     int _time_out = 10;
     int _exit_code = -1;
     std::ofstream  _log;
@@ -51,11 +52,13 @@ class process
     boost::asio::deadline_timer _timer{_io_service , boost::posix_time::seconds(_time_out)};
     boost::process::async_pipe _out{_io_service};
     boost::process::async_pipe _in {_io_service};
-    boost::asio::streambuf _err;
+    boost::process::async_pipe _err{_io_service};
+    boost::asio::streambuf _err_buf;
     boost::asio::streambuf _out_buf;
 
     boost::process::child _child;
 
+    std::vector<std::string> _err_vec; //vector for storage
 
     std::string _remote;
     std::string _program;
@@ -65,13 +68,14 @@ class process
     std::vector<std::unique_ptr<break_point>> _break_points;
     std::map<int, break_point*>               _break_point_map;
     void _run_impl(boost::asio::yield_context &yield);
-    std::vector<std::string> _get_err_data();
-    std::vector<std::string> _read_chunk (boost::asio::yield_context & yield);
+
+    std::vector<std::string> _get_err_data(boost::asio::yield_context & yield_);
+    std::vector<std::string> _read_chunk  (boost::asio::yield_context & yield_);
     void _read_header(boost::asio::yield_context & yield);
     void _set_timer();
     void _set_breakpoint(break_point & p, boost::asio::yield_context &yield, const std::regex & rx);
     void _handle_breakpoint(boost::asio::yield_context &yield, const std::vector<std::string> & buf, std::smatch & sm);
-
+    void _err_read_handler(const boost::system::error_code & ec);
 
     void _set_info(const std::string & version, const std::string & toolset, const std::string & config)
     {
@@ -81,15 +85,14 @@ class process
     }
     void _terminate()
     {
-        _child.terminate();
-        std::terminate();
+        throw std::runtime_error("mw::gdb_process panic!");
     }
     void _read_info();
-    template<typename Yield> void _init_bps(Yield & yield_);
-    template<typename Yield> void _start(Yield & yield_);
-    template<typename Yield> void _start_remote(Yield & yield_);
-    template<typename Yield> void _start_local (Yield & yield_);
-    template<typename Yield> void _handle_bps(Yield & yield_);
+    void _init_bps    (boost::asio::yield_context & yield_);
+    void _start       (boost::asio::yield_context & yield_);
+    void _start_remote(boost::asio::yield_context & yield_);
+    void _start_local (boost::asio::yield_context & yield_);
+    void _handle_bps  (boost::asio::yield_context & yield_);
     bool _exited = false;
 public:
     void set_exit(int code)
@@ -107,11 +110,11 @@ public:
     {
         _remote = remote;
     }
+    void enable_debug() {_enable_debug = true;}
     using buf_iterator = std::istreambuf_iterator<char>;
     using iterator =  boost::spirit::multi_pass<buf_iterator>;
 
-    template<typename Yield>
-    iterator _read(const std::string & input, Yield & yield_);
+    iterator _read(const std::string & input, boost::asio::yield_context & yield_);
     iterator _begin() {return iterator(&_out_buf);}
     iterator _end()   const {return iterator();}
 

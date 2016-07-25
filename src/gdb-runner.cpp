@@ -16,6 +16,7 @@
 
 #include <boost/program_options.hpp>
 #include <boost/process/child.hpp>
+#include <boost/process/group.hpp>
 #include <boost/process/io.hpp>
 #include <boost/dll.hpp>
 #include <boost/filesystem/path.hpp>
@@ -38,6 +39,7 @@ struct options_t
     string gdb;
     string exe;
     string log;
+    string log_level;
     vector<string> args;
     vector<string> gdb_args;
     vector<string> other_cmds;
@@ -59,14 +61,17 @@ struct options_t
            ("exe,E",       value<string>(&exe),             "executable to run")
            ("args,A",      value<vector<string>>(&args),   "Arguments passed to the target")
            ("gdb,G",       value<string>(&gdb)->default_value("gdb"), "gdb command"  )
-           ("gdb-args,A",  value<vector<string>>(&gdb_args)->multitoken(), "gdb arguments")
+           ("gdb-args,S",  value<vector<string>>(&gdb_args)->multitoken(), "gdb arguments")
            ("other,O",     value<vector<string>>(&other_cmds)->multitoken(), "other arguments")
-           ("timeout,T",   value<int>(&time_out), "time_out")
-           ("log,L",       value<string>(&log), "log file")
-           ("debug,D",     bool_switch(&debug), "output the log data to stderr")
-           ("lib,L",       value<vector<fs::path>>(&dlls)->multitoken(), "break-point libraries")
-           ("remote,R",      value<string>(&remote), "Remote settings")
+           ("timeout,T",   value<int>(&time_out),       "time_out")
+           ("log,L",       value<string>(&log),         "log file")
+           ("debug,D",     bool_switch(&debug),         "output the log data to stderr")
+           ("lib,B",       value<vector<fs::path>>(&dlls)->multitoken(), "break-point libraries")
+           ("remote,R",    value<string>(&remote), "Remote settings")
             ;
+
+
+
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
     }
@@ -90,17 +95,30 @@ int main(int argc, char * argv[])
     }
 
     std::vector<bp::child> other;
+    bp::group other_group;
 
-    for (auto & o : opt.other_cmds)
-        other.emplace_back(o, bp::std_in < bp::null, bp::std_out > bp::null, bp::std_err > bp::null);
+    {
+        int cnt = 0;
+        for (auto & o : opt.other_cmds)
+        {
+            auto idx = o.find(' ');
+            std::string log;
+            if (idx == std::string::npos)
+                log = o;
+            else
+                log = o.substr(0, idx);
 
-
+            boost::algorithm::replace_all(log, "/", "~");
+            boost::algorithm::replace_all(log, "\\", "~");
+            log += "_" + std::to_string(cnt++);
+            other.emplace_back(o, bp::std_in < bp::null, bp::std_out > log, bp::std_err > log, other_group);
+        }
+    }
 
 
     std::vector<boost::dll::shared_library> libs;
     for (auto & dll : opt.dlls)
         libs.emplace_back(dll);
-
 
     mw::gdb::process proc(opt.gdb, opt.exe, opt.gdb_args);
 
@@ -111,7 +129,7 @@ int main(int argc, char * argv[])
         proc.set_args(opt.args);
     //just for me:
     if (opt.debug)
-        proc.log().rdbuf(cerr.rdbuf());
+        proc.enable_debug();
 
     if (opt.dlls.empty())
         proc.log() << "No Dll provided, thus no breakpoints will be executed." << endl;
@@ -130,7 +148,8 @@ int main(int argc, char * argv[])
     proc.log() << "Exited with code: " << proc.exit_code() << endl;
 
     for (auto & o : other)
-        o.terminate();
+        if (o.running())
+            o.terminate();
 
     return proc.exit_code();
 

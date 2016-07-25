@@ -428,8 +428,8 @@ std::vector<std::unique_ptr<mw::gdb::break_point>> mw_gdb_setup_bps()
 {
     std::vector<std::unique_ptr<mw::gdb::break_point>> vec;
 
-    vec.push_back(std::make_unique<exit_stub>());
     vec.push_back(std::make_unique<mw_func_stub>());
+    vec.push_back(std::make_unique<exit_stub>());
     return vec;
 };
 

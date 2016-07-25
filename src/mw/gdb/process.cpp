@@ -51,12 +51,21 @@ namespace mw {
 namespace gdb {
 
 
-template<typename Yield>
-auto process::_read(const std::string & input, Yield & yield_) -> iterator
+auto process::_read(const std::string & input, boost::asio::yield_context & yield_) -> iterator
 {
     this->_set_timer();
+    if (_enable_debug)
+        cout << input;
+
     asio::async_write(_in, asio::buffer(input), yield_);
     asio::async_read_until(_out, _out_buf, "(gdb)", yield_);
+
+    if (_enable_debug)
+    {
+        boost::asio::streambuf::const_buffers_type bufs = _out_buf.data();
+        cout << std::string (boost::asio::buffers_begin(bufs), boost::asio::buffers_begin(bufs) + _out_buf.size());
+    }
+
     return iterator(&_out_buf);
 }
 
@@ -141,39 +150,49 @@ struct frame_impl : frame
 
 process::process(const std::string & gdb, const std::string & exe, const std::vector<std::string> & args)
     : _child(bp::search_path(gdb), exe, args, _io_service, bp::std_in < _in, bp::std_out > _out, bp::std_err > _err,
-            bp::on_exit([this](int, const std::error_code&){_timer.cancel();}))
+            bp::on_exit([this](int, const std::error_code&){_timer.cancel();_out.async_close(); _err.async_close();}))
 {
 }
 
-vector<string> process::_get_err_data()
+vector<string> process::_get_err_data(boost::asio::yield_context & yield_)
 {
-    vector<string> data;
-    istream is(&_err);
+    size_t sz = 0;
 
-    string line;
-    while (getline(is, line))
-        data.push_back(move(line));
+    while (sz != _err_vec.size())
+    {
+        sz = _err_vec.size();
+        _io_service.post(yield_);
+    }
 
-    return data;
+    return std::move(_err_vec);
 }
 
 
 void process::_read_info()
 {
-    iterator itr(&_out_buf);
+
+    if (_enable_debug)
+    {
+        boost::asio::streambuf::const_buffers_type bufs = _out_buf.data();
+        cout << std::string (boost::asio::buffers_begin(bufs), boost::asio::buffers_begin(bufs) + _out_buf.size());
+    }
+
     namespace p = mw::gdb::parsers;
     info i;
-    if(x3::phrase_parse(itr, _end(), p::info, x3::space, i))
+    auto itr = iterator(&_out_buf);
+    if(x3::phrase_parse(itr, iterator(), p::info, x3::space, i))
         _set_info(i.version, i.toolset, i.config);
     else
     {
         _log << "Header Parse failed." << endl;
         _terminate();
     }
+
+
+
 }
 
-template<typename Yield>
-void process::_init_bps(Yield & yield_)
+void process::_init_bps(boost::asio::yield_context & yield_)
 {
     namespace p = mw::gdb::parsers;
 
@@ -202,7 +221,7 @@ void process::_init_bps(Yield & yield_)
         else if (x3::phrase_parse(itr, _end(), *(!x3::lit("(gdb)") >> x3::char_) >> "(gdb)", x3::space))
         {
             _log << bp->identifier() << endl;
-            auto err = this->_get_err_data();
+            auto err = this->_get_err_data(yield_);
             for (auto & e : err)
                 _log << e << endl;
             _log << endl;
@@ -215,8 +234,7 @@ void process::_init_bps(Yield & yield_)
     }
 }
 
-template<typename Yield>
-void process::_start(Yield & yield_)
+void process::_start(boost::asio::yield_context & yield_)
 {
     if (_remote.empty())
         _start_local(yield_);
@@ -225,8 +243,7 @@ void process::_start(Yield & yield_)
 
 }
 
-template<typename Yield>
-void process::_start_local(Yield & yield_)
+void process::_start_local(boost::asio::yield_context & yield_)
 {
     namespace p = mw::gdb::parsers;
 
@@ -252,8 +269,7 @@ void process::_start_local(Yield & yield_)
 
 }
 
-template<typename Yield>
-void process::_start_remote(Yield & yield_)
+void process::_start_remote(boost::asio::yield_context & yield_)
 {
     namespace p = mw::gdb::parsers;
 
@@ -302,8 +318,7 @@ void process::_start_remote(Yield & yield_)
     }
 }
 
-template<typename Yield>
-void process::_handle_bps(Yield &yield_)
+void process::_handle_bps(boost::asio::yield_context &yield_)
 {
     namespace p = mw::gdb::parsers;
     auto start_thread_l = [this](auto & ctx)
@@ -392,7 +407,10 @@ void process::_run_impl(boost::asio::yield_context &yield_)
    if (!_exited && x3::phrase_parse(itr, _end(), mwp::exit_proc, x3::space, exit))
        set_exit(exit.code);
    _set_timer();
+
    async_write(_in, buffer("quit\n", 5), yield_);
+   if (_enable_debug)
+       cout << "quit\n\n";
 
 }
 
@@ -413,6 +431,25 @@ void process::_set_timer()
     }
 }
 
+void process::_err_read_handler(const boost::system::error_code & ec)
+{
+    std::istream is(&_err_buf);
+    std::string line;
+
+    while (std::getline(is, line))
+    {
+        if (_enable_debug)
+            cerr << line << endl;
+        _err_vec.push_back(std::move(line));
+    }
+    if (!ec)
+        boost::asio::async_read_until(_err, _err_buf, '\n',
+            [this](const boost::system::error_code& ec,
+                    std::size_t bytes_transferred)
+                    {
+                        _err_read_handler(ec);
+                    });
+}
 
 void process::run()
 {
@@ -424,6 +461,15 @@ void process::run()
     }
     _set_timer();
     _log << "Starting run" << endl << endl;
+
+
+    //start
+    boost::asio::async_read_until(_err, _err_buf, '\n',
+                [this](const boost::system::error_code& ec,
+                        std::size_t bytes_transferred)
+                        {
+                            _err_read_handler(ec);
+                        });
 
     boost::asio::spawn(_io_service, [this](boost::asio::yield_context yield){_run_impl(yield);});
     _io_service.run();

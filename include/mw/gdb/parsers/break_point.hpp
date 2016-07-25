@@ -102,7 +102,8 @@ namespace parsers
 {
 
 x3::rule<class quoted_string, std::string> quoted_string;
-auto quoted_string_def = x3::lexeme[ x3::char_('"') >> *(!x3::lit('"') >> x3::char_) >> x3::char_('"') ];
+auto quoted_string_def =
+        x3::lexeme[ x3::char_('"') >> *(x3::string("\\\"") | (!x3::lit('"') >> x3::char_)) >> x3::char_('"') ];
 
 BOOST_SPIRIT_DEFINE(quoted_string);
 
@@ -140,7 +141,7 @@ auto bp_arg_list_step_def = bp_arg_name >> '=' >>
                     -("@0x" >> x3::hex >> ":") >>
                     (quoted_string | x3::lexeme[+(!(x3::space | ',' | ')') >> x3::char_) ] ) >>
                     -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>' ] >>
-                    -x3::lexeme['"' >> *(!x3::lit('"') >> x3::char_) >> '"' ];
+                    -x3::lexeme[quoted_string];
 
 BOOST_SPIRIT_DEFINE(bp_arg_list_step);
 
@@ -174,7 +175,7 @@ auto var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
                 -(-x3::omit[round_brace] >> "@0x" >> x3::hex >> ':') >>
                 x3::lexeme[+(!x3::space >> x3::char_)] >>
                 -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>'] >>
-                -x3::lexeme['"' >> *(!x3::lit('"') >> x3::char_) >> '"'] >>
+                -x3::lexeme[quoted_string] >>
                 -x3::omit[x3::lexeme['\'' >> +(
                            x3::lit("\\\\") |  "\\'" | (!x3::lit('\'') >> x3::char_)) >> '\''] ];
 
