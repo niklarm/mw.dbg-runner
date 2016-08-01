@@ -16,21 +16,10 @@
 #define MW_GDB_PARSERS_LOCATION_HPP_
 
 #include <mw/gdb/parsers/config.hpp>
+#include <mw/gdb/location.hpp>
 #include <string>
 
-namespace mw
-{
-namespace gdb
-{
 
-struct location
-{
-    std::string file;
-    int line;
-};
-
-}
-}
 BOOST_FUSION_ADAPT_STRUCT(
     mw::gdb::location,
     (std::string, file),

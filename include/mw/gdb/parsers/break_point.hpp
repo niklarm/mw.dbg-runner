@@ -100,6 +100,16 @@ BOOST_FUSION_ADAPT_STRUCT
     (mw::gdb::location, loc)
 );
 
+BOOST_FUSION_ADAPT_STRUCT
+(
+    mw::gdb::backtrace_elem,
+    (int, cnt)
+    (boost::optional<std::uint64_t>, call_site)
+    (std::string, func)
+    (std::string, args)
+    (mw::gdb::location, loc)
+);
+
 
 namespace mw
 {
@@ -173,6 +183,11 @@ auto bp_arg_list_def = '(' >> -(bp_arg_list_step % ',' ) >> ')'; //)[set_bp_arg_
 
 BOOST_SPIRIT_DEFINE(bp_arg_list);
 
+x3::rule<class func_name, std::string> func_name;
+
+auto func_name_def = x3::eps;
+
+BOOST_SPIRIT_DEFINE(func_name);
 
 x3::rule<class bp_stop_, mw::gdb::bp_stop> bp_stop;
 
@@ -191,9 +206,9 @@ auto round_brace_def = '(' >> *((!(x3::lit('(') | ')') >> x3::char_) | round_bra
 
 BOOST_SPIRIT_DEFINE(round_brace);
 
-x3::rule<class var_, mw::gdb::var> var;
+x3::rule<class strict_var, mw::gdb::var> strict_var;
 
-auto var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
+auto strict_var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
                 -(-x3::omit[round_brace] >> "@0x" >> x3::hex >> ':') >>
                 x3::lexeme[+(!x3::space >> x3::char_)] >>
                 -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>'] >>
@@ -201,7 +216,45 @@ auto var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
                 -x3::omit[x3::lexeme['\'' >> +(
                            x3::lit("\\\\") |  "\\'" | (!x3::lit('\'') >> x3::char_)) >> '\''] ];
 
+BOOST_SPIRIT_DEFINE(strict_var);
+
+x3::rule<class relaxed_var, mw::gdb::var> relaxed_var;
+
+auto relaxed_var_value = [](auto & ctx)
+        {
+            auto r = x3::_attr(ctx);
+            x3::_val(ctx).value.assign(r.begin(), r.end());
+        };
+
+auto relaxed_var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
+                       x3::raw[x3::lexeme[*(!(x3::lit("(gdb)") >> x3::char_))]][relaxed_var_value];
+
+BOOST_SPIRIT_DEFINE(relaxed_var);
+
+x3::rule<class var_, mw::gdb::var> var;
+auto var_def = strict_var | relaxed_var;
+
 BOOST_SPIRIT_DEFINE(var);
+
+//#0  my_func (value=false, c1=0x405053 <std::piecewise_construct+19> "d", c2=0x40504b <std::piecewise_construct+11> "(char)2") at test.mwt:125
+//#1  0x0000000000401638 in <lambda()>::operator()(void) const (__closure=0x62fe20) at test.mwt:1003
+//#2  0x000000000040168c in __mw_execute<main(int, char**)::<lambda()> >(<lambda()>) (func=...) at test.mwt:131
+//#3  0x000000000040166c in main (argc=1, argv=0xe64c10) at test.mwt:1003
+
+x3::rule<class backtrace_elem_, mw::gdb::backtrace_elem> backtrace_elem;
+
+auto backtrace_elem_def = '#' >> x3::int_ >> -(x3::lexeme["0x" >> x3::hex]  >> "in")
+        >> *(!(round_brace >> "at" >> loc_short) >> x3::char_)
+        >> round_brace >> "at" >> loc_short;
+
+
+BOOST_SPIRIT_DEFINE (backtrace_elem);
+
+x3::rule<class backtrace, std::vector<mw::gdb::backtrace_elem>> backtrace;
+
+auto backtrace_def = *backtrace_elem;
+
+BOOST_SPIRIT_DEFINE(backtrace);
 
 }
 

@@ -136,6 +136,21 @@ struct frame_impl : frame
         proc.set_exit(code);
     }
 
+    void select(int frame) override
+    {
+        itr = proc._read("select-frame " + std::to_string(frame) + "\n", yield_);
+        if (!x3::phrase_parse(itr, proc._end(), "(gdb)", x3::space))
+            throw std::runtime_error("Parser error for return command");
+    }
+
+    virtual std::vector<backtrace_elem> backtrace() override
+    {
+        itr = proc._read("backtrace\n", yield_);
+        if (!x3::phrase_parse(itr, proc._end(),  mw::gdb::parsers::backtrace >> "(gdb)", x3::space))
+                    throw std::runtime_error("Parser error for backtrace command");
+    }
+
+
     std::ostream & log() { return _log; }
 
 

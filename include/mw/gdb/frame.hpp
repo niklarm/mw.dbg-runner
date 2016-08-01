@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <ostream>
 #include <boost/optional.hpp>
+#include <mw/gdb/location.hpp>
 
 namespace mw {
 namespace gdb {
@@ -54,6 +55,15 @@ struct arg : var
         : var{{}, value, policy, cstring}, id(id) {}
 };
 
+struct backtrace_elem
+{
+    int cnt;
+    boost::optional<std::uint64_t> call_site;
+    std::string func;
+    std::string args;
+    location loc;
+};
+
 struct frame
 {
     const std::vector<arg> &arg_list() const {return _arg_list;}
@@ -66,12 +76,17 @@ struct frame
     virtual var print(const std::string & pt)       = 0;
     virtual void return_(const std::string & value) = 0;
     virtual void set_exit(int) = 0;
+    virtual void select(int frame) = 0;
+
+    virtual std::vector<backtrace_elem> backtrace() = 0;
+
     virtual std::ostream & log() = 0;
     frame(std::vector<arg> && args)
             : _arg_list(std::move(args))
     {
 
     }
+    virtual ~frame() = default;
 protected:
     std::vector<arg> _arg_list;
 
