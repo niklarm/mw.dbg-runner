@@ -118,58 +118,57 @@ namespace gdb
 namespace parsers
 {
 
-auto ellipsis_enable  = [](auto & ctx){x3::_val(ctx) = true;};
-auto ellipsis_disable = [](auto & ctx){x3::_val(ctx) = false;};
+static auto ellipsis_enable  = [](auto & ctx){x3::_val(ctx) = true;};
+static auto ellipsis_disable = [](auto & ctx){x3::_val(ctx) = false;};
 
-x3::rule<class ellipsis, bool> ellipsis;
-auto ellipsis_def = x3::lit("...")[ellipsis_enable] | x3::eps[ellipsis_disable];
+static x3::rule<class ellipsis, bool> ellipsis;
+static auto ellipsis_def = x3::lit("...")[ellipsis_enable] | x3::eps[ellipsis_disable];
 
 BOOST_SPIRIT_DEFINE(ellipsis);
 
 
-x3::rule<class quoted_string, std::string> quoted_string;
-auto quoted_string_def =
+static x3::rule<class quoted_string, std::string> quoted_string;
+static auto quoted_string_def =
         x3::lexeme['"' >> *(x3::string("\\\"") | (!x3::lit('"') >> x3::char_)) >> '"'];
 
 BOOST_SPIRIT_DEFINE(quoted_string);
 
-x3::rule<class cstring, mw::gdb::cstring_t> cstring;
-auto cstring_def =
+static x3::rule<class cstring, mw::gdb::cstring_t> cstring;
+static auto cstring_def =
         quoted_string >> ellipsis;
 
 BOOST_SPIRIT_DEFINE(cstring);
 
-x3::rule<class bp_multiple_loc, mw::gdb::bp_mult_loc> bp_multiple_loc;
+static x3::rule<class bp_multiple_loc, mw::gdb::bp_mult_loc> bp_multiple_loc;
 
-auto bp_multiple_loc_def = x3::lexeme[+(!(x3::space | '.') >> x3::char_ ) ] >> x3::lit('.') >>
+static auto bp_multiple_loc_def = x3::lexeme[+(!(x3::space | '.') >> x3::char_ ) ] >> x3::lit('.') >>
                        '(' >> x3::int_ >> "locations" >> x3::lit(')');
 
 BOOST_SPIRIT_DEFINE(bp_multiple_loc);
 
-x3::rule<class bp_decl_, mw::gdb::bp_decl> bp_decl;
+static x3::rule<class bp_decl_, mw::gdb::bp_decl> bp_decl;
 
-auto bp_decl_def = "Breakpoint" >> x3::int_ >> "at" >> x3::lexeme["0x" >> x3::hex] >>
+static auto bp_decl_def = "Breakpoint" >> x3::int_ >> "at" >> x3::lexeme["0x" >> x3::hex] >>
                    ':' >> (loc | bp_multiple_loc);
 
 BOOST_SPIRIT_DEFINE(bp_decl);
 
 //arg0=arg0@entry=0x0
-x3::rule<class bp_arg_name, std::string> bp_arg_name;
+static x3::rule<class bp_arg_name, std::string> bp_arg_name;
 
-auto bp_arg_name_set = [](auto & ctx){x3::_val(ctx)  = x3::_attr(ctx);};
-auto bp_arg_name_cmp = [](auto & ctx){x3::_pass(ctx) = (x3::_attr(ctx) == x3::_val(ctx));};
+static auto bp_arg_name_set = [](auto & ctx){x3::_val(ctx)  = x3::_attr(ctx);};
+static auto bp_arg_name_cmp = [](auto & ctx){x3::_pass(ctx) = (x3::_attr(ctx) == x3::_val(ctx));};
 
-auto bp_arg_name_def =
+static auto bp_arg_name_def =
         (+(!(x3::lit('=') | ',' | ')') >> x3::char_))[bp_arg_name_set] >>
         -('=' >> (+(!(x3::lit('=') | ',' | '@') >> x3::char_))[bp_arg_name_cmp] >> '@' >> x3::lit("entry"));
 
-
-
-x3::rule<class bp_arg_list_step, arg> bp_arg_list_step;
-
 BOOST_SPIRIT_DEFINE(bp_arg_name);
 
-auto bp_arg_list_step_def = bp_arg_name >> '=' >>
+
+static x3::rule<class bp_arg_list_step, arg> bp_arg_list_step;
+
+static auto bp_arg_list_step_def = bp_arg_name >> '=' >>
                     -("@0x" >> x3::hex >> ":") >>
                     (quoted_string | x3::lexeme[+(!(x3::space | ',' | ')') >> x3::char_) ] ) >>
                     -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>' ] >>
@@ -177,21 +176,21 @@ auto bp_arg_list_step_def = bp_arg_name >> '=' >>
 
 BOOST_SPIRIT_DEFINE(bp_arg_list_step);
 
-x3::rule<class bp_arg_list, std::vector<arg>> bp_arg_list;
+static x3::rule<class bp_arg_list, std::vector<arg>> bp_arg_list;
 
-auto bp_arg_list_def = '(' >> -(bp_arg_list_step % ',' ) >> ')'; //)[set_bp_arg_list];
+static auto bp_arg_list_def = '(' >> -(bp_arg_list_step % ',' ) >> ')'; //)[set_bp_arg_list];
 
 BOOST_SPIRIT_DEFINE(bp_arg_list);
 
-x3::rule<class func_name, std::string> func_name;
+static x3::rule<class func_name, std::string> func_name;
 
-auto func_name_def = x3::eps;
+static auto func_name_def = x3::eps;
 
 BOOST_SPIRIT_DEFINE(func_name);
 
-x3::rule<class bp_stop_, mw::gdb::bp_stop> bp_stop;
+static x3::rule<class bp_stop_, mw::gdb::bp_stop> bp_stop;
 
-auto bp_stop_def = ("Breakpoint" >> x3::int_ >> "," >> x3::lexeme[+(!x3::space >> x3::char_)] >>
+static auto bp_stop_def = ("Breakpoint" >> x3::int_ >> "," >> x3::lexeme[+(!x3::space >> x3::char_)] >>
                bp_arg_list >>
                x3::lit("at") >>
                loc_short //x3::lexeme[+(!(x3::space | ':') >> x3::char_) >> ':' >> x3::int_]
@@ -200,15 +199,15 @@ auto bp_stop_def = ("Breakpoint" >> x3::int_ >> "," >> x3::lexeme[+(!x3::space >
 BOOST_SPIRIT_DEFINE(bp_stop);
 
 
-x3::rule<class round_brace, std::string> round_brace;
+static x3::rule<class round_brace, std::string> round_brace;
 
-auto round_brace_def = '(' >> *((!(x3::lit('(') | ')') >> x3::char_) | round_brace ) >> ')';
+static auto round_brace_def = '(' >> *((!(x3::lit('(') | ')') >> x3::char_) | round_brace ) >> ')';
 
 BOOST_SPIRIT_DEFINE(round_brace);
 
-x3::rule<class strict_var, mw::gdb::var> strict_var;
+static x3::rule<class strict_var, mw::gdb::var> strict_var;
 
-auto strict_var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
+static auto strict_var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
                 -(-x3::omit[round_brace] >> "@0x" >> x3::hex >> ':') >>
                 x3::lexeme[+(!x3::space >> x3::char_)] >>
                 -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>'] >>
@@ -218,21 +217,21 @@ auto strict_var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
 
 BOOST_SPIRIT_DEFINE(strict_var);
 
-x3::rule<class relaxed_var, mw::gdb::var> relaxed_var;
+static x3::rule<class relaxed_var, mw::gdb::var> relaxed_var;
 
-auto relaxed_var_value = [](auto & ctx)
+static auto relaxed_var_value = [](auto & ctx)
         {
             auto r = x3::_attr(ctx);
             x3::_val(ctx).value.assign(r.begin(), r.end());
         };
 
-auto relaxed_var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
+static auto relaxed_var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
                        x3::raw[x3::lexeme[*(!(x3::lit("(gdb)") >> x3::char_))]][relaxed_var_value];
 
 BOOST_SPIRIT_DEFINE(relaxed_var);
 
-x3::rule<class var_, mw::gdb::var> var;
-auto var_def = strict_var | relaxed_var;
+static x3::rule<class var_, mw::gdb::var> var;
+static auto var_def = ( strict_var | relaxed_var ) >> "(gdb)";
 
 BOOST_SPIRIT_DEFINE(var);
 
@@ -241,18 +240,18 @@ BOOST_SPIRIT_DEFINE(var);
 //#2  0x000000000040168c in __mw_execute<main(int, char**)::<lambda()> >(<lambda()>) (func=...) at test.mwt:131
 //#3  0x000000000040166c in main (argc=1, argv=0xe64c10) at test.mwt:1003
 
-x3::rule<class backtrace_elem_, mw::gdb::backtrace_elem> backtrace_elem;
+static x3::rule<class backtrace_elem_, mw::gdb::backtrace_elem> backtrace_elem;
 
-auto backtrace_elem_def = '#' >> x3::int_ >> -(x3::lexeme["0x" >> x3::hex]  >> "in")
+static auto backtrace_elem_def = '#' >> x3::int_ >> -(x3::lexeme["0x" >> x3::hex]  >> "in")
         >> *(!(round_brace >> "at" >> loc_short) >> x3::char_)
         >> round_brace >> "at" >> loc_short;
 
 
 BOOST_SPIRIT_DEFINE (backtrace_elem);
 
-x3::rule<class backtrace, std::vector<mw::gdb::backtrace_elem>> backtrace;
+static x3::rule<class backtrace, std::vector<mw::gdb::backtrace_elem>> backtrace;
 
-auto backtrace_def = *backtrace_elem;
+static auto backtrace_def = *backtrace_elem;
 
 BOOST_SPIRIT_DEFINE(backtrace);
 
@@ -316,7 +315,7 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list, "(st=\"original data\")",
                    std::vector<mw::gdb::arg>,
                    ((attr.size(), 1),
                     (attr.at(0).id, "st"),
-                    (attr.at(0).value, "\"original data\"")));
+                    (attr.at(0).value, "original data")));
 
 MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_list, "(c=0x496048 <__gnu_cxx::__default_lock_policy+4> \"Thingy\")",
                    std::vector<mw::gdb::arg>,
@@ -330,7 +329,7 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::var, "$3 = 0x4a5048 <__gnu_cxx::__default_l
                    mw::gdb::var,
                    ((attr.value, "0x4a5048"),
                     (attr.policy, "__gnu_cxx::__default_lock_policy+4"),
-                    (attr.cstring, "Thingy")));
+                    (attr.cstring.value, "Thingy")));
 
 
 MW_GDB_TEST_PARSER(mw::gdb::parsers::round_brace, "(int &)");
@@ -369,6 +368,19 @@ MW_GDB_TEST_PARSER(mw::gdb::parsers::bp_arg_name,
         "arg1",
         std::string,
         ((attr, "arg1")));
+
+//MW_GDB_TEST_PARSER(mw::gdb::parsers::backtrace,
+//        "#0  my_func (value=false, c1=0x405053 <std::piecewise_construct+19> \"d\", c2=0x40504b <std::piecewise_construct+11> \"(char)2\") at test.mwt:125\n"
+//        "#1  0x0000000000401638 in <lambda()>::operator()(void) const (__closure=0x62fe20) at test.mwt:1003\n"
+//        "#2  0x000000000040168c in __mw_execute<main(int, char**)::<lambda()> >(<lambda()>) (func=...) at test.mwt:131\n"
+//        "#3  0x000000000040166c in main (argc=1, argv=0xe64c10) at test.mwt:1003\n",
+//        std::vector<mw::gdb::backtrace_elem>,
+//        ((attr.size(), 4),
+//         (attr[0].cnt, 0),
+//         (attr[2].loc.file, "test.mwt"),
+//         (attr[2].loc.line, 131),
+//         (attr[1].cnt, 1))
+//)
 
 
 #endif /* MW_GDB_PARSERS_INFO_HPP_ */

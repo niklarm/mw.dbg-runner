@@ -14,7 +14,7 @@
  */
 
 #include <boost/asio/spawn.hpp>
-
+#include <boost/optional/optional_io.hpp>
 #define BOOST_TEST_MAIN
 #include <boost/test/included/unit_test.hpp>
 #include <boost/preprocessor/cat.hpp>

@@ -74,7 +74,7 @@ struct frame
     virtual void set(const std::string &var, std::size_t idx, const std::string & val) = 0;
     virtual boost::optional<var> call(const std::string & cl)        = 0;
     virtual var print(const std::string & pt)       = 0;
-    virtual void return_(const std::string & value) = 0;
+    virtual void return_(const std::string & value = "") = 0;
     virtual void set_exit(int) = 0;
     virtual void select(int frame) = 0;
 

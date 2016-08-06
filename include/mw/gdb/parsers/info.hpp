@@ -46,9 +46,9 @@ namespace gdb
 namespace parsers
 {
 
-x3::rule<class info_, mw::gdb::info> info;
+static x3::rule<class info_, mw::gdb::info> info;
 
-auto info_def =
+static auto info_def =
         "GNU" >> x3::lit("gdb") >> x3::lexeme['(' >> +(!x3::lit(')') >> x3::char_ )  >> ')'] >> x3::lexeme[+(!x3::space >> x3::char_)] >>
         *x3::omit[!("This" >> x3::lit("GDB") >> "was" >> x3::lit("configured")) >> x3::char_]
         >> ("This" >> x3::lit("GDB") >> "was" >> x3::lit("configured") >> "as" >>

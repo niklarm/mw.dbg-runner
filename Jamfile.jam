@@ -1,8 +1,6 @@
 
 import modules ;
 
-use-project boost : [ modules.peek user-config : boost-loc ] ;
-
 project gdb-runner :
 	source-location src	
 	: requirements
@@ -11,9 +9,6 @@ project gdb-runner :
 	<toolset>gcc:<cxxflags>-ftemplate-depth=512
 	;
 	
-
-use-project boost : [ modules.peek user-config : boost-loc ] ;
-
 
 alias system 			 : /boost//system 			 : <link>static ;
 alias program_options  	 : /boost//program_options   : <link>static ;
@@ -29,10 +24,12 @@ import testing ;
 exe mw-gdb-runner : 
 		gdb-runner.cpp 
 		mw/gdb/process.cpp 
+		[ glob mw/gdb/detail/*.cpp ] 
 		boosts : <link>static <linkflags>-static-libstdc++  ;
 
 exe target : ../test/target.cpp /boost//filesystem :  <linkflags>-static-libstdc++ <debug-symbols>on <optimization>off ;
 
-lib mw-newlib-syscalls : mw_newlib.cpp : <link>shared <dependency>/boost//headers ;
+lib mw-newlib-syscalls : mw-newlib.cpp : <link>shared <dependency>/boost//headers ;
+lib mw-test-backend : mw-test-backend.cpp : <link>shared <dependency>/boost//headers ;
 
-install targ : target mw-gdb-runner mw-newlib-syscalls : <location>bin  ;
+install targ : target mw-gdb-runner mw-newlib-syscalls mw-test-backend : <location>bin  ;

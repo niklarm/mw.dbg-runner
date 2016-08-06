@@ -33,15 +33,15 @@ namespace gdb
 namespace parsers
 {
 
-x3::rule<class loc_short, mw::gdb::location> loc_short;
+static x3::rule<class loc_short, mw::gdb::location> loc_short;
 
-auto loc_short_def = x3::lexeme[+(!(x3::space | ':' ) >> x3::char_)] >> ":" >> x3::int_;
+static auto loc_short_def = x3::lexeme[+(!(x3::space | ':' ) >> x3::char_)] >> ":" >> x3::int_;
 
 BOOST_SPIRIT_DEFINE(loc_short);
 
-x3::rule<class loc, mw::gdb::location> loc;
+static x3::rule<class loc, mw::gdb::location> loc;
 
-auto loc_def = "file" >> x3::lexeme[+(!x3::lit(',') >> x3::char_)] >> "," >> x3::lit("line") >> x3::int_ >> '.';
+static auto loc_def = "file" >> x3::lexeme[+(!x3::lit(',') >> x3::char_)] >> "," >> x3::lit("line") >> x3::int_ >> '.';
 
 BOOST_SPIRIT_DEFINE(loc);
 
