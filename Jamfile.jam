@@ -43,4 +43,4 @@ lib mw-newlib-syscalls : mw-newlib.cpp : <link>shared <dependency>/boost//header
 lib mw-test-backend : mw-test-backend.cpp : <link>shared <dependency>/boost//headers ;
 
 install targ : target mw-gdb-runner mw-newlib-syscalls mw-test-backend :
-                <variant>debug:<location>../bin/debug <variant>release:<location>../bin/release ;
+                <variant>debug:<location>../bin/debug <variant>release:<location>../bin/release <link>shared ;
