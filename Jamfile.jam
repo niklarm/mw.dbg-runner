@@ -1,4 +1,11 @@
 
+import os ;
+
+if [ os.name ] = NT
+{
+  lib ws2_32 ;
+}
+
 import modules ;
 
 project gdb-runner :
@@ -25,7 +32,10 @@ exe mw-gdb-runner :
 		gdb-runner.cpp 
 		mw/gdb/process.cpp 
 		[ glob mw/gdb/detail/*.cpp ] 
-		boosts : <link>static <linkflags>-static-libstdc++  ;
+		boosts : <link>static <linkflags>-static-libstdc++
+        <target-os>windows,<toolset>cw:<library>ws2_32
+        <target-os>windows,<toolset>gcc:<library>ws2_32
+        ;
 
 exe target : ../test/target.cpp /boost//filesystem :  <linkflags>-static-libstdc++ <debug-symbols>on <optimization>off ;
 
