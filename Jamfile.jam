@@ -40,7 +40,6 @@ exe mw-gdb-runner :
 exe target : ../test/target.cpp /boost//filesystem :  <linkflags>-static-libstdc++ <debug-symbols>on <optimization>off ;
 
 lib mw-newlib-syscalls : mw-newlib.cpp : <link>shared <dependency>/boost//headers ;
-lib mw-test-backend : mw-test-backend.cpp : <link>shared <dependency>/boost//headers ;
 
-install targ : target mw-gdb-runner mw-newlib-syscalls mw-test-backend :
+install targ : target mw-gdb-runner mw-newlib-syscalls :
                 <variant>debug:<location>../bin/debug <variant>release:<location>../bin/release <link>shared ;
