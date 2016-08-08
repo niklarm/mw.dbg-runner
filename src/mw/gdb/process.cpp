@@ -276,7 +276,7 @@ void process::_handle_bps(boost::asio::yield_context &yield_)
                     auto & d = b.loc;
                     std::string file = d.file;
                     int line         = d.line;
-                    detail::frame_impl fr(std::move(b.args), *this, itr, yield_, _log);
+                    detail::frame_impl fr(std::move(b.name), std::move(b.args), *this, itr, yield_, _log);
                     try {
                         bp->invoke(fr, file, line);
                     }

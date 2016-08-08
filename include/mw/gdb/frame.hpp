@@ -66,6 +66,7 @@ struct backtrace_elem
 
 struct frame
 {
+    const std::string & id() const {return _id;}
     const std::vector<arg> &arg_list() const {return _arg_list;}
     const arg &arg_list(std::size_t index) const {return _arg_list.at(index);}
     inline std::string get_cstring(std::size_t index);
@@ -81,13 +82,14 @@ struct frame
     virtual std::vector<backtrace_elem> backtrace() = 0;
 
     virtual std::ostream & log() = 0;
-    frame(std::vector<arg> && args)
-            : _arg_list(std::move(args))
+    frame(std::string && id, std::vector<arg> && args)
+            : _id(std::move(id)), _arg_list(std::move(args))
     {
 
     }
     virtual ~frame() = default;
 protected:
+    std::string _id;
     std::vector<arg> _arg_list;
 
 };
@@ -96,7 +98,7 @@ std::string frame::get_cstring(std::size_t index)
 {
     auto &entry = arg_list(index);
 
-    if (entry.cstring.ellipsis)
+    if (!entry.cstring.ellipsis)
         return entry.cstring.value;
     //has ellipsis, so I'll need to get the rest manually
     auto val = entry.cstring.value;

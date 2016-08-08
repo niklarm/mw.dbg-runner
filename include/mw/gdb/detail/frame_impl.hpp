@@ -27,12 +27,13 @@ struct frame_impl : frame
     boost::optional<var> call(const std::string & cl) override;
     var print(const std::string & pt) override;
     void return_(const std::string & value) override;
-    frame_impl(std::vector<arg> && args,
+    frame_impl(std::string &&id,
+               std::vector<arg> && args,
                process & proc,
                process::iterator & itr,
                boost::asio::yield_context & yield_,
                std::ostream & log_)
-            : frame(std::move(args)), proc(proc), itr(itr), yield_(yield_), _log(log_)
+            : frame(std::move(id), std::move(args)), proc(proc), itr(itr), yield_(yield_), _log(log_)
     {
     }
     void set_exit(int code) override;

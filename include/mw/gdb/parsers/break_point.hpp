@@ -231,7 +231,7 @@ static auto relaxed_var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
 BOOST_SPIRIT_DEFINE(relaxed_var);
 
 static x3::rule<class var_, mw::gdb::var> var;
-static auto var_def = ( strict_var | relaxed_var ) >> "(gdb)";
+static auto var_def = ( strict_var | relaxed_var );
 
 BOOST_SPIRIT_DEFINE(var);
 
