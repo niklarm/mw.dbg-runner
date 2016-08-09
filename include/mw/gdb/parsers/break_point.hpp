@@ -213,7 +213,7 @@ static auto strict_var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
                 -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>'] >>
                 -x3::lexeme[cstring] >>
                 -x3::omit[x3::lexeme['\'' >> +(
-                           x3::lit("\\\\") |  "\\'" | (!x3::lit('\'') >> x3::char_)) >> '\''] ];
+                           x3::lit("\\\\") |  "\\'" | (!x3::lit('\'') >> x3::char_)) >> '\''] ] >> "(gdb)";
 
 BOOST_SPIRIT_DEFINE(strict_var);
 
@@ -224,21 +224,15 @@ static auto relaxed_var_value = [](auto & ctx)
             auto r = x3::_attr(ctx);
             x3::_val(ctx).value.assign(r.begin(), r.end());
         };
-
 static auto relaxed_var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
-                       x3::raw[x3::lexeme[*(!(x3::lit("(gdb)") >> x3::char_))]][relaxed_var_value];
+                       x3::raw[*(!x3::lit("(gdb)") >> x3::char_)][relaxed_var_value] >> "(gdb)";
 
 BOOST_SPIRIT_DEFINE(relaxed_var);
 
 static x3::rule<class var_, mw::gdb::var> var;
-static auto var_def = ( strict_var | relaxed_var );
+static auto var_def = (strict_var | relaxed_var);
 
 BOOST_SPIRIT_DEFINE(var);
-
-//#0  my_func (value=false, c1=0x405053 <std::piecewise_construct+19> "d", c2=0x40504b <std::piecewise_construct+11> "(char)2") at test.mwt:125
-//#1  0x0000000000401638 in <lambda()>::operator()(void) const (__closure=0x62fe20) at test.mwt:1003
-//#2  0x000000000040168c in __mw_execute<main(int, char**)::<lambda()> >(<lambda()>) (func=...) at test.mwt:131
-//#3  0x000000000040166c in main (argc=1, argv=0xe64c10) at test.mwt:1003
 
 static x3::rule<class backtrace_elem_, mw::gdb::backtrace_elem> backtrace_elem;
 

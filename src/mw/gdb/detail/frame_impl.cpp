@@ -51,19 +51,21 @@ std::unordered_map<std::string, std::uint64_t> frame_impl::regs()
  {
      boost::optional<var> val;
      itr = proc._read("call " + cl + "\n", yield_);
-     if (!x3::phrase_parse(itr, proc._end(), -mwp::var >> "(gdb)", x3::space, val))
+     if (!x3::phrase_parse(itr, proc._end(), mwp::var | "(gdb)", x3::space, val))
          throw std::runtime_error("Parser error for call command");
 
      return val;
 
  }
- var frame_impl::print(const std::string & pt)
+ var frame_impl::print(const std::string & pt, bool bitwise)
  {
      var val;
-     itr = proc._read("print " + pt + "\n", yield_);
-     if (!x3::phrase_parse(itr, proc._end(), mwp::var >> "(gdb)", x3::space, val))
+     if (bitwise)
+         itr = proc._read("print /t " + pt + "\n", yield_);
+     else
+         itr = proc._read("print " + pt + "\n", yield_);
+     if (!x3::phrase_parse(itr, proc._end(), mwp::var, x3::space, val))
          throw std::runtime_error("Parser error for print command");
-
      return val;
  }
  void frame_impl::return_(const std::string & value)

@@ -25,7 +25,7 @@ struct frame_impl : frame
     void set(const std::string &var, const std::string & val) override;
     void set(const std::string &var, std::size_t idx, const std::string & val) override;
     boost::optional<var> call(const std::string & cl) override;
-    var print(const std::string & pt) override;
+    var print(const std::string & pt, bool bitwise) override;
     void return_(const std::string & value) override;
     frame_impl(std::string &&id,
                std::vector<arg> && args,
