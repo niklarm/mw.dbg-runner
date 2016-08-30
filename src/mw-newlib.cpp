@@ -395,7 +395,7 @@ struct mw_func_stub : break_point
         auto ret = ::unlink(name.c_str());
 #else
         int ret = 0;
-        if (!DeleteFileA(name.c_str()));
+        if (!DeleteFileA(name.c_str()))
             ret = GetLastError();
 #endif
         fr.log() << "***mw_newlib*** Log: Invoking unlink(" << name << ") -> " << ret << std::endl;

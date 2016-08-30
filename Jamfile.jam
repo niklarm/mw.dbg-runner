@@ -12,7 +12,6 @@ project gdb-runner :
 	source-location src	
 	: requirements
 	<include>./include
-	<toolset>gcc:<cxxflags>-std=gnu++1y
 	<toolset>gcc:<cxxflags>-ftemplate-depth=512
 	;
 	
@@ -41,5 +40,3 @@ exe target : ../test/target.cpp /boost//filesystem :  <linkflags>-static-libstdc
 
 lib mw-newlib-syscalls : mw-newlib.cpp : <link>shared <dependency>/boost//headers ;
 
-install targ : target mw-gdb-runner mw-newlib-syscalls :
-                <variant>debug:<location>../bin/debug <variant>release:<location>../bin/release <link>shared ;
