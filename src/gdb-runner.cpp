@@ -21,6 +21,8 @@
 #include <boost/dll.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/process/search_path.hpp>
+
 #include <string>
 #include <vector>
 #include <iostream>
@@ -188,7 +190,13 @@ int main(int argc, char * argv[])
         }
     }
 
-    mw::gdb::process proc(opt.gdb, opt.exe, opt.gdb_args);
+    fs::path gdb = opt.gdb;
+    if ((opt.vm.count("count") == 0))
+        gdb = bp::search_path("gdb");
+    else if (!fs::exists(gdb))
+        std::cerr << "Gdb binary " << gdb << " not found" << std::endl;
+
+    mw::gdb::process proc(gdb, opt.exe, opt.gdb_args);
 
     if (!opt.log.empty())
         proc.set_log(opt.log);

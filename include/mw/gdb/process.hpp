@@ -119,7 +119,7 @@ public:
     iterator _end()   const {return iterator();}
 
     std::ostream & log() {return _log;}
-    process(const std::string & gdb, const std::string & exe, const std::vector<std::string> & args = {});
+    process(const boost::filesystem::path & gdb, const std::string & exe, const std::vector<std::string> & args = {});
     ~process() = default;
     int exit_code() {return _exit_code;}
     void set_log(const std::string & name) {_log.open(name); }
