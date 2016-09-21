@@ -224,12 +224,12 @@ int main(int argc, char * argv[])
     }
     catch (std::exception & e)
     {
-        cout << e.what() << endl;
-        return -1;
+        cerr << "Exception thrown " << e.what() << endl;
+        return 1;
     }
     catch (...)
     {
-        cout << "Unknown error" << endl;
-        return -1;
+        cerr << "Unknown error" << endl;
+        return 1;
     }
 }

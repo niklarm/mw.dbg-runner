@@ -38,5 +38,5 @@ exe mw-gdb-runner :
 
 exe target : ../test/target.cpp /boost//filesystem :  <linkflags>-static-libstdc++ <debug-symbols>on <optimization>off ;
 
-lib mw-newlib-syscalls : mw-newlib.cpp : <link>shared <dependency>/boost//headers ;
+lib mw-newlib-syscalls : mw-newlib.cpp : <link>shared <use>/boost//headers ;
 

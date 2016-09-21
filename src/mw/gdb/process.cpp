@@ -73,7 +73,9 @@ auto process::_read(const std::string & input, boost::asio::yield_context & yiel
 
 
 process::process(const std::string & gdb, const std::string & exe, const std::vector<std::string> & args)
-    : _child(bp::search_path(gdb), exe, args, _io_service, bp::std_in < _in, bp::std_out > _out, bp::std_err > _err,
+    : _child(
+            boost::filesystem::exists(gdb) ? gdb : bp::search_path(gdb),
+            exe, args, _io_service, bp::std_in < _in, bp::std_out > _out, bp::std_err > _err,
             bp::on_exit([this](int, const std::error_code&){_timer.cancel();_out.async_close(); _err.async_close();}))
 {
 }
