@@ -103,13 +103,17 @@ struct options_t
         using namespace boost::program_options;
 
         desc.add_options()
-           ("lib,B",       value<vector<fs::path>>(&dlls)->multitoken(), "break-point libraries")
+           ("lib,B",         value<vector<fs::path>>(&dlls)->multitoken(), "break-point libraries")
            ("response-file", value<string>(), "can be specified with '@name', too")
            ("config-file,C", value<string>(), "config file")
             ;
 
+        po::store(po::command_line_parser(argc, argv).
+                  options(desc).extra_parser(at_option_parser).allow_unregistered().run(), vm);
+
         load_cfg(true);
 
+        po::notify(vm);
         for (auto & dll : dlls)
         {
             plugins.emplace_back(dll);
