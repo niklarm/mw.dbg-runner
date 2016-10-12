@@ -16,6 +16,11 @@
 #include <mw/gdb/break_point.hpp>
 #include <mw/gdb/frame.hpp>
 
+#include <vector>
+#include <memory>
+
+using namespace mw::gdb;
+
 struct exit_stub : break_point
 {
     exit_stub() : break_point("_exit")

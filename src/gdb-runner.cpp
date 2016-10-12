@@ -37,6 +37,10 @@ using namespace std;
 
 struct options_t
 {
+    fs::path my_binary;
+    fs::path my_path;
+
+
     bool help;
     bool debug;
     string gdb;
@@ -100,6 +104,9 @@ struct options_t
     }
     void parse(int argc, char** argv)
     {
+        my_binary = argv[0];
+        my_path = my_binary.parent_path();
+
         using namespace boost::program_options;
 
         desc.add_options()
@@ -116,7 +123,24 @@ struct options_t
         po::notify(vm);
         for (auto & dll : dlls)
         {
-            plugins.emplace_back(dll);
+            if (fs::exists(dll))
+                plugins.emplace_back(dll);
+            else if (dll.parent_path().empty())
+            {
+                //check for the local version needed
+#if defined(BOOST_WINDOWS_API)
+                fs::path p = my_path / ("lib" + dll.string() + ".dll");
+#else
+                fs::path p = my_path / ("lib" + dll.string() + ".so");
+#endif
+                if (fs::exists(p))
+                    plugins.emplace_back(p);
+                else
+                    continue;
+            }
+            else
+                continue;
+
             auto & p = plugins.back();
             if (p.has("mw_gdb_setup_options"))
             {
@@ -157,6 +181,8 @@ int main(int argc, char * argv[])
     options_t opt;
 
     try {
+
+
     opt.parse(argc, argv);
 
     if (opt.help)
