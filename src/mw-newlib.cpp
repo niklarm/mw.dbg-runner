@@ -26,19 +26,6 @@ using namespace mw::gdb;
 #endif
 
 
-struct exit_stub : break_point
-{
-    exit_stub() : break_point("_exit")
-    {
-    }
-
-    void invoke(frame & fr, const std::string & file, int line) override
-    {
-        fr.log() << "***mw-newlib*** Log: Invoking _exit" << std::endl;
-        fr.set_exit(std::stoi(fr.arg_list().at(0).value));
-    }
-};
-
 struct open_flags
 {
     bool inited = false;
@@ -429,7 +416,6 @@ std::vector<std::unique_ptr<mw::gdb::break_point>> mw_gdb_setup_bps()
     std::vector<std::unique_ptr<mw::gdb::break_point>> vec;
 
     vec.push_back(std::make_unique<mw_func_stub>());
-    vec.push_back(std::make_unique<exit_stub>());
     return vec;
 };
 

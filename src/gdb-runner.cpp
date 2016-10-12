@@ -49,6 +49,7 @@ struct options_t
     vector<fs::path> dlls;
 
     string remote;
+    std::vector<boost::dll::shared_library> plugins;
 
     po::options_description desc;
     po::variables_map vm;
@@ -57,7 +58,6 @@ struct options_t
 
     po::positional_options_description pos;
 
-    std::vector<boost::dll::shared_library> plugins;
 
     static pair<string, string> at_option_parser(string const&s)
     {
@@ -147,7 +147,6 @@ struct options_t
                   options(desc).positional(pos).extra_parser(at_option_parser).run(), vm);
 
         load_cfg();
-
 
         po::notify(vm);
     }
