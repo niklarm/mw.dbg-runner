@@ -135,7 +135,7 @@ BOOST_SPIRIT_DEFINE(quoted_string);
 
 static x3::rule<class cstring, mw::gdb::cstring_t> cstring;
 static auto cstring_def =
-        quoted_string >> ellipsis;
+        quoted_string[set_member(&cstring_t::value)] >> ellipsis[set_member(&cstring_t::ellipsis)];
 
 BOOST_SPIRIT_DEFINE(cstring);
 
@@ -168,11 +168,11 @@ BOOST_SPIRIT_DEFINE(bp_arg_name);
 
 static x3::rule<class bp_arg_list_step, arg> bp_arg_list_step;
 
-static auto bp_arg_list_step_def = bp_arg_name >> '=' >>
-                    -("@0x" >> x3::hex >> ":") >>
-                    (quoted_string | x3::lexeme[+(!(x3::space | ',' | ')') >> x3::char_) ] ) >>
-                    -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>' ] >>
-                    -x3::lexeme[cstring];
+static auto bp_arg_list_step_def = bp_arg_name[set_member(&arg::id)] >> '=' >>
+                    -("@0x" >> x3::hex[set_member(&arg::ref)] >> ":") >>
+                    (quoted_string[set_member(&arg::value)] | x3::lexeme[+(!(x3::space | ',' | ')') >> x3::char_) ][set_member(&arg::value)] ) >>
+                    -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>' ][set_member(&arg::policy)] >>
+                    -x3::lexeme[cstring][set_member(&arg::cstring)];
 
 BOOST_SPIRIT_DEFINE(bp_arg_list_step);
 
@@ -190,11 +190,12 @@ BOOST_SPIRIT_DEFINE(func_name);
 
 static x3::rule<class bp_stop_, mw::gdb::bp_stop> bp_stop;
 
-static auto bp_stop_def = ("Breakpoint" >> x3::int_ >> "," >> x3::lexeme[+(!x3::space >> x3::char_)] >>
-               bp_arg_list >>
+static auto bp_stop_def = "Breakpoint" >> x3::int_[set_member(&bp_stop::index)] >> ","
+            >> x3::lexeme[+(!x3::space >> x3::char_)][set_member(&bp_stop::name)] >>
+               bp_arg_list[set_member(&bp_stop::args)] >>
                x3::lit("at") >>
-               loc_short //x3::lexeme[+(!(x3::space | ':') >> x3::char_) >> ':' >> x3::int_]
-               >> x3::omit[*(!x3::lit("(gdb)") >> x3::char_)]) >> "(gdb)";
+               loc_short[set_member(&bp_stop::loc)] //x3::lexeme[+(!(x3::space | ':') >> x3::char_) >> ':' >> x3::int_]
+               >> x3::omit[*(!x3::lit("(gdb)") >> x3::char_)] >> "(gdb)";
 
 BOOST_SPIRIT_DEFINE(bp_stop);
 
@@ -208,10 +209,10 @@ BOOST_SPIRIT_DEFINE(round_brace);
 static x3::rule<class strict_var, mw::gdb::var> strict_var;
 
 static auto strict_var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
-                -(-x3::omit[round_brace] >> "@0x" >> x3::hex >> ':') >>
-                x3::lexeme[+(!x3::space >> x3::char_)] >>
-                -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>'] >>
-                -x3::lexeme[cstring] >>
+                -(-x3::omit[round_brace] >> "@0x" >> x3::hex[set_member(&mw::gdb::var::ref)] >> ':') >>
+                x3::lexeme[+(!x3::space >> x3::char_)][set_member(&mw::gdb::var::value)] >>
+                -x3::lexeme['<' >> *(!x3::lit('>') >> x3::char_) >> '>'][set_member(&mw::gdb::var::policy)] >>
+                -x3::lexeme[cstring][set_member(&mw::gdb::var::cstring)] >>
                 -x3::omit[x3::lexeme['\'' >> +(
                            x3::lit("\\\\") |  "\\'" | (!x3::lit('\'') >> x3::char_)) >> '\''] ] >> "(gdb)";
 
@@ -224,7 +225,7 @@ static auto relaxed_var_value = [](auto & ctx)
             auto r = x3::_attr(ctx);
             x3::_val(ctx).value.assign(r.begin(), r.end());
         };
-static auto relaxed_var_def = x3::omit[x3::lexeme['$' >> x3::int_]] >> '=' >>
+static auto relaxed_var_def = x3::omit[x3::lexeme['$' >> x3::int_]]>> '=' >>
                        x3::raw[*(!x3::lit("(gdb)") >> x3::char_)][relaxed_var_value] >> "(gdb)";
 
 BOOST_SPIRIT_DEFINE(relaxed_var);
