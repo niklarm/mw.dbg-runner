@@ -21,11 +21,11 @@ namespace mw
 {
 namespace gdb
 {
-
+///Simple structure representing a locatino in code
 struct location
 {
-    std::string file;
-    int line;
+    std::string file; ///<The file the location is in.
+    int line;         ///<The line in the file.
 };
 
 }

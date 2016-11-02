@@ -1,0 +1,18 @@
+[section:invocation Invocation]
+
+[teletype]
+[table:args Arguments
+[[Option]  [Description] [Default]]
+[[[#gdb-runner.invocation.gdb]      `--gdb`     ] [Command for the gdb] [`gdb`]]
+[[[#gdb-runner.invocation.gdb-args] `--gdb-args`] [Arguments to pass to gdb] ['none]]
+[[[#gdb-runner.invocation.exe]      `--exe`     ] [The binary to run] ['none]]
+[[[#gdb-runner.invocation.args]     `--args`    ] [Args to pass to the process [*not yet supported for embedded systems]] ['none]]
+[[[#gdb-runner.invocation.log]      `--log`     ] [Generate the logfile] ['none]]
+[[[#gdb-runner.invocation.lib]      `--lib`     ] [Breakpoint plugins] ['none]]
+[[[#gdb-runner.invocation.remote]   `--remote`  ] [Remote address of gdb-server ] ['none]] 
+[[[#gdb-runner.invocation.other]    `--other`   ] [Other processes to launch, i.e. gdb-server ] ['none]]
+[[[#gdb-runner.invocation.debug]    `--debug`   ] [Enable the debug log, i.e. put the whole gdb-communication into the console ] ['disabled]]
+[[[#gdb-runner.invocation.timeout]  `--timeout` ] [Communication Timeout [s]] [`10`]]
+]
+[c++]
+[endsect]

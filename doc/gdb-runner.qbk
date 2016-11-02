@@ -1,0 +1,28 @@
+[/
+    Copyright 2016  Klemens D. Morgenstern, Timon Walther
+
+    Distributed under the Apache License, Version 2.0.
+    (See accompanying file or copy at
+    https://www.apache.org/licenses/LICENSE-2.0)
+]
+
+[library Gdb Runner
+    [quickbook 1.6]
+    [id gdb-runner] 
+    [dirname gdb-runner]
+    [version 0.1]
+    [authors [Morgenstern, Klemens David], [Walther, Timon]]
+    [copyright 2016 Klemens D. Morgenstern, Timon Walther]
+    [license Distributed under the Apache License, Version 2.0.
+        (See accompanying file or copy at
+        [@https://www.apache.org/licenses/LICENSE-2.0])
+    ]
+] 
+
+ 
+[include introduction.qbk]
+[include invocation.qbk]
+[include plugins.qbk]
+[include faq.qbk]
+[xinclude autodoc.xml]
+ 

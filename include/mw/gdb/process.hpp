@@ -1,11 +1,10 @@
 /**
- * @file   mw/gdb-runner/process.hpp
+ * @file   mw/gdb/process.hpp
  * @date   13.06.2016
  * @author Klemens D. Morgenstern
  *
  * Published under [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
- *
- <pre>
+  <pre>
     /  /|  (  )   |  |  /
    /| / |   \/    | /| /
   / |/  |  / \    |/ |/
@@ -14,8 +13,8 @@
  </pre>
  */
 
-#ifndef MW_GDB_RUNNER_GDB_PROCESS_H_
-#define MW_GDB_RUNNER_GDB_PROCESS_H_
+#ifndef MW_GDB_PROCESS_H_
+#define MW_GDB_PROCESS_H_
 
 
 #include <boost/asio/io_service.hpp>

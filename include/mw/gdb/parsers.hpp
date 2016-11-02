@@ -1,5 +1,5 @@
 /**
- * @file   mw/gdb-runner/parser.hpp/parser.hpp
+ * @file   mw/gdb/parsers.hpp
  * @date   18.06.2016
  * @author Klemens D. Morgenstern
  *
@@ -12,8 +12,8 @@
                )
  </pre>
  */
-#ifndef MW_GDB_RUNNER_PARSERS_HPP_
-#define MW_GDB_RUNNER_PARSERS_HPP_
+#ifndef MW_GDB_PARSERS_HPP_
+#define MW_GDB_PARSERS_HPP_
 
 #include <mw/gdb/parsers/config.hpp>
 
