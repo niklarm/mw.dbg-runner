@@ -153,7 +153,7 @@ struct options_t
         vm.clear();
 
         desc.add_options()
-            ("help",        bool_switch(&help), "produce help message")
+            ("help,H",      bool_switch(&help), "produce help message")
             ("exe,E",       value<string>(&exe),             "executable to run")
             ("args,A",      value<vector<string>>(&args),   "Arguments passed to the target")
             ("gdb,G",       value<string>(&gdb)->default_value("gdb"), "gdb command"  )

@@ -1,18 +1,143 @@
 [section:invocation Invocation]
 
+This section describes the usage of the `gdb-runner`. We will assume that the command is available, though you might need to either use the absolute path or 
+add the path to the [@https://en.wikipedia.org/wiki/PATH_(variable) PATH] variable.
+
+Here's an overview of all parameters: 
+
+
+[note Plugins can add other parameters]
+
 [teletype]
 [table:args Arguments
-[[Option]  [Description] [Default]]
-[[[#gdb-runner.invocation.gdb]      `--gdb`     ] [Command for the gdb] [`gdb`]]
-[[[#gdb-runner.invocation.gdb-args] `--gdb-args`] [Arguments to pass to gdb] ['none]]
-[[[#gdb-runner.invocation.exe]      `--exe`     ] [The binary to run] ['none]]
-[[[#gdb-runner.invocation.args]     `--args`    ] [Args to pass to the process [*not yet supported for embedded systems]] ['none]]
-[[[#gdb-runner.invocation.log]      `--log`     ] [Generate the logfile] ['none]]
-[[[#gdb-runner.invocation.lib]      `--lib`     ] [Breakpoint plugins] ['none]]
-[[[#gdb-runner.invocation.remote]   `--remote`  ] [Remote address of gdb-server ] ['none]] 
-[[[#gdb-runner.invocation.other]    `--other`   ] [Other processes to launch, i.e. gdb-server ] ['none]]
-[[[#gdb-runner.invocation.debug]    `--debug`   ] [Enable the debug log, i.e. put the whole gdb-communication into the console ] ['disabled]]
-[[[#gdb-runner.invocation.timeout]  `--timeout` ] [Communication Timeout [s]] [`10`]]
+[[Option] [Shortcut] [Description] [Value type] [Default]]
+[[`--config-file`] [`C`] [Configuration file]   [single string] [['none]]]
+[[`--gdb`     ] [`G`] [Command for the gdb]      [single string] [`gdb`]]
+[[`--gdb-args`] [`S`] [Arguments to pass to gdb] [multiple strings] [['none]]]
+[[`--exe`     ] [`S`] [The binary to run [*(required)]] [single string]  [['none]]]
+[[`--args`    ] [`A`] [Args to pass to the process ] [multiple strings] [['none]]]
+[[`--log`     ] [`L`] [Generate the logfile] [single string] [['none]]]
+[[`--lib`     ] [`B`] [Breakpoint plugins] [multiple strings] [['none]]]
+[[`--remote`  ] [`R`] [Remote address of gdb-server] [single string] [['none]]]
+[[`--other`   ] [`O`] [Other processes to launch, i.e. gdb-server] [multiple strings] [['none]]]
+[[`--debug`   ] [`D`] [Enable the debug log, i.e. put the whole gdb-communication into the console ] [bool switch] [['disabled]]]
+[[`--timeout` ] [`T`] [Communication Timeout [s]] [single int] [`10`]]
+[[[#gdb-runner.invocation.help]     `--help`   ] [`H`] [List all parameters, including those of plugins, then do nothing] [bool switch] [['disabled]]]
 ]
-[c++]
+
+[important The parameter `exe` is required]
+
+[section:config_file Config File]
+
+Since the call might get rather long, configuration and response files can be used. Config files are set through `--config-file` or `-C`. Configuration files
+have a simple format of `key=value`.
+Response files are passed as with gnu tools in the form of `@response-file` where `response-file` contains text in the same format as passed to the program.
+
+E.g. if you have a configuration file `config-file`
+
+    exe=test.exe
+
+response file `response-file` with the following content
+
+```
+--exe=test.exe
+```
+
+and a config file with the following 
+
+the follwing commands are equal:
+
+```
+mw-gdb-runner --exe=test.exe
+mw-gdb-runner --config-file=config-file
+mw-gdb-runner @response-file
+```
+
+This also works for plugin-provided commands. 
 [endsect]
+[section:gdb Gdb call]
+
+The gbd-command can be set explicitly, if the location might need to be changed or the `gdb` has a prefix, as in `arm-none-eabi-gdb`. 
+
+[note If the gdb-command contains a string, you will need to put it in quotes.]
+
+[#gdb-runner.invocation.gdb-args] To pass arguments directly to gdb, you can pass parameter directly to it, using `--gdb-args`.
+
+[note You will have to put the parameter list into quotes like `mw-gdb-runner --gdb=arm-none-eabi-gdb --gdb-args="-b 57.600"]
+
+[endsect]
+
+
+[section:exe Executable]
+[#gdb-runner.invocation.args]
+The executable Argument is required, and does not require to be executable on the hosting machine. Additionally arguments for the main program may be passed.
+
+    mw-gdb-runner --exe=test.exe --args arg1 arg2 
+
+[note If you use an embedded target, the exe needs to be the `elf` file, not the `hex`. The debu symbols will not be loaded into the rom.]
+
+This argument can also be used as an positional argument, together with the `gdb` argument.
+
+    mw-gdb-runner gdb test.exe
+
+[endsect]
+
+[section:log Log file]
+
+The gdb-runner provides log files, which describes the inner workings of the gdb-runner. It does not give the verbatim interaction between the `gdb` and the 
+runner.
+
+    mw-gdb-runner --exe=test.exe --log=logfile.txt
+
+[tip Please include the log files for bug reports.]
+
+[endsect]
+
+[section:debug Debug output]
+
+The debug option will switch on the output of the verbatim interaction between the runner and the `gdb` process. It will be printed out to `stderr`. The main
+purpose is for debugging plugin development.
+
+    mw-gdb-runner --exe=test.exe --debug
+
+[endsect]
+
+[section:lib Breakpoint Plugins]
+
+This option is used to provide plugins. It can either be the path of a plugin binary or the name of a provided one.
+
+    mw-gdb-runner --exe=test.exe --lib mw-newlib-syscalls ../bin/my-test-plugin.dll
+
+[tip The gdb-runner looks in it's own directory for a fitting library, and trying to put `lib` in front and either `.dll` or `.so` in the back. That means 
+that `exit-code` will also look for `libexit-code.dll` or `libexit-code.so`] 
+
+[endsect]
+
+[section:remote Remote]
+
+In order to simplify remote execution the `--remote` property is provided, which is simply forwarded to `gdb` to allow remote debugging.
+
+    mw-gdb-runner --exe=test.elf --remote=127.0.0.1:3333
+
+[endsect]
+
+[section:other Other processes]
+
+In order to simplify launching of gdb servers like `openocd`, they can be passed via the `--other` option. That will cause the process to be launched
+before `gdb` and will be terminated after `gdb` exits.
+
+    mw-gdb-runner --exe=test.exe --other "process1 --option" "process2 --option"
+
+[endsect]
+
+[section:timeout Timeout]
+
+The timeout options allows the setting of a timeout in seconds, which's default is 10 seconds. This timeout does not affect the communication with the gdb server in
+remote debugging, but the maximal time between two breakpoint occurrences. It can be disable by setting it to zero.
+
+    mw-gdb-runner --exe=test.exe --timeout 20 
+
+[endsect]
+
+[endsect]
+[c++]
