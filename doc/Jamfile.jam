@@ -13,7 +13,7 @@ local strip-path = $(father-path:T)/include ;
 
 import modules ;
 
-local headers = break_point frame location ;
+local headers = break_point frame location plugin ;
 
 doxygen autodoc
 :

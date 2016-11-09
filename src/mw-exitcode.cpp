@@ -15,6 +15,7 @@
 
 #include <mw/gdb/break_point.hpp>
 #include <mw/gdb/frame.hpp>
+#include <mw/gdb/plugin.hpp>
 
 #include <vector>
 #include <memory>
@@ -33,8 +34,6 @@ struct exit_stub : break_point
         fr.set_exit(std::stoi(fr.arg_list().at(0).value));
     }
 };
-
-extern "C" BOOST_SYMBOL_EXPORT std::vector<std::unique_ptr<mw::gdb::break_point>> mw_gdb_setup_bps();
 
 std::vector<std::unique_ptr<mw::gdb::break_point>> mw_gdb_setup_bps()
 {

@@ -23,6 +23,7 @@
 [include introduction.qbk]
 [include invocation.qbk]
 [include plugins.qbk]
+[include extender.qbk]
 [include faq.qbk]
 [xinclude autodoc.xml]
  

@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <iostream>
+#include <mw/gdb/plugin.hpp>
 
 #if defined(BOOST_WINDOWS_API)
 #include <windows.h>
@@ -408,8 +409,6 @@ struct mw_func_stub : break_point
         fr.return_(std::to_string(ret));
     }
 };
-
-extern "C" BOOST_SYMBOL_EXPORT std::vector<std::unique_ptr<mw::gdb::break_point>> mw_gdb_setup_bps();
 
 std::vector<std::unique_ptr<mw::gdb::break_point>> mw_gdb_setup_bps()
 {
