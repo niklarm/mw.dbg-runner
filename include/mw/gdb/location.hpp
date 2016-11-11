@@ -21,7 +21,7 @@ namespace mw
 {
 namespace gdb
 {
-///Simple structure representing a locatino in code
+///Simple structure representing a location in code
 struct location
 {
     std::string file; ///<The file the location is in.

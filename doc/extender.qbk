@@ -20,24 +20,27 @@ In order to build our library you need to call `b2` in the root of the super-pro
 
 Your plugins only have a binary depency on __program__options__ if you use such options, elsewise there is none.
 
+[note Out build-script will put the used `boost_program_options` binary in our release folder.]
 [endsect]
 
 [section:basic Building a plugin]
 
-[def __break_point__  [classref mw::gdb::break_point mw::gdb::break_point]]
-[def __unique_ptr__  [@http://en.cppreference.com/w/cpp/memory/unique_ptr std::unique_ptr]]
-[def __vector__  [@http://en.cppreference.com/w/cpp/container/vector std::vector]]
-[def __program_options__  [@http://www.boost.org/doc/libs/release/doc/html/boost/program_options/options_description.html boost::program_options::options_description]]
+[def mw::gdb::break_point  [classref mw::gdb::break_point mw::gdb::break_point]]
+[def mw::gdb::frame  [classref mw::gdb::break_point mw::gdb::frame]]
+[def std::unique_ptr  [@http://en.cppreference.com/w/cpp/memory/unique_ptr std::unique_ptr]]
+[def std::vector  [@http://en.cppreference.com/w/cpp/container/vector std::vector]]
+[def std::string  [@http://en.cppreference.com/w/cpp/container/string std::string]]
+[def boost::program_options::options_description  [@http://www.boost.org/doc/libs/release/doc/html/boost/program_options/options_description.html boost::program_options::options_description]]
 
 Your plugin only needs to implement the break_points you want to use and return them in a specially named function, given below.
 
-    __vector__<__unique_ptr__<__break_point__>> mw_gdb_setup_bps();
+    std::vector<std::unique_ptr<mw::gdb::break_point>> mw_gdb_setup_bps();
 
 This function will return your [classref mw::gdb::break_point break_point] implementations.
 
 Additionally you can add program options that shall be passed to your plugin you need to add another function, which looks like this.
 
-    __program_options__ mw_gdb_setup_options();
+    boost::program_options::options_description mw_gdb_setup_options();
 
 This function will return your added program options.
 
@@ -48,5 +51,98 @@ To assert the function signatures and linkage is correct, the functions are decl
 That means that there will be no link-conflicts.]
     
 [endsect]
+[section:examples Examples]
 
+To demonstrate how this works, we will go over our plugins as examples.
+
+[section:exit_code Exit Code]
+
+[def set_exit [memberref mw::gdb::frame::set_exit set_exit]]
+[def fr.set_exit [memberref mw::gdb::frame::set_exit fr.set_exit]]
+
+In embedded systems with newlib, there is a function `_exit(int)` which allows to capture the return value
+of `main`. So we have the following function in the code, which get's called at the end of the program:
+
+```
+    void _exit(int value)
+    {
+    }
+```
+
+What we want to do is to put a breakpoint into this function and forward the value passed to the host. The declaration of the breakpoint is as simple as this.
+
+[def fr.select [memberref mw::gdb::frame::select select]]
+[def fr.arg_list [memberref mw::gdb::frame::arg_list arg_list]]
+[def fr.log [memberref mw::gdb::frame::log fr.log]]
+[def fr.get_cstring [memberref mw::gdb::frame::get_cstring fr.get_cstring]]
+[def std::stoi [@http://en.cppreference.com/w/cpp/string/basic_string/stol std::stoi]]
+
+[import ../src/mw-exitcode.cpp]
+[exit_stub_decl]
+
+So we have a breakpoint declared, which may of course contain other members, but none are needed here. Now the implementation of the function looks as follows.
+
+[exit_stub_invoke]
+[note If you have other overloads of `_exit` gdb will put a breakpoint into each one, if not explicit (e.g. `"_exit(int)"`).] 
+
+Our example includes writing to the `gdb-runner` log. It is accessed through fr.log, which returns an [@http://en.cppreference.com/w/cpp/io/basic_ostream std::ostream] reference.
+What happens here, is that we obtain the argument list with fr.arg_list and access the first member of it. 
+This is converted to an `int` with std::stoi and then passed to the `gdb-runner` with set_exit.
+
+[warning The function set_exit is only provided for exactly this purpose.]
+
+As a last step we need to export our breakpoint specialization.
+
+[exit_stub_export]
+
+[note You can export several breakpoint, which is why it returns an std::vector.] 
+
+[endsect]
+[section:test Test library]
+Since we have established that a plugin can be created very easily, we will demonstrated some of the more elaborate functionality. 
+We will implement a small test library, similar to what our test-backend does. We will however only implement one test.
+
+The test we want to have is a comparison, which also prints out the values of the passed types and the position. In order to do this, we use a macro and a function,
+so the location get's recorded automatically.
+
+[note We do not use a template here, because this would lead to a breakpoint for every instanciation. This leads to problems on embedded devices.]
+
+[def __FILE__ [@http://en.cppreference.com/w/cpp/preprocessor/replace __FILE__]]
+[def __LINE__ [@http://en.cppreference.com/w/cpp/preprocessor/replace __LINE__]]
+
+[import ../example/test_equal_target.cpp]
+[test_equal_target_def]
+    
+As an example call we'll have this code.
+
+[test_equal_target_main]
+    
+Ok, so let's start with the plugin:
+
+[import ../example/test_equal.cpp]
+[test_equal_def]
+
+So except for the explicit setting of the function name, there's nothing special here. Now for the [memberref mw::gdb::frame::invoke invoke] function, we first
+obtain the values. 
+
+[test_equal_invoke_1]
+
+Thus far there's nothing special, we just get the values passed to the function, utilizing the convenience overload of [memberref mw::gdb::frame::arg_list arg_list]
+and the [memberref mw::gdb::frame::get_cstring get_cstring] function, to get the string values.
+
+Now what we want to do, is to get the actual values of `x` and `y`. Now they are defined by their names in the higher frame, i.e. in `main` for the example.
+So what our plugin does is: it steps into the next higher frame, prints the values and then resets the frame. 
+
+[test_equal_invoke_2]
+
+And as a last step we output everything to the console.
+
+[test_equal_invoke_3]
+
+Which would output 
+
+    test_equal_target.cpp(13) equality test [x == y] failed: [1 == -1]
+    
+[endsect]
+[endsect]
 [endsect]

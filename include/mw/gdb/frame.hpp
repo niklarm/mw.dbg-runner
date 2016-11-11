@@ -94,7 +94,6 @@ struct frame
     ///Get the already read argument list. This means it does not need to be read again.
     const std::vector<arg> &arg_list() const {return _arg_list;}
     /** This function is for convenience and let's the user access elements in the argument list.
-     *
      *  @param index The index for the element.
      *  @overload const std::vector<arg> &arg_list() const
      */

@@ -31,7 +31,7 @@ mw-gdb-runner --gdb=arm-none-eabi-gdb --exe=arm-test.elf --lib mw-newlib-syscall
 ```
 
 
-Now let's consider your code uses our [link gdb-runner.example.syscall newlib syscall] code and the main
+Now let's consider your code uses our [link gdb-runner.plugins.newlib newlib syscall] code and the main
 function of `arm-test.elf` looks like this:
 
 [def std::ofstream [@http://en.cppreference.com/w/cpp/io/basic_ofstream std::ofstream]]
@@ -63,8 +63,8 @@ print out `"Hello world!"` to the console and will yield the exit code `42`.
 [endsect]
 [section:howto How to read this documentation]
 
-If you want to use this tool, the sections [link gdb-runner.invocation Invocation] and [link gdb-runner.plugin Plugin]. The other sections are relevant
-for the development of custom plugins, which is explained in the [link gdb-runner.tutorial tutorial]
+If you want to use this tool, the sections [link gdb-runner.invocation Invocation] and [link gdb-runner.plugins Plugins]. The other sections are relevant
+for the development of custom plugins, which is explained in the [link gdb-runner.extension  Extension Manual]
 
 [note For support or feature requests, feel free to write us an [@mailto:info@mw-sc.de E-Mail]]
 

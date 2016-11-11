@@ -1,7 +1,7 @@
 [section:faq Frequently Asked Questions]
 [section:semihosting Why not use semihosting?]
 
-Semihosting is a feature in many embedded development toolsets, that allows stubbing for the syscalls as we described in a prior [link gdb-runner.example.syscall section].
+Semihosting is a feature in many embedded development toolsets, that allows stubbing for the syscalls as we described in a prior [link gdb-runner.plugins.newlib section].
 
 Our tool does call the gdb, but executes it completely automatically, so no input is required. That way it can be integrated into a CI-System.
 This tool also goes further than semihosting: it extendible and can be used with code that also works fine without the hosting environment. 
