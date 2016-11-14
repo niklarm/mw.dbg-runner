@@ -1,11 +1,10 @@
 /**
- * @file   mw/gdb-runner/process.hpp
+ * @file   mw/gdb/process.hpp
  * @date   13.06.2016
  * @author Klemens D. Morgenstern
  *
  * Published under [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
- *
- <pre>
+  <pre>
     /  /|  (  )   |  |  /
    /| / |   \/    | /| /
   / |/  |  / \    |/ |/
@@ -14,8 +13,8 @@
  </pre>
  */
 
-#ifndef MW_GDB_RUNNER_GDB_PROCESS_H_
-#define MW_GDB_RUNNER_GDB_PROCESS_H_
+#ifndef MW_GDB_PROCESS_H_
+#define MW_GDB_PROCESS_H_
 
 
 #include <boost/asio/io_service.hpp>
@@ -119,7 +118,7 @@ public:
     iterator _end()   const {return iterator();}
 
     std::ostream & log() {return _log;}
-    process(const std::string & gdb, const std::string & exe, const std::vector<std::string> & args = {});
+    process(const boost::filesystem::path & gdb, const std::string & exe, const std::vector<std::string> & args = {});
     ~process() = default;
     int exit_code() {return _exit_code;}
     void set_log(const std::string & name) {_log.open(name); }

@@ -20,6 +20,7 @@
 #include <boost/spirit/home/x3.hpp>
 #include <boost/spirit/home/support/multi_pass.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
+#include <boost/fusion/view/iterator_range.hpp>
 #include <boost/fusion/sequence/intrinsic/at_c.hpp>
 #include <iterator>
 
@@ -36,6 +37,33 @@ namespace parsers
 {
 
 namespace x3 = boost::spirit::x3;
+
+template<typename T, typename Mem>
+struct set_member_t
+{
+
+    Mem T::* p ;
+
+    template<typename Arg>
+    void assign(T & t, Arg & arg)
+    {
+        t.*p = std::forward<Arg>(arg);
+    }
+
+    template<typename Arg>
+    void assign(x3::unused_type &, Arg &&) {};
+
+    template<typename Context>
+    void operator()(Context & ctx)
+    {
+        this->assign(x3::_val(ctx), x3::_attr(ctx));
+    }
+};
+
+
+template<typename T, typename Mem>
+set_member_t<T, Mem> set_member(Mem T::* p) {return {p};}
+
 using buf_iterator  = std::istreambuf_iterator<char>;
 using iterator      = boost::spirit::multi_pass<buf_iterator>;
 

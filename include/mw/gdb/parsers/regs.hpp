@@ -44,26 +44,26 @@ namespace gdb
 namespace parsers
 {
 
-x3::rule<class id, std::string> id;
-auto id_def = x3::lexeme[x3::char_("A-Za-z") >> *x3::char_("A-Za-z0-9") ];
+static x3::rule<class id, std::string> id;
+static auto id_def = x3::lexeme[x3::char_("A-Za-z") >> *x3::char_("A-Za-z0-9") ];
 
 BOOST_SPIRIT_DEFINE(id);
 
-x3::rule<class reg_pointy, std::string> reg_pointy;
-auto reg_pointy_def = '<' >> *(!x3::lit('>') >> (reg_pointy | x3::char_ )) >> '>';
+static x3::rule<class reg_pointy, std::string> reg_pointy;
+static auto reg_pointy_def = '<' >> *(!x3::lit('>') >> (reg_pointy | x3::char_ )) >> '>';
 
 BOOST_SPIRIT_DEFINE(reg_pointy);
 
-x3::rule<class reg_, mw::gdb::reg> reg;
-auto reg_def = id >> ("0x") >> x3::hex >>
+static x3::rule<class reg_, mw::gdb::reg> reg;
+static auto reg_def = id >> ("0x") >> x3::hex >>
                x3::omit[x3::lexeme['[' >> *(!x3::lit(']') >> (x3::char_ | x3::space)) >> ']']
                       | x3::lexeme[+(!x3::space >> x3::char_)]] >>
                -x3::omit[reg_pointy];
 
 BOOST_SPIRIT_DEFINE(reg);
 
-x3::rule<class regs, std::vector<mw::gdb::reg>> regs;
-auto regs_def = *reg >> "(gdb)";
+static x3::rule<class regs, std::vector<mw::gdb::reg>> regs;
+static auto regs_def = *reg >> "(gdb)";
 
 BOOST_SPIRIT_DEFINE(regs);
 

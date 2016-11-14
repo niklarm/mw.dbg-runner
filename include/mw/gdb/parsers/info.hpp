@@ -32,13 +32,6 @@ struct info
 }
 }
 
-BOOST_FUSION_ADAPT_STRUCT(
-    mw::gdb::info,
-    (std::string, toolset),
-    (std::string, version),
-    (std::string, config)
-);
-
 namespace mw
 {
 namespace gdb
@@ -46,13 +39,14 @@ namespace gdb
 namespace parsers
 {
 
-x3::rule<class info_, mw::gdb::info> info;
+static x3::rule<class info_, mw::gdb::info> info;
 
-auto info_def =
-        "GNU" >> x3::lit("gdb") >> x3::lexeme['(' >> +(!x3::lit(')') >> x3::char_ )  >> ')'] >> x3::lexeme[+(!x3::space >> x3::char_)] >>
-        *x3::omit[!("This" >> x3::lit("GDB") >> "was" >> x3::lit("configured")) >> x3::char_]
+static auto info_def =
+        "GNU" >> x3::lit("gdb") >> x3::lexeme['(' >> +(!x3::lit(')') >> x3::char_ )  >> ')']   [set_member(&info::toolset)]
+                                              >> x3::lexeme[+(!x3::space >> x3::char_)][set_member(&info::version)] >>
+        (*x3::omit[!("This" >> x3::lit("GDB") >> "was" >> x3::lit("configured")) >> x3::char_])
         >> ("This" >> x3::lit("GDB") >> "was" >> x3::lit("configured") >> "as" >>
-                '"' >> (+x3::no_skip[!x3::lit('"') >> x3::char_]) >> '"')
+                '"' >> (+x3::no_skip[!x3::lit('"') >> x3::char_])[set_member(&info::config)] >> '"')
         >> +x3::omit[!x3::lit("(gdb)") >> x3::char_] >> "(gdb)";
 
 BOOST_SPIRIT_DEFINE(info);

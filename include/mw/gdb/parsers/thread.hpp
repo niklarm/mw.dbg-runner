@@ -72,25 +72,25 @@ namespace gdb
 namespace parsers
 {
 
-x3::rule<class start_prog, std::string> start_prog;
-auto start_prog_def = "Starting" >> x3::lit("program:") >> x3::lexeme[+(!x3::space >> x3::char_)];
+static x3::rule<class start_prog, std::string> start_prog;
+static auto start_prog_def = "Starting" >> x3::lit("program:") >> x3::lexeme[+(!x3::space >> x3::char_)];
 
 BOOST_SPIRIT_DEFINE(start_prog);
 
-x3::rule<class switch_thread, mw::gdb::thread_info> switch_thread;
-auto switch_thread_def = '[' >> x3::lit("Switching") >> "to" >> x3::lit("Thread") >> x3::int_ >> "."
+static x3::rule<class switch_thread, mw::gdb::thread_info> switch_thread;
+static auto switch_thread_def = '[' >> x3::lit("Switching") >> "to" >> x3::lit("Thread") >> x3::int_ >> "."
                          >> x3::lit("0x")  >> x3::hex >> ']';
 
 BOOST_SPIRIT_DEFINE(switch_thread);
 
-x3::rule<class exit_thread_, mw::gdb::exit_thread> exit_thread;
-auto exit_thread_def = '[' >> x3::lit("Thread") >> x3::int_ >> '.' >> x3::lexeme[x3::lit("0x") >> x3::hex] >>
+static x3::rule<class exit_thread_, mw::gdb::exit_thread> exit_thread;
+static auto exit_thread_def = '[' >> x3::lit("Thread") >> x3::int_ >> '.' >> x3::lexeme[x3::lit("0x") >> x3::hex] >>
                        "exited" >> x3::lit("with") >> "code" >> x3::int_ >> ']';
 
 BOOST_SPIRIT_DEFINE(exit_thread);
 
-x3::rule<class start_thread, mw::gdb::thread_info> start_thread;
-auto start_thread_def  = ('[' >> x3::lit("New") >> "Thread" >> x3::int_ >> "."
+static x3::rule<class start_thread, mw::gdb::thread_info> start_thread;
+static auto start_thread_def  = ('[' >> x3::lit("New") >> "Thread" >> x3::int_ >> "."
                           >> x3::lit("0x")  >> x3::hex >> ']');
 
 BOOST_SPIRIT_DEFINE(start_thread);
@@ -99,8 +99,8 @@ BOOST_SPIRIT_DEFINE(start_thread);
 
 //[Inferior 1 (process 5304) exited with code 052]
 
-x3::rule<class proc_end, mw::gdb::exit_proc> exit_proc;
-auto exit_proc_def = -x3::lit('[') >> x3::lit("Inferior") >> x3::int_ >> '(' >> x3::lit("process") >> x3::int_ >> ')' >>
+static x3::rule<class proc_end, mw::gdb::exit_proc> exit_proc;
+static auto exit_proc_def = -x3::lit('[') >> x3::lit("Inferior") >> x3::int_ >> '(' >> x3::lit("process") >> x3::int_ >> ')' >>
                      x3::lit("exited") >> (("with" >> x3::lit("code") >> x3::oct) | ("normally" >> x3::attr(0))) >> ']';
 
 BOOST_SPIRIT_DEFINE(exit_proc);

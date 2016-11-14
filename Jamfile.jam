@@ -1,13 +1,20 @@
 
+import os ;
+
+if [ os.name ] = NT
+{
+  lib ws2_32 ;
+}
+
 import modules ;
 
 project gdb-runner :
 	source-location src	
 	: requirements
 	<include>./include
-	<toolset>gcc:<cxxflags>-std=gnu++1y
 	<toolset>gcc:<cxxflags>-ftemplate-depth=512
 	;
+	
 
 alias system 			 : /boost//system 			 : <link>static ;
 alias program_options  	 : /boost//program_options   : <link>static ;
@@ -23,10 +30,14 @@ import testing ;
 exe mw-gdb-runner : 
 		gdb-runner.cpp 
 		mw/gdb/process.cpp 
-		boosts : <link>static <linkflags>-static-libstdc++  ;
+		[ glob mw/gdb/detail/*.cpp ] 
+		boosts : <link>static <linkflags>-static-libstdc++
+        <target-os>windows,<toolset>cw:<library>ws2_32
+        <target-os>windows,<toolset>gcc:<library>ws2_32
+        ;
 
 exe target : ../test/target.cpp /boost//filesystem :  <linkflags>-static-libstdc++ <debug-symbols>on <optimization>off ;
 
-lib mw-newlib-syscalls : mw_newlib.cpp : <link>shared <dependency>/boost//headers ;
+lib mw-newlib-syscalls : mw-newlib.cpp   : <link>shared <use>/boost//headers ;
+lib mw-exitcode        : mw-exitcode.cpp : <link>shared <use>/boost//headers ;
 
-install targ : target mw-gdb-runner mw-newlib-syscalls : <location>bin  ;

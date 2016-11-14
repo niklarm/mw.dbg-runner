@@ -1,0 +1,72 @@
+[section:introduction Introduction]
+
+The gdb-runner is a tool that automates the execution of gdb, utilizing plugins in order to implement breakpoints. 
+
+The main target for this tool is the usage on embedded systems without an operating system. We provide
+several libraries for testing and analyzation.
+
+*Automate testing on embedded Systems
+*Unintrusive monitoring and modifying
+*Extension facilities
+*Launch gdb-server in the same command
+
+[section:example Example]
+
+As an example[footnote The `^` is a linebreak in the command], we take a given arm elf with openocd through the gdb-runner, using our
+[link gdb-runner.plugins.exitcode exit-code] and [link gdb-runner.plugins.newlib newlib] plugins.
+
+
+[def mw-gdb-runner [link gdb-runner.invocation mw-gdb-runner]]
+[def --gdb [link gdb-runner.invocation.gdb --gdb]]
+[def --exe [link gdb-runner.invocation.exe --exe]]
+[def --lib [link gdb-runner.invocation.lib --lib]]
+[def --remote [link gdb-runner.invocation.remote --remote]]
+[def --other [link gdb-runner.invocation.other --other]]
+
+	
+[teletype]
+```
+mw-gdb-runner --gdb=arm-none-eabi-gdb --exe=arm-test.elf --lib mw-newlib-syscalls mw-exitcode ^
+    --remote localhost:3333 --other "openocd -f interface/stlink-v2.cfg -f target/stm32f4x.cfg -c init"
+```
+
+
+Now let's consider your code uses our [link gdb-runner.plugins.newlib newlib syscall] code and the main
+function of `arm-test.elf` looks like this:
+
+[def std::ofstream [@http://en.cppreference.com/w/cpp/io/basic_ofstream std::ofstream]]
+[def std::endl [@http://en.cppreference.com/w/cpp/io/manip/endl std::endl]]
+[def std::cout [@http://en.cppreference.com/w/cpp/io/cout std::cout]]
+[def __fstream__ [@http://en.cppreference.com/w/cpp/header/fstream fstream]]
+[def __iostream__ [@http://en.cppreference.com/w/cpp/header/iostream iostream]]
+
+
+[c++]
+```
+#include <__fstream__>
+#include <__iostream__>
+
+int main(int argc, char * argv[])
+{
+	std::ofstream fs{"test-file.out"};
+	
+	fs << "my test string" << std::endl;
+	
+	std::cout << "Hello world!" << std::endl;    
+    
+    return 42;
+}
+```
+
+The command given above will work as if the program was executed on the host machine, i.e. it will create a file `test-file.out` which contains "my test string", 
+print out `"Hello world!"` to the console and will yield the exit code `42`. 
+[endsect]
+[section:howto How to read this documentation]
+
+If you want to use this tool, the sections [link gdb-runner.invocation Invocation] and [link gdb-runner.plugins Plugins]. The other sections are relevant
+for the development of custom plugins, which is explained in the [link gdb-runner.extension  Extension Manual]
+
+[note For support or feature requests, feel free to write us an [@mailto:info@mw-sc.de E-Mail]]
+
+[endsect]
+[endsect]

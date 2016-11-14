@@ -2,11 +2,19 @@ import testing ;
 import path ;
 import regex ;
 
+import os ;
+
+if [ os.name ] = NT
+{
+  lib ws2_32 ;
+}
+
+
 project gdb-test :
 	source-location .	
 	: requirements
 	<define>UNIT_TEST
-	<dependency>/boost//headers
+	<use>/boost//headers
 	<include>../include
 	;
 	
@@ -27,12 +35,18 @@ rule test-all
         local test_name = [ regex.replace $(rel_file) "/" "-" ] ;
         
    		echo Testing Parser $(file) ;
-   		all_rules += [ run parser.cpp /boost//system : : : <define>"MW_GDB_HEADER=$(rel_file)" <dependency>$(file) : ~$(test_name) ] ;
+   		all_rules += [ run parser.cpp /boost//system : : : 
+   		               <define>"MW_GDB_HEADER=$(rel_file)" 
+   		               <dependency>$(file) 
+   		               <target-os>windows,<toolset>cw:<library>ws2_32
+                       <target-os>windows,<toolset>gcc:<library>ws2_32
+   		               
+   		               : ~$(test_name) ] ;
    }
    return $(all_rules) ;
 }	
 
 test-suite gdb-parser : 
-	#[ test-all r ] 
+	[ test-all r ] 
 	[ run test_runner.cpp filesystem : : /gdb-runner//mw-gdb-runner plugin target  ]
 	;

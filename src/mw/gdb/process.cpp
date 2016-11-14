@@ -16,6 +16,7 @@
 
 #include <mw/gdb/process.hpp>
 #include <mw/gdb/parsers.hpp>
+#include <mw/gdb/detail/frame_impl.hpp>
 
 #include <boost/variant/get.hpp>
 #include <boost/process/io.hpp>
@@ -70,86 +71,9 @@ auto process::_read(const std::string & input, boost::asio::yield_context & yiel
 }
 
 
-struct frame_impl : frame
-{
-    std::unordered_map<std::string, std::uint64_t> regs() override
-    {
-        std::unordered_map<std::string, std::uint64_t> mp;
 
-        itr = proc._read("info regs\n", yield_);
-        vector<reg> v;
-        if (!x3::phrase_parse(itr, proc._end(), mwp::regs, x3::space, v))
-            throw std::runtime_error("Parser error for registers");
-
-        for (auto & r : v)
-            mp[r.id] = r.loc;
-        return mp;
-    }
-    void set(const std::string &var, const std::string & val) override
-    {
-        itr = proc._read("set variable " + var + " = " + val + "\n", yield_);
-        if (!x3::phrase_parse(itr, proc._end(), x3::lit("(gdb)"), x3::space))
-            throw std::runtime_error("Parser error for setting variable");
-    }
-    void set(const std::string &var, std::size_t idx, const std::string & val) override
-    {
-        itr = proc._read("set variable " + var + "[" + std::to_string(idx) + "] = " + val + "\n", yield_);
-        if (!x3::phrase_parse(itr, proc._end(), x3::lit("(gdb)"), x3::space))
-            throw std::runtime_error("Parser error for setting variable");
-    }
-    boost::optional<var> call(const std::string & cl) override
-    {
-        boost::optional<var> val;
-        itr = proc._read("call " + cl + "\n", yield_);
-        if (!x3::phrase_parse(itr, proc._end(), -mwp::var >> "(gdb)", x3::space, val))
-            throw std::runtime_error("Parser error for call command");
-
-        return val;
-
-    }
-    var print(const std::string & pt) override
-    {
-        var val;
-        itr = proc._read("print " + pt + "\n", yield_);
-        if (!x3::phrase_parse(itr, proc._end(), mwp::var >> "(gdb)", x3::space, val))
-            throw std::runtime_error("Parser error for print command");
-
-        return val;
-    }
-    void return_(const std::string & value) override
-    {
-        itr = proc._read("return " + value + "\n", yield_);
-        if (!x3::phrase_parse(itr, proc._end(), *(!x3::lit("(gdb)") >> x3::char_) >> "(gdb)", x3::space))
-            throw std::runtime_error("Parser error for return command");
-    }
-
-    frame_impl(std::vector<arg> && args,
-               process & proc,
-               process::iterator & itr,
-               boost::asio::yield_context & yield_,
-               std::ostream & log_)
-            : frame(std::move(args)), proc(proc), itr(itr), yield_(yield_), _log(log_)
-    {
-    }
-    void set_exit(int code) override
-    {
-        proc.set_exit(code);
-    }
-
-    std::ostream & log() { return _log; }
-
-
-    process & proc;
-    process::iterator & itr;
-    boost::asio::yield_context & yield_;
-    std::ostream & _log;
-};
-
-
-
-
-process::process(const std::string & gdb, const std::string & exe, const std::vector<std::string> & args)
-    : _child(bp::search_path(gdb), exe, args, _io_service, bp::std_in < _in, bp::std_out > _out, bp::std_err > _err,
+process::process(const boost::filesystem::path & gdb, const std::string & exe, const std::vector<std::string> & args)
+    : _child(gdb, exe, args, _io_service, bp::std_in < _in, bp::std_out > _out, bp::std_err > _err,
             bp::on_exit([this](int, const std::error_code&){_timer.cancel();_out.async_close(); _err.async_close();}))
 {
 }
@@ -352,7 +276,7 @@ void process::_handle_bps(boost::asio::yield_context &yield_)
                     auto & d = b.loc;
                     std::string file = d.file;
                     int line         = d.line;
-                    frame_impl fr(std::move(b.args), *this, itr, yield_, _log);
+                    detail::frame_impl fr(std::move(b.name), std::move(b.args), *this, itr, yield_, _log);
                     try {
                         bp->invoke(fr, file, line);
                     }

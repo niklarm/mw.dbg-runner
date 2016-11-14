@@ -19,7 +19,10 @@
 #include <boost/process/group.hpp>
 #include <boost/process/io.hpp>
 #include <boost/dll.hpp>
+#include <boost/tokenizer.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/process/search_path.hpp>
+
 #include <string>
 #include <vector>
 #include <iostream>
@@ -34,6 +37,10 @@ using namespace std;
 
 struct options_t
 {
+    fs::path my_binary;
+    fs::path my_path;
+
+
     bool help;
     bool debug;
     string gdb;
@@ -46,45 +53,142 @@ struct options_t
     vector<fs::path> dlls;
 
     string remote;
+    std::vector<boost::dll::shared_library> plugins;
 
     po::options_description desc;
     po::variables_map vm;
 
     int time_out = -1;
 
-    options_t(int argc, char** argv)
+    po::positional_options_description pos;
+
+
+    static pair<string, string> at_option_parser(string const&s)
     {
+        if ('@' == s[0])
+            return std::make_pair(string("response-file"), s.substr(1));
+        else
+            return pair<string, string>();
+    }
+
+    void load_cfg(bool allow_unregistered = false)
+    {
+        if (vm.count("response-file"))
+        {
+             // Load the file and tokenize it
+             ifstream ifs(vm["response-file"].as<string>().c_str());
+             if (!ifs)
+             {
+                 cout << "Could not open the response file\n";
+                 exit(1);
+             }
+             // Read the whole file into a string
+             stringstream ss;
+             ss << ifs.rdbuf();
+             // Split the file content
+             boost::char_separator<char> sep(" \n\r");
+             std::string ResponsefileContents( ss.str() );
+             boost::tokenizer<boost::char_separator<char> > tok(ResponsefileContents, sep);
+             vector<string> args(tok.begin(), tok.end());
+             // Parse the file and store the options
+             if (allow_unregistered)
+                 po::store(po::command_line_parser(args).options(desc).allow_unregistered().run(), vm);
+             else
+                 po::store(po::command_line_parser(args).options(desc).run(), vm);
+        }
+        if (vm.count("config-file"))
+        {
+            ifstream ifs(vm["config-file"].as<string>());
+            po::store(po::parse_config_file(ifs, desc, allow_unregistered), vm);
+        }
+    }
+    void parse(int argc, char** argv)
+    {
+        my_binary = argv[0];
+        my_path = my_binary.parent_path();
+
         using namespace boost::program_options;
 
         desc.add_options()
-           ("help",        bool_switch(&help), "produce help message")
-           ("exe,E",       value<string>(&exe),             "executable to run")
-           ("args,A",      value<vector<string>>(&args),   "Arguments passed to the target")
-           ("gdb,G",       value<string>(&gdb)->default_value("gdb"), "gdb command"  )
-           ("gdb-args,S",  value<vector<string>>(&gdb_args)->multitoken(), "gdb arguments")
-           ("other,O",     value<vector<string>>(&other_cmds)->multitoken(), "other arguments")
-           ("timeout,T",   value<int>(&time_out),       "time_out")
-           ("log,L",       value<string>(&log),         "log file")
-           ("debug,D",     bool_switch(&debug),         "output the log data to stderr")
-           ("lib,B",       value<vector<fs::path>>(&dlls)->multitoken(), "break-point libraries")
-           ("remote,R",    value<string>(&remote), "Remote settings")
+           ("lib,B",         value<vector<fs::path>>(&dlls)->multitoken(), "break-point libraries")
+           ("response-file", value<string>(), "can be specified with '@name', too")
+           ("config-file,C", value<string>(), "config file")
             ;
 
+        po::store(po::command_line_parser(argc, argv).
+                  options(desc).extra_parser(at_option_parser).allow_unregistered().run(), vm);
 
+        load_cfg(true);
 
-        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::notify(vm);
+        for (auto & dll : dlls)
+        {
+            if (fs::exists(dll))
+                plugins.emplace_back(dll);
+            else if (dll.parent_path().empty())
+            {
+                //check for the local version needed
+#if defined(BOOST_WINDOWS_API)
+                fs::path p = my_path / ("lib" + dll.string() + ".dll");
+#else
+                fs::path p = my_path / ("lib" + dll.string() + ".so");
+#endif
+                if (fs::exists(p))
+                    plugins.emplace_back(p);
+                else
+                    continue;
+            }
+            else
+                continue;
+
+            auto & p = plugins.back();
+            if (p.has("mw_gdb_setup_options"))
+            {
+                auto f = boost::dll::import<po::options_description()>(p, "mw_gdb_setup_options");
+                desc.add(f());
+            }
+        }
+
+        //ok, now load the full thingy
+        vm.clear();
+
+        desc.add_options()
+            ("help,H",      bool_switch(&help), "produce help message")
+            ("exe,E",       value<string>(&exe),             "executable to run")
+            ("args,A",      value<vector<string>>(&args),   "Arguments passed to the target")
+            ("gdb,G",       value<string>(&gdb)->default_value("gdb"), "gdb command"  )
+            ("gdb-args,S",  value<vector<string>>(&gdb_args)->multitoken(), "gdb arguments")
+            ("other,O",     value<vector<string>>(&other_cmds)->multitoken(), "other arguments")
+            ("timeout,T",   value<int>(&time_out),       "time_out")
+            ("log,L",       value<string>(&log),         "log file")
+            ("debug,D",     bool_switch(&debug),         "output the log data to stderr")
+            ("remote,R",    value<string>(&remote), "Remote settings")
+            ;
+
+        pos.add("gdb", 1).add("exe", 1);
+
+        po::store(po::command_line_parser(argc, argv).
+                  options(desc).positional(pos).extra_parser(at_option_parser).run(), vm);
+
+        load_cfg();
+
         po::notify(vm);
     }
 };
 
 int main(int argc, char * argv[])
 {
+    options_t opt;
+
     try {
-    options_t opt(argc, argv);
+
+
+    opt.parse(argc, argv);
 
     if (opt.help)
     {
         cout << opt.desc << endl;
+
         return 0;
     }
 
@@ -115,12 +219,13 @@ int main(int argc, char * argv[])
         }
     }
 
+    fs::path gdb = opt.gdb;
+    if ((opt.vm.count("count") == 0))
+        gdb = bp::search_path("gdb");
+    else if (!fs::exists(gdb))
+        std::cerr << "Gdb binary " << gdb << " not found" << std::endl;
 
-    std::vector<boost::dll::shared_library> libs;
-    for (auto & dll : opt.dlls)
-        libs.emplace_back(dll);
-
-    mw::gdb::process proc(opt.gdb, opt.exe, opt.gdb_args);
+    mw::gdb::process proc(gdb, opt.exe, opt.gdb_args);
 
     if (!opt.log.empty())
         proc.set_log(opt.log);
@@ -132,12 +237,12 @@ int main(int argc, char * argv[])
         proc.enable_debug();
 
     if (opt.dlls.empty())
-        proc.log() << "No Dll provided, thus no breakpoints will be executed." << endl;
+        proc.log() << "No Dll provided, thus no breakpoints will be used." << endl;
 
     if (!opt.remote.empty())
         proc.set_remote(opt.remote);
 
-    for (auto & lib : libs)
+    for (auto & lib : opt.plugins)
     {
         auto f = boost::dll::import<std::vector<std::unique_ptr<mw::gdb::break_point>>()>(lib, "mw_gdb_setup_bps");
         proc.add_break_points(f());
@@ -156,12 +261,12 @@ int main(int argc, char * argv[])
     }
     catch (std::exception & e)
     {
-        cout << e.what() << endl;
-        return -1;
+        cerr << "Exception thrown " << e.what() << endl;
+        return 1;
     }
     catch (...)
     {
-        cout << "Unknown error" << endl;
-        return -1;
+        cerr << "Unknown error" << endl;
+        return 1;
     }
 }

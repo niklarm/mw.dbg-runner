@@ -16,21 +16,10 @@
 #define MW_GDB_PARSERS_LOCATION_HPP_
 
 #include <mw/gdb/parsers/config.hpp>
+#include <mw/gdb/location.hpp>
 #include <string>
 
-namespace mw
-{
-namespace gdb
-{
 
-struct location
-{
-    std::string file;
-    int line;
-};
-
-}
-}
 BOOST_FUSION_ADAPT_STRUCT(
     mw::gdb::location,
     (std::string, file),
@@ -44,15 +33,17 @@ namespace gdb
 namespace parsers
 {
 
-x3::rule<class loc_short, mw::gdb::location> loc_short;
+static x3::rule<class loc_short, mw::gdb::location> loc_short;
 
-auto loc_short_def = x3::lexeme[+(!(x3::space | ':' ) >> x3::char_)] >> ":" >> x3::int_;
+static auto loc_short_def = x3::lexeme[+(!(x3::space | ':' ) >> x3::char_)][set_member(&mw::gdb::location::file)] >>
+                            ":" >> x3::int_[set_member(&mw::gdb::location::line)];
 
 BOOST_SPIRIT_DEFINE(loc_short);
 
-x3::rule<class loc, mw::gdb::location> loc;
+static x3::rule<class loc, mw::gdb::location> loc;
 
-auto loc_def = "file" >> x3::lexeme[+(!x3::lit(',') >> x3::char_)] >> "," >> x3::lit("line") >> x3::int_ >> '.';
+static auto loc_def = "file" >> x3::lexeme[+(!x3::lit(',') >> x3::char_)][set_member(&mw::gdb::location::file)] >> "," >>
+              x3::lit("line") >> x3::int_[set_member(&mw::gdb::location::line)] >> '.';
 
 BOOST_SPIRIT_DEFINE(loc);
 
