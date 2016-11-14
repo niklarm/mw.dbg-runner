@@ -44,7 +44,3 @@ boostbook standalone
   <xsl:param>boost.libraries="http://mw-sc.de/"
   <prefix>$(strip-path)
 ;
-
-install css      : [ glob ../../doc/src/*.css ]                 : <location>html ;
-install images   : [ glob ../../doc/src/images/*.png ]          : <location>html/images ;
-install callouts : [ glob ../../doc/src/images/callouts/*.png ] : <location>html/images/callouts ;
