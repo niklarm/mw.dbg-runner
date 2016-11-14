@@ -254,7 +254,7 @@ struct mw_func_stub : break_point
         auto existing = fr.get_cstring(1);
         auto _new     = fr.get_cstring(2);
 #if defined (BOOST_POSIX_API)
-        auto ret = link(existing, _new);
+        auto ret = ::link(existing.c_str(), _new.c_str());
 #else
         int ret = 0;
         if (!CreateHardLinkA(_new.c_str(), existing.c_str(), nullptr))
