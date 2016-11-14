@@ -5,7 +5,6 @@
 #include <mw/gdb/frame.hpp>
 #include <vector>
 #include <memory>
-#include <io.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -14,6 +13,9 @@
 
 #if defined(BOOST_WINDOWS_API)
 #include <windows.h>
+#include <io.h>
+#else
+#include <unistd.h>
 #endif
 
 using namespace mw::gdb;
