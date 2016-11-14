@@ -1,8 +1,6 @@
 
 import modules ;
 
-use-project boost : [ modules.peek user-config : boost-loc ] ;
-
 project gdb-runner :
 	source-location src	
 	: requirements
@@ -10,10 +8,6 @@ project gdb-runner :
 	<toolset>gcc:<cxxflags>-std=gnu++1y
 	<toolset>gcc:<cxxflags>-ftemplate-depth=512
 	;
-	
-
-use-project boost : [ modules.peek user-config : boost-loc ] ;
-
 
 alias system 			 : /boost//system 			 : <link>static ;
 alias program_options  	 : /boost//program_options   : <link>static ;
