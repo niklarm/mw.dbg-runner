@@ -25,7 +25,7 @@ using namespace mw::gdb;
 #define call(Func, Args...) :: Func ( Args )
 #define flag(Name) Name
 #else
-#define call(Func, Args...) :: _##Func ( Args )
+#define call(Func, ...) :: _##Func ( __VA_ARGS__ )
 #define flag(Name) _##Name
 #endif
 
