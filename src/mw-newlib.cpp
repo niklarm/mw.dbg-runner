@@ -14,6 +14,7 @@
 #if defined(BOOST_WINDOWS_API)
 #include <windows.h>
 #include <io.h>
+#include <sys/stat.h>
 #else
 #include <unistd.h>
 #endif
@@ -115,10 +116,16 @@ struct open_flags
     int get_mode(int in)
     {
         int out = 0;
+#if defined(BOOST_MSVC) || defined(BOOST_MSVC_FULL_VER)
+        if (in & s_irwxu) out |= flag(S_IREAD) | flag(S_IWRITE);
+        if (in & s_irusr) out |= flag(S_IREAD);
+        if (in & s_iwusr) out |= flag(S_IWRITE);
+#else
         if (in & s_irwxu) out |= flag(S_IRWXU);
         if (in & s_irusr) out |= flag(S_IRUSR);
         if (in & s_iwusr) out |= flag(S_IWUSR);
         if (in & s_ixusr) out |= flag(S_IXUSR);
+#endif
 #if defined (BOOST_POSIX_API)
         if (in & s_irwxg) out |= flag(S_IRWXG);
         if (in & s_irgrp) out |= flag(S_IRGRP);
