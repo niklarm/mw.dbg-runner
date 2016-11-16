@@ -19,6 +19,8 @@
 #include <boost/process/group.hpp>
 #include <boost/process/io.hpp>
 #include <boost/dll.hpp>
+#include <boost/dll/smart_library.hpp>
+#include <boost/dll/import_mangled.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/process/search_path.hpp>
@@ -53,7 +55,7 @@ struct options_t
     vector<fs::path> dlls;
 
     string remote;
-    std::vector<boost::dll::shared_library> plugins;
+    std::vector<boost::dll::experimental::smart_library> plugins;
 
     po::options_description desc;
     po::variables_map vm;
@@ -144,7 +146,7 @@ struct options_t
             auto & p = plugins.back();
             if (p.has("mw_gdb_setup_options"))
             {
-                auto f = boost::dll::import<po::options_description()>(p, "mw_gdb_setup_options");
+                auto f = boost::dll::experimental::import_mangled<po::options_description()>(p, "mw_gdb_setup_options");
                 desc.add(f());
             }
         }
@@ -244,7 +246,7 @@ int main(int argc, char * argv[])
 
     for (auto & lib : opt.plugins)
     {
-        auto f = boost::dll::import<std::vector<std::unique_ptr<mw::gdb::break_point>>()>(lib, "mw_gdb_setup_bps");
+        auto f = boost::dll::experimental::import_mangled<std::vector<std::unique_ptr<mw::gdb::break_point>>()>(lib, "mw_gdb_setup_bps");
         proc.add_break_points(f());
     }
 
