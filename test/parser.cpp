@@ -13,61 +13,155 @@
  </pre>
  */
 
-#include <boost/asio/spawn.hpp>
 #include <boost/optional/optional_io.hpp>
-#define BOOST_TEST_MAIN
-#include <boost/test/included/unit_test.hpp>
-#include <boost/preprocessor/cat.hpp>
-#include <boost/preprocessor/facilities/overload.hpp>
-#include <boost/preprocessor/list/for_each.hpp>
-#include <boost/preprocessor/list/adt.hpp>
-#include <boost/preprocessor/variadic/to_list.hpp>
+#include <mw/gdb/mi2/output.hpp>
+#include <boost/variant/get.hpp>
+
+#define BOOST_TEST_MODULE parser_test
+
+#include <boost/test/unit_test.hpp>
 #include <string>
 
-#define TEST_2(Rule, String)                                          \
-BOOST_AUTO_TEST_CASE(BOOST_PP_CAT(mw_gdb_test_, __LINE__), *boost::unit_test::timeout(2))\
-{                                                                     \
-    std::string data = String;                                        \
-                                                                      \
-    auto itr = data.cbegin();                                         \
-                                                                      \
-    BOOST_CHECK(boost::spirit::x3::phrase_parse(itr, data.cend(), Rule, boost::spirit::x3::space)); \
-    BOOST_CHECK(itr == data.cend()); \
+namespace mi2 = mw::gdb::mi2;
+
+BOOST_AUTO_TEST_CASE(stream_output)
+{
+    auto res = mi2::parse_stream_output("~\"stuff\"");
+
+    BOOST_CHECK(res);
+    BOOST_CHECK_EQUAL(res->content, "stuff");
+    BOOST_CHECK_EQUAL(res->type, mi2::stream_record::console);
+
+    res = mi2::parse_stream_output("@\"other stuff\"");
+
+    BOOST_CHECK(res);
+    BOOST_CHECK_EQUAL(res->content, "other stuff");
+    BOOST_CHECK_EQUAL(res->type, mi2::stream_record::target);
+
+    res = mi2::parse_stream_output("&\"thingy\"");
+
+
+    BOOST_CHECK(res);
+    BOOST_CHECK_EQUAL(res->content, "thingy");
+    BOOST_CHECK_EQUAL(res->type, mi2::stream_record::log);
+
+    res = mi2::parse_stream_output("&\"thingy");
+
+    BOOST_CHECK(!res);
+
+    res = mi2::parse_stream_output("|\"other stuff\"");
+
+    BOOST_CHECK(!res);
 }
 
-#define TEST_3(Rule, String, Attr)                                          \
-BOOST_AUTO_TEST_CASE(BOOST_PP_CAT(mw_gdb_test_, __LINE__), *boost::unit_test::timeout(2))\
-{                                                                           \
-    std::string data = String;                                              \
-                                                                            \
-    auto itr = data.cbegin();                                               \
-                                                                            \
-    Attr attr;                                                              \
-                                                                            \
-    BOOST_CHECK(boost::spirit::x3::phrase_parse(itr, data.cend(), Rule, boost::spirit::x3::space, attr)); \
-    BOOST_CHECK(itr == data.cend()); \
+BOOST_AUTO_TEST_CASE(async_output)
+{
+
+
+    auto check_res = [&](const mi2::async_output & aso)
+              {
+                BOOST_CHECK_EQUAL(aso.class_, mi2::async_class::stopped);
+
+                auto & results = aso.results;
+                BOOST_REQUIRE_EQUAL(results.size(), 2u);
+                BOOST_CHECK_EQUAL(results[0].variable, "id");
+
+                BOOST_REQUIRE(results[0].value_.type() == boost::typeindex::type_id<std::string>());
+                BOOST_CHECK_EQUAL(boost::get<std::string>(results[0].value_), "id");
+
+
+                BOOST_CHECK_EQUAL(results[1].variable, "group-id");
+
+                BOOST_REQUIRE(results[1].value_.type() == boost::typeindex::type_id<std::string>());
+                BOOST_CHECK_EQUAL(boost::get<std::string>(results[1].value_), "gid");
+              };
+
+    auto res = mi2::parse_async_output("=stopped,id=\"id\",group-id=\"gid\"");
+    BOOST_REQUIRE(res);
+    BOOST_CHECK(!res->first);
+
+    check_res(res->second);
+
+    auto r = mi2::parse_async_output(1234u, "1234=stopped,id=\"id\",group-id=\"gid\"");
+
+    BOOST_REQUIRE(r);
+    check_res(*r);
+
+    res = mi2::parse_async_output("4321=stopped,id=\"id\",group-id=\"gid\"");
+
+    BOOST_REQUIRE(res);
+    check_res(res->second);
+    BOOST_REQUIRE(res->first);
+    BOOST_CHECK_EQUAL(*res->first, 4321u);
 }
 
-#define CHECK_EQUAL(lhs, rhs) BOOST_CHECK_EQUAL ( lhs , rhs );
-#define CHECK_MACRO(r, data, elem) CHECK_EQUAL elem
+BOOST_AUTO_TEST_CASE(sync_output)
+{
+    auto res = mi2::parse_record(42,
+                          "42^done,"
+                               "bkpt={"
+                               "number=\"1\","
+                               "type=\"breakpoint\","
+                               "disp=\"keep\","
+                               "enabled=\"y\","
+                               "addr=\"0x08048564\","
+                               "func=\"main\","
+                               "file=\"myprog.c\","
+                               "fullname=\"/home/nickrob/myprog.c\","
+                               "line=\"68\","
+                               "thread-groups=[\"i1\"],"
+                               "times=\"0\"}");
 
+    BOOST_REQUIRE(res);
+    BOOST_CHECK_EQUAL(res->class_, mi2::done);
 
-#define TEST_4(Rule, String, Attr, Comparisons)                             \
-BOOST_AUTO_TEST_CASE(BOOST_PP_CAT(mw_gdb_test_, __LINE__), *boost::unit_test::timeout(2))\
-{                                                                           \
-    std::string data = String;                                              \
-    auto itr = data.cbegin();                                               \
-    Attr attr;                                                              \
-                                                                            \
-    BOOST_CHECK(boost::spirit::x3::phrase_parse(itr, data.cend(), Rule, boost::spirit::x3::space, attr)); \
-    BOOST_CHECK(itr == data.cend()); \
-    BOOST_PP_LIST_FOR_EACH ( CHECK_MACRO , _ , BOOST_PP_VARIADIC_TO_LIST Comparisons); \
+    auto & r = res->results;
+
+    BOOST_REQUIRE_EQUAL(r.size(), 1u);
+    BOOST_CHECK_EQUAL(r[0].variable, "bkpt");
+    BOOST_REQUIRE(r[0].value_.type() == boost::typeindex::type_id<mi2::tuple>());
+
+    auto & tup = boost::get<mi2::tuple>(r[0].value_);
+    BOOST_REQUIRE_EQUAL(tup.size(), 11u);
+
+    BOOST_CHECK_EQUAL(tup[0] .variable, "number");
+    BOOST_CHECK_EQUAL(tup[1] .variable, "type");
+    BOOST_CHECK_EQUAL(tup[2] .variable, "disp");
+    BOOST_CHECK_EQUAL(tup[3] .variable, "enabled");
+    BOOST_CHECK_EQUAL(tup[4] .variable, "addr");
+    BOOST_CHECK_EQUAL(tup[5] .variable, "func");
+    BOOST_CHECK_EQUAL(tup[6] .variable, "file");
+    BOOST_CHECK_EQUAL(tup[7] .variable, "fullname");
+    BOOST_CHECK_EQUAL(tup[8] .variable, "line");
+    BOOST_CHECK_EQUAL(tup[10].variable, "times");
+
+    auto as_string = [](const mi2::result & val)
+        {
+            BOOST_REQUIRE(val.value_.type() == boost::typeindex::type_id<std::string>());
+            return boost::get<std::string>(val.value_);
+        };
+
+    BOOST_CHECK_EQUAL(as_string(tup[0] ), "1");
+    BOOST_CHECK_EQUAL(as_string(tup[1] ), "breakpoint");
+    BOOST_CHECK_EQUAL(as_string(tup[2] ), "keep");
+    BOOST_CHECK_EQUAL(as_string(tup[3] ), "y");
+    BOOST_CHECK_EQUAL(as_string(tup[4] ), "0x08048564");
+    BOOST_CHECK_EQUAL(as_string(tup[5] ), "main");
+    BOOST_CHECK_EQUAL(as_string(tup[6] ), "myprog.c");
+    BOOST_CHECK_EQUAL(as_string(tup[7] ), "/home/nickrob/myprog.c");
+    BOOST_CHECK_EQUAL(as_string(tup[8] ), "68");
+    BOOST_CHECK_EQUAL(as_string(tup[10]), "0");
+
+    BOOST_REQUIRE(tup[9].value_.type() == boost::typeindex::type_id<mi2::list>());
+    auto &l = boost::get<mi2::list>(tup[9].value_);
+
+    BOOST_REQUIRE(l.type() == boost::typeindex::type_id<std::vector<mi2::value>>());
+
+    auto v = boost::get<std::vector<mi2::value>>(l);
+    BOOST_REQUIRE_EQUAL(v.size(), 1u);
+
+    BOOST_REQUIRE(v[0].type() == boost::typeindex::type_id<std::string>());
+
+    BOOST_CHECK_EQUAL(boost::get<std::string>(v[0]), "i1");
+
 }
-
-#define MW_GDB_TEST_PARSER(args...) BOOST_PP_OVERLOAD(TEST_, args)(args)
-
-#define INCLUDE() <mw/gdb/parsers/MW_GDB_HEADER>
-
-#include INCLUDE()
-
-BOOST_AUTO_TEST_CASE(dummy) {}

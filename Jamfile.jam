@@ -30,7 +30,8 @@ import testing ;
 exe mw-gdb-runner : 
 		gdb-runner.cpp 
 		mw/gdb/process.cpp 
-		[ glob mw/gdb/detail/*.cpp ] 
+		[ glob mw/gdb/detail/*.cpp ]
+		[ glob mw/gdb/mi2/*.cpp ]
 		boosts : <link>static 
         <target-os>windows,<toolset>cw:<library>ws2_32
         <target-os>windows,<toolset>gcc:<library>ws2_32

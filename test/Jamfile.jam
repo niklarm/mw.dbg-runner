@@ -23,6 +23,7 @@ lib plugin : plugin.cpp : <link>shared ;
 alias filesystem : /boost//filesystem : <link>static ;
 exe target : target.cpp /boost//filesystem :  <debug-symbols>on <link>static ;
 
+alias btest : /boost//unit_test_framework ;
 
 rule test-all
 {
@@ -36,6 +37,7 @@ rule test-all
         
    		echo Testing Parser $(file) ;
    		all_rules += [ run parser.cpp /boost//system : : : 
+   					   <library>/boost//unit_test_framework
    		               <define>"MW_GDB_HEADER=$(rel_file)" 
    		               <dependency>$(file) 
    		               <target-os>windows,<toolset>cw:<library>ws2_32
@@ -47,6 +49,7 @@ rule test-all
 }	
 
 test-suite gdb-parser : 
-	[ test-all r ] 
-	[ run test_runner.cpp filesystem : : /gdb-runner//mw-gdb-runner plugin target  ]
+	#[ test-all r ]
+	[ run parser.cpp ../src/mw/gdb/mi2/output.cpp : : : <include>../../libs/pegtl <library>btest ]
+	#[ run test_runner.cpp filesystem : : /gdb-runner//mw-gdb-runner plugin target  ]
 	;

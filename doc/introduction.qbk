@@ -48,11 +48,11 @@ function of `arm-test.elf` looks like this:
 
 int main(int argc, char * argv[])
 {
-	std::ofstream fs{"test-file.out"};
-	
-	fs << "my test string" << std::endl;
-	
-	std::cout << "Hello world!" << std::endl;    
+    std::ofstream fs{"test-file.out"};
+    
+    fs << "my test string" << std::endl;
+    
+    std::cout << "Hello world!" << std::endl;    
     
     return 42;
 }
