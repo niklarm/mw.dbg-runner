@@ -142,12 +142,21 @@ struct result_class : pegtl::sor<done, running, connected, error, exit>
 
 };
 
+//struct async_class_rule : pegtl::sor<stopped> {};
 
-struct stopped : pegtl::string<'s', 't', 'o', 'p', 'p', 'e', 'd'> {};
-template<> struct action<stopped>   { template<typename T, typename ...Args> static void apply(const T&, async_class & res, Args&&...) { res = async_class::stopped;   } };
+struct async_class_rule : pegtl::plus<pegtl::ranges<'A', 'Z', 'a', 'z', '0', '9', '-'>>
+{
 
+};
 
-struct async_class_rule : pegtl::sor<stopped> {};
+template<> struct action<async_class_rule>
+{
+    template<typename T, typename ...Args> static void apply(const T& in, std::string & res, Args&&...)
+    {
+        res = in.string();
+    }
+};
+
 
 struct cstring : pegtl::seq<pegtl::one<'"'>, pegtl::star<pegtl::sor<pegtl::string<'\\', '"'>, pegtl::not_one<'"'>>>, pegtl::one<'"'>> {};
 

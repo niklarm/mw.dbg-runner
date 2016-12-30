@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(async_output)
 
     auto check_res = [&](const mi2::async_output & aso)
               {
-                BOOST_CHECK_EQUAL(aso.class_, mi2::async_class::stopped);
+                BOOST_CHECK_EQUAL(aso.class_, "stopped");
 
                 auto & results = aso.results;
                 BOOST_REQUIRE_EQUAL(results.size(), 2u);
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(sync_output)
                                "times=\"0\"}");
 
     BOOST_REQUIRE(res);
-    BOOST_CHECK_EQUAL(res->class_, mi2::done);
+    BOOST_CHECK(res->class_ == mi2::result_class::done);
 
     auto & r = res->results;
 
