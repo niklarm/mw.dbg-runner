@@ -1,0 +1,366 @@
+/**
+ * @file   /mw/gdb/mi2/stuff.hpp
+ * @date   20.12.2016
+ * @author Klemens D. Morgenstern
+ *
+ * Published under [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
+  <pre>
+    /  /|  (  )   |  |  /
+   /| / |   \/    | /| /
+  / |/  |  / \    |/ |/
+ /  /   | (   \   /  |
+               )
+ </pre>
+ */
+#ifndef MW_GDB_MI2_TYPES_HPP_
+#define MW_GDB_MI2_TYPES_HPP_
+
+#include <tuple>
+#include <utility>
+#include <stdexcept>
+#include <boost/blank.hpp>
+#include <string>
+#include <vector>
+#include <boost/optional.hpp>
+#include <boost/variant/variant.hpp>
+#include <mw/gdb/mi2/interpreter_error.hpp>
+#include <mw/gdb/mi2/output.hpp>
+
+namespace mw {
+namespace gdb {
+namespace mi2 {
+
+struct async_output;
+struct result_output;
+
+template<typename T> T parse_result(const std::vector<result>  &);
+
+struct missing_value : interpreter_error
+{
+    using interpreter_error::interpreter_error;
+    using interpreter_error::operator=;
+};
+
+struct error_
+{
+    std::string msg;
+    boost::optional<std::string> code;
+};
+
+struct exception : interpreter_error
+{
+    error_ err;
+
+    static std::string make_msg(const error_ & err)
+    {
+        if (err.code)
+            return "[" + *err.code + "]: " + err.msg;
+        else
+            return err.msg;
+    }
+    exception(const error_ & err) : interpreter_error(make_msg(err)) ,err(err) {}
+};
+
+struct running
+{
+    std::string thread_id;
+};
+
+inline auto reflect(const running & e)
+    -> std::tuple<std::pair<const char*, decltype(&running::thread_id)>>
+{
+    return std::make_tuple(
+            std::make_pair<const char*>("thread-id", &running::thread_id)
+            );
+}
+
+struct stopped
+{
+    enum reason_t
+    {
+        breakpoint_hit,            ///<A breakpoint was reached.
+        watchpoint_trigger,        ///<A watchpoint was triggered.
+        read_watchpoint_trigger,   ///<A read watchpoint was triggered.
+        access_watchpoint_trigger, ///<An access watchpoint was triggered.
+        function_finished,         ///<An _exec_finish or similar CLI command was accomplished.
+        location_reached,          ///<An _exec_until or similar CLI command was accomplished.
+        watchpoint_scope,          ///<A watchpoint has gone out of scope.
+        end_stepping_range,        ///<An _exec_next, _exec_next_instruction, _exec_step, _exec_step_instruction or similar CLI command was accomplished.
+        exited_signalled,          ///<The inferior exited because of a signal.
+        exited,                    ///<The inferior exited.
+        exited_normally,           ///<The inferior exited normally.
+        signal_received,           ///<A signal was received by the inferior.
+        solib_event,               ///<The inferior has stopped due to a library being loaded or unloaded. This can happen when stop_on_solib_events (see Files) is set or when a catch load or catch unload catchpoint is in use (see Set Catchpoints).
+        fork,                      ///<The inferior has forked. This is reported when catch fork (see Set Catchpoints) has been used.
+        vfork,                     ///<The inferior has vforked. This is reported in when catch vfork (see Set Catchpoints) has been used.
+        syscall_entry,             ///<The inferior entered a system call. This is reported when catch syscall (see Set Catchpoints) has been used.
+        syscall_return,            ///<The inferior returned from a system call. This is reported when catch syscall (see Set Catchpoints) has been used.
+        exec                       ///<The inferior called exec. This is reported when catch exec (see Set Catchpoints) has been used.
+    } reason;
+    std::string stopped;
+    std::string core;
+};
+
+inline auto reflect(const stopped & e)
+    -> std::tuple<std::pair<const char*, decltype(&stopped::reason)>,
+                  std::pair<const char*, decltype(&stopped::stopped)>,
+                  std::pair<const char*, decltype(&stopped::core)>>
+{
+    return std::make_tuple(
+            std::make_pair<const char*>("reason",  &stopped::reason),
+            std::make_pair<const char*>("stopped", &stopped::stopped),
+            std::make_pair<const char*>("core",    &stopped::core)
+            );
+}
+
+
+struct thread_group_added   { int id; };
+struct thread_group_removed { int id; };
+
+struct thread_group_started
+{
+    int id;
+    int pid;
+};
+
+
+struct thread_group_exited
+{
+    int id;
+    boost::optional<int> exited;
+};
+
+struct thread_created
+{
+    int id;
+    int gid;
+};
+
+struct thread_exited
+{
+    int id;
+    int gid;
+};
+
+struct thread_selected
+{
+    int id;
+    int gid;
+};
+
+struct library_loaded
+{
+    int id;
+    std::string target_name;
+    std::string host_name;
+    boost::optional<std::string> symbols_loaded;
+};
+
+struct library_unloaded
+{
+    int id;
+    std::string target_name;
+    std::string host_name;
+};
+
+struct traceframe_changed_t
+{
+    int num;
+    std::string tracepoint;
+};
+
+struct traceframe_changed_end
+{
+    boost::blank end;
+};
+
+struct traceframe_changed : boost::variant<traceframe_changed_t, traceframe_changed_end>
+{
+    using father_type = boost::variant<traceframe_changed_t, traceframe_changed_end>;
+    using father_type::variant;
+    using father_type::operator=;
+};
+
+struct tsv_frame
+{
+    boost::optional<std::string> name;
+    boost::optional<std::string> initial;
+};
+
+struct tsv_modified
+{
+    std::string name;
+    std::string initial;
+    boost::optional<std::string> current;
+};
+
+//https://sourceware.org/gdb/onlinedocs/gdb/GDB_002fMI-Breakpoint-Information.html#GDB_002fMI-Breakpoint-Information
+struct breakpoint
+{
+    int number;
+    std::string type;
+    boost::optional<std::string> catch_type;
+    std::string disp;
+    bool enabled;
+    std::uint64_t addr;
+    boost::optional<std::string> func;
+    boost::optional<std::string> filename;
+    boost::optional<std::string> fullname;
+    boost::optional<int> line;
+    boost::optional<std::vector<std::string>> thread_groups;
+    boost::optional<std::string> at;
+    boost::optional<std::string> pending;
+    std::string evaluated_by;
+    boost::optional<std::string> thread;
+    boost::optional<std::string> task;
+    boost::optional<std::string> cond;
+    boost::optional<int> ignore;
+    int enable;
+    boost::optional<std::string> traceframe_usage;
+    boost::optional<std::string> static_tracepoint_marker_string_id;
+    boost::optional<std::string> mask;
+    boost::optional<int> pass;
+    boost::optional<std::string> original_location;
+    int times;
+    boost::optional<bool> installed;
+    boost::optional<std::string> what;
+};
+
+struct breakpoint_created  { breakpoint bkpt; };
+struct breakpoint_modified { breakpoint bkpt; };
+struct breakpoint_deleted  { int number;};
+
+struct record_started
+{
+    int thread_group;
+    std::string method;
+    boost::optional<std::string> format;
+};
+
+struct record_stopped { int thread_group;};
+
+struct cmd_param_changed
+{
+    std::string param;
+    std::string value;
+};
+
+struct memory_changed
+{
+    int thread_group;
+    std::uint64_t addr;
+    int len;
+    boost::optional<std::string> code;
+};
+
+struct arg
+{
+    std::string name;
+    std::string value;
+};
+
+struct frame
+{
+    int level;
+    boost::optional<std::string> func;
+    std::uint64_t addr;
+    boost::optional<std::string> file;
+    boost::optional<int> line;
+    boost::optional<std::uint64_t> from;
+    boost::optional<std::vector<arg>> args;
+};
+
+struct thread_info
+{
+    int id;
+    std::string target_id;
+    boost::optional<std::string> details;
+    enum state_t
+    {
+        stopped, running
+    } state;
+    boost::optional<int> core;
+};
+
+struct thread
+{
+    int id;
+    std::string target_id;
+    std::vector<frame> frames;
+    std::string state;
+};
+
+struct groups
+{
+    int id;
+    std::string type;
+    boost::optional<int> pid;
+    boost::optional<int> exit_code;
+    boost::optional<int> num_children;
+    boost::optional<std::vector<thread>> threads;
+    boost::optional<std::vector<int>> cores;
+    boost::optional<std::string> executable;
+};
+
+struct os_info
+{
+    std::vector<std::string> header;
+    std::vector<std::vector<std::string>> values;
+};
+
+struct watchpoint
+{
+    int number;
+    std::string exp;
+};
+
+struct linespec_location
+{
+    boost::optional<std::size_t> linenum;
+    boost::optional<int>         offset;
+    boost::optional<std::string> filename;
+    boost::optional<std::string> function;
+    boost::optional<std::string> label;
+
+    linespec_location() = default;
+    linespec_location(const linespec_location&) = default;
+    linespec_location(linespec_location&&) = default;
+    linespec_location(std::size_t linenum) : linenum(linenum) {}
+    linespec_location(const std::string & filename, std::size_t linenum)
+            : linenum(linenum), filename(filename) {}
+
+    linespec_location(const std::string & function) : function(function) {}
+};
+
+struct explicit_location
+{
+    boost::optional<std::string> source;
+    boost::optional<std::string> function;
+    boost::optional<std::string> label;
+    boost::optional<std::size_t> line;
+    boost::optional<int> line_offset;
+};
+
+struct address_location
+{
+
+    boost::optional<std::string> expression;
+    boost::optional<std::uint64_t> funcaddr;
+    boost::optional<std::string> filename;
+
+    address_location() = default;
+    address_location(const address_location&) = default;
+    address_location(address_location&&) = default;
+    address_location(const std::string & expression) : expression(expression) {}
+    address_location(std::uint64_t funcaddr) : funcaddr(funcaddr) {}
+    address_location(const std::string & filename, std::uint64_t funcaddr)
+        : funcaddr(funcaddr), filename(filename) {}
+};
+
+}
+}
+}
+
+
+
+#endif /* MW_GDB_MI2_TYPES_HPP_ */

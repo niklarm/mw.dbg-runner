@@ -21,6 +21,7 @@
 #include <boost/signals2/signal.hpp>
 
 #include <mw/gdb/mi2/types.hpp>
+#include <mw/gdb/mi2/async_record_handler_t.hpp>
 #include <mw/gdb/mi2/output.hpp>
 #include <string>
 #include <ostream>
@@ -33,6 +34,15 @@ namespace gdb
 {
 namespace mi2
 {
+
+struct unexpected_result_class : interpreter_error
+{
+    unexpected_result_class(result_class ex, result_class got) :
+        interpreter_error("unexpected result-class [" + to_string(ex) + " != " + to_string(got) + "]")
+    {
+
+    }
+};
 
 struct unexpected_record : interpreter_error
 {
@@ -107,6 +117,85 @@ public:
     boost::signals2::signal<void(const std::string&)> & stream_console_sig() {return _stream_console;}
     boost::signals2::signal<void(const std::string&)> & stream_log_sig() {return _stream_log;}
 
+    async_record_handler_t async_record_handler{_async_sink};
+
+    void break_after(int number, int count);
+    void break_commands(int number, const std::vector<std::string> & commands);
+    void break_condition(int number, const std::string & condition);
+    void break_delete(int number);
+    void break_delete(const std::vector<int> &numbers);
+
+    void break_disable(int number);
+    void break_disable(const std::vector<int> &numbers);
+
+    void break_enable(int number);
+    void break_enable(const std::vector<int> &numbers);
+
+    breakpoint break_info(int number);
+
+    breakpoint break_insert(const linespec_location & exp,
+            bool temporary = false, bool hardware = false, bool pending = false,
+            bool disabled = false, bool tracepoint = false,
+            const boost::optional<std::string> & condition = boost::none,
+            const boost::optional<int> & ignore_count = boost::none,
+            const boost::optional<int> & thread_id = boost::none);
+
+    breakpoint break_insert(const explicit_location & exp,
+            bool temporary = false, bool hardware = false, bool pending = false,
+            bool disabled = false, bool tracepoint = false,
+            const boost::optional<std::string> & condition = boost::none,
+            const boost::optional<int> & ignore_count = boost::none,
+            const boost::optional<int> & thread_id = boost::none);
+
+    breakpoint break_insert(const address_location & exp,
+            bool temporary = false, bool hardware = false, bool pending = false,
+            bool disabled = false, bool tracepoint = false,
+            const boost::optional<std::string> & condition = boost::none,
+            const boost::optional<int> & ignore_count = boost::none,
+            const boost::optional<int> & thread_id = boost::none);
+
+    breakpoint break_insert(const std::string & location,
+            bool temporary = false, bool hardware = false, bool pending = false,
+            bool disabled = false, bool tracepoint = false,
+            const boost::optional<std::string> & condition = boost::none,
+            const boost::optional<int> & ignore_count = boost::none,
+            const boost::optional<int> & thread_id = boost::none);
+
+    breakpoint dprintf_insert(
+            const std::string & format, const std::vector<std::string> & argument,
+            const linespec_location & location,
+            bool temporary = false, bool pending = false, bool disabled = false,
+            const boost::optional<std::string> & condition = boost::none,
+            const boost::optional<int> & ignore_count      = boost::none,
+            const boost::optional<int> & thread_id         = boost::none);
+
+    breakpoint dprintf_insert(
+            const std::string & format, const std::vector<std::string> & argument,
+            const explicit_location& location,
+            bool temporary = false, bool pending = false, bool disabled = false,
+            const boost::optional<std::string> & condition = boost::none,
+            const boost::optional<int> & ignore_count      = boost::none,
+            const boost::optional<int> & thread_id         = boost::none);
+
+    breakpoint dprintf_insert(
+            const std::string & format, const std::vector<std::string> & argument,
+            const address_location & location,
+            bool temporary = false, bool pending = false, bool disabled = false,
+            const boost::optional<std::string> & condition = boost::none,
+            const boost::optional<int> & ignore_count      = boost::none,
+            const boost::optional<int> & thread_id         = boost::none);
+
+    breakpoint dprintf_insert(
+            const std::string & format, const std::vector<std::string> & argument,
+            const boost::optional<std::string> & location = boost::none,
+            bool temporary = false, bool pending = false, bool disabled = false,
+            const boost::optional<std::string> & condition = boost::none,
+            const boost::optional<int> & ignore_count      = boost::none,
+            const boost::optional<int> & thread_id         = boost::none);
+
+    std::vector<breakpoint> break_list();
+    void break_passcount(std::size_t tracepoint_number, std::size_t passcount);
+    watchpoint break_watch(const std::string & expr, bool access = false, bool read = false);
 
     void communicate(boost::asio::yield_context & yield_);
     void communicate(const std::string & in, boost::asio::yield_context & yield_);

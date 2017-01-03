@@ -46,6 +46,18 @@ enum class result_class
     exit
 };
 
+inline std::string to_string(result_class rc)
+{
+    switch (rc)
+    {
+    case result_class::done:      return "done";
+    case result_class::running:   return "running";
+    case result_class::connected: return "connected";
+    case result_class::error:     return "error";
+    case result_class::exit:      return "exit";
+    default: return "***invalid value***";
+    }
+}
 
 
 struct stream_record

@@ -1,5 +1,5 @@
 /**
- * @file   mw/gdb/mi2/async_record_handler.hpp
+ * @file   mw/gdb/mi2/async_record_handler_t.hpp
  * @date   30.12.2016
  * @author Klemens D. Morgenstern
  *
@@ -12,8 +12,8 @@
                )
  </pre>
  */
-#ifndef MW_GDB_MI2_ASYNC_RECORD_HANDLER_HPP_
-#define MW_GDB_MI2_ASYNC_RECORD_HANDLER_HPP_
+#ifndef MW_GDB_MI2_ASYNC_RECORD_HANDLER_T_HPP_
+#define MW_GDB_MI2_ASYNC_RECORD_HANDLER_T_HPP_
 
 #include <boost/signals2/signal.hpp>
 #include <mw/gdb/mi2/output.hpp>
@@ -26,7 +26,7 @@ namespace gdb
 namespace mi2
 {
 
-class async_record_handler
+class async_record_handler_t
 {
 
     boost::signals2::signal<void(const async_output&)> _sig_fwd; //only forward notifications
@@ -108,7 +108,7 @@ class async_record_handler
     boost::signals2::scoped_connection _conn_memory_changed    = _make_adapter(_sig_memory_changed, "memory-changed");
 
 public:
-    async_record_handler(boost::signals2::signal<void(const async_output &)> &async_sink) :
+    async_record_handler_t(boost::signals2::signal<void(const async_output &)> &async_sink) :
         _conn_fwd(async_sink.connect([this](const async_output & ao)
                             {
                                 if (ao.type == async_output::notify)
@@ -189,4 +189,4 @@ public:
 
 
 
-#endif /* MW_GDB_MI2_ASYNC_RECORD_HANDLER_HPP_ */
+#endif /* MW_GDB_MI2_ASYNC_RECORD_HANDLER_T_HPP_ */
