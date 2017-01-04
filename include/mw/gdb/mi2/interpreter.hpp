@@ -224,6 +224,32 @@ public:
 
     std::vector<ada_task_info> ada_task_info(const boost::optional<int> & task_id);
 
+    void exec_continue(bool reverse = false, bool all = false);
+    void exec_continue(bool reverse, int thread_group);
+    void exec_finish(bool reverse);
+    void exec_interrupt(bool all = false);
+    void exec_interrupt(int thread_group);
+
+    void exec_jump(const std::string & location);
+    void exec_jump(const linespec_location & ls);
+    void exec_jump(const explicit_location & el);
+    void exec_jump(const address_location  & al);
+
+    void exec_next(bool reverse);
+    void exec_next_instruction(bool reverse);
+    frame exec_return();
+
+    void exec_run(bool start = false, bool all = false);
+    void exec_run(bool start, int thread_group);
+
+    void exec_step(bool reverse = false);
+    void exec_step_instruction(bool reverse = false);
+
+    void exec_until(const std::string & location);
+    void exec_until(const linespec_location & ls);
+    void exec_until(const explicit_location & el);
+    void exec_until(const address_location  & al);
+
     /* ************************************* */
 
     void communicate(boost::asio::yield_context & yield_);

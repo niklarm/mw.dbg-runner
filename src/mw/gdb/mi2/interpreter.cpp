@@ -827,6 +827,229 @@ std::vector<ada_task_info> interpreter::ada_task_info(const boost::optional<int>
    return infos;
 }
 
+void interpreter::exec_continue(bool reverse, bool all)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-continue";
+
+    if (reverse)
+        _in_buf += " --reverse";
+    if (all)
+        _in_buf += " --all";
+    _in_buf += "\n";
+
+    _work(_token_gen++, result_class::running);
+}
+
+void interpreter::exec_continue(bool reverse, int thread_group)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-continue";
+
+    if (reverse)
+        _in_buf += " --reverse";
+    if (thread_group)
+        _in_buf += " --thread-group " + std::to_string(thread_group);
+    _in_buf += "\n";
+
+    _work(_token_gen++, result_class::running);
+}
+
+void interpreter::exec_finish(bool reverse)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-finish";
+
+    if (reverse)
+        _in_buf += " --reverse";
+    _in_buf += "\n";
+
+    _work(_token_gen++, result_class::running);
+}
+
+void interpreter::exec_interrupt(bool all)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-continue";
+
+    if (all)
+        _in_buf += " --all";
+    _in_buf += "\n";
+
+    _work(_token_gen++, result_class::running);
+}
+
+void interpreter::exec_interrupt(int thread_group)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-continue";
+
+    if (thread_group)
+        _in_buf += " --thread-group " + std::to_string(thread_group);
+    _in_buf += "\n";
+
+    _work(_token_gen++, result_class::running);
+}
+
+
+static std::string loc_str(const linespec_location & exp)
+{
+    std::string location;
+
+    if (exp.linenum && !exp.filename)
+        location = std::to_string(*exp.linenum);
+    else if (exp.offset)
+        location = std::to_string(*exp.offset);
+    else if (exp.filename && exp.linenum)
+        location = *exp.filename + ":" + std::to_string(*exp.linenum);
+    else if (exp.function && !exp.label && !exp.filename)
+        location = *exp.function;
+    else if (exp.function && exp.label)
+        location = *exp.function + ":" + *exp.label;
+    else if (exp.filename && exp.function)
+        location = *exp.filename + ":" + *exp.function;
+    else if (exp.label)
+        location = *exp.label;
+
+    return location;
+}
+
+static std::string loc_str(const explicit_location & exp)
+{
+    std::string location;
+    if (exp.source)
+        location += "-source "   + *exp.source   + " ";
+    if (exp.function)
+        location += "-function " + *exp.function + " ";
+    if (exp.label)
+        location += "-label " + *exp.label + " ";
+
+    if (exp.line)
+        location += "-line " + std::to_string(*exp.line);
+    else if (exp.line_offset)
+    {
+        if (*exp.line_offset > 0)
+            location += "-line +" + std::to_string(*exp.line_offset);
+        else
+            location += "-line " + std::to_string(*exp.line_offset);
+    }
+    return location;
+}
+
+static std::string loc_str(const address_location & exp)
+{
+    if (exp.expression)
+        return "*" + *exp.expression;
+
+    std::stringstream location;
+    location << "*";
+
+    if (!exp.filename && exp.funcaddr)
+        location << "0x" << std::hex << *exp.funcaddr;
+    else if (exp.filename && exp.funcaddr)
+        location << "'" << *exp.filename << "'" << "0x" << std::hex << *exp.funcaddr;
+    return location.str();
+}
+
+
+void interpreter::exec_jump(const linespec_location & ls) {return exec_jump(loc_str(ls));}
+void interpreter::exec_jump(const explicit_location & el) {return exec_jump(loc_str(el));}
+void interpreter::exec_jump(const address_location  & al) {return exec_jump(loc_str(al));}
+
+void interpreter::exec_jump(const std::string & location)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-jump " + location + '\n';
+    _work(_token_gen++, result_class::running);
+
+}
+
+void interpreter::exec_next(bool reverse)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-next";
+
+    if (reverse)
+        _in_buf += " --reverse";
+    _in_buf += "\n";
+
+    _work(_token_gen++, result_class::running);
+}
+
+void interpreter::exec_next_instruction(bool reverse)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-next-instruction";
+
+    if (reverse)
+        _in_buf += " --reverse";
+    _in_buf += "\n";
+
+    _work(_token_gen++, result_class::running);
+}
+
+frame interpreter::exec_return()
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-return\n";
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<frame>(find(rc.results, "frame").as_tuple());
+}
+
+void interpreter::exec_run(bool start, bool all)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-run";
+    if (start)
+        _in_buf += " --start";
+    if (all)
+        _in_buf += " --all";
+
+    _in_buf += '\n';
+    _work(_token_gen++, result_class::running);
+}
+
+void interpreter::exec_run(bool start, int thread_group)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-run";
+    if (start)
+        _in_buf += " --start";
+
+    _in_buf += (" thread-group " + std::to_string(thread_group) + '\n');
+    _work(_token_gen++, result_class::running);
+}
+
+void interpreter::exec_step(bool reverse)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-step";
+
+    if (reverse)
+        _in_buf += " --reverse";
+    _in_buf += "\n";
+
+    _work(_token_gen++, result_class::running);
+}
+void interpreter::exec_step_instruction(bool reverse)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-step-instruction";
+
+    if (reverse)
+        _in_buf += " --reverse";
+    _in_buf += "\n";
+
+    _work(_token_gen++, result_class::running);
+}
+
+
+void interpreter::exec_until(const linespec_location & ls) {return exec_until(loc_str(ls));}
+void interpreter::exec_until(const explicit_location & el) {return exec_until(loc_str(el));}
+void interpreter::exec_until(const address_location  & al) {return exec_until(loc_str(al));}
+
+void interpreter::exec_until(const std::string & location)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-until " + location + '\n';
+    _work(_token_gen++, result_class::running);
+
+}
 
 }
 }
