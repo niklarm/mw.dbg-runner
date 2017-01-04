@@ -497,7 +497,7 @@ breakpoint interpreter::dprintf_insert(
     if (rc.class_ != result_class::done)
         throw unexpected_result_class(result_class::done, rc.class_);
 
-    return parse_result<breakpoint>(rc.results);
+    return parse_result<breakpoint>(find(rc.results, "bpkt").as_tuple());
 }
 
 
@@ -547,7 +547,284 @@ watchpoint interpreter::break_watch(const std::string & expr, bool access, bool 
     _in_buf += expr;
     _in_buf += '\n';
 
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<watchpoint>(find(rc.results, "wpt").as_tuple());
+}
+
+breakpoint interpreter::catch_load(const std::string regexp,
+                       bool temporary, bool disabled)
+{
+    _in_buf = std::to_string(_token_gen) + "-catch-load ";
+    if (temporary)
+        _in_buf += "-t ";
+    if (disabled)
+        _in_buf += "-d ";
+
+    _in_buf += regexp;
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<breakpoint>(find(rc.results, "bkpt").as_tuple());
+}
+
+breakpoint interpreter::catch_unload(const std::string regexp,
+                                     bool temporary, bool disabled)
+
+{
+    _in_buf = std::to_string(_token_gen) + "-catch-unload ";
+    if (temporary)
+        _in_buf += "-t ";
+    if (disabled)
+        _in_buf += "-d ";
+
+    _in_buf += regexp;
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<breakpoint>(find(rc.results, "bkpt").as_tuple());
+}
+
+breakpoint interpreter::catch_assert(const boost::optional<std::string> & condition, bool temporary, bool disabled)
+{
+    _in_buf = std::to_string(_token_gen) + "-catch-assert";
+
+    if (condition)
+        _in_buf += " -c " + *condition;
+    if (temporary)
+        _in_buf += " -t";
+    if (disabled)
+        _in_buf += " -d";
+
+     _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<breakpoint>(find(rc.results, "bkpt").as_tuple());
+}
+
+breakpoint interpreter::catch_exception(const boost::optional<std::string> & condition, bool temporary, bool disabled)
+{
+    _in_buf = std::to_string(_token_gen) + "-catch-exception";
+
+    if (condition)
+        _in_buf += " -c " + *condition;
+    if (temporary)
+        _in_buf += " -t";
+    if (disabled)
+        _in_buf += " -d";
+
+     _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<breakpoint>(find(rc.results, "bkpt").as_tuple());
+}
+
+void interpreter::exec_arguments(const std::vector<std::string> & args)
+{
+    _in_buf = std::to_string(_token_gen) + "-exec-arguments";
+
+    for (const auto & arg : args)
+    {
+        _in_buf += ' ';
+        _in_buf += arg;
+    }
+
+    _in_buf += '\n';
     _work(_token_gen++, result_class::done);
+}
+
+void interpreter::environment_cd(const std::string path)
+{
+    _in_buf = std::to_string(_token_gen) + "-environment-cd " + path + '\n' ;
+    _work(_token_gen++, result_class::done);
+}
+
+std::string interpreter::environment_directory(const std::vector<std::string> & path, bool reset)
+{
+    std::string result;
+
+    _in_buf = std::to_string(_token_gen) + "-environment-directory";
+
+    if (reset)
+        _in_buf += " -r";
+
+
+    for (auto & p : path)
+        _in_buf += (" " + p);
+
+     _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return find(rc.results, "source-path").as_string();
+}
+
+std::string interpreter::environment_path(const std::vector<std::string> & path, bool reset)
+{
+    std::string result;
+
+    _in_buf = std::to_string(_token_gen) + "-environment-path";
+
+    if (reset)
+        _in_buf += " -r";
+
+
+    for (auto & p : path)
+        _in_buf += (" " + p);
+
+     _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return find(rc.results, "path").as_string();
+}
+
+std::string interpreter::environment_pwd()
+{
+    std::string result;
+
+    _in_buf = std::to_string(_token_gen) + "-environment-pwd\n";
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return find(rc.results, "cwd").as_string();
+}
+
+
+thread_state interpreter::thread_info_(const boost::optional<int> & id)
+{
+    _in_buf = std::to_string(_token_gen) + "-thread-info";
+    if (id)
+        _in_buf += (" " + std::to_string(*id) );
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+   _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+   if (rc.class_ != result_class::done)
+       throw unexpected_result_class(result_class::done, rc.class_);
+
+   return parse_result<thread_state>(rc.results);
+}
+
+thread_id_list interpreter::thread_list_ids()
+{
+    _in_buf = std::to_string(_token_gen) + "-thread-list-ids\n";
+
+
+    mw::gdb::mi2::result_output rc;
+   _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+   if (rc.class_ != result_class::done)
+       throw unexpected_result_class(result_class::done, rc.class_);
+
+   return parse_result<thread_id_list>(rc.results);
+}
+
+thread_select interpreter::thread_select(int id)
+{
+    _in_buf = std::to_string(_token_gen) + "-thread-select " + std::to_string(id) + '\n';
+
+    mw::gdb::mi2::result_output rc;
+   _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+   if (rc.class_ != result_class::done)
+       throw unexpected_result_class(result_class::done, rc.class_);
+
+   return parse_result<struct thread_select>(rc.results);
+}
+
+std::vector<ada_task_info> interpreter::ada_task_info(const boost::optional<int> & task_id)
+{
+    _in_buf = std::to_string(_token_gen) + "-ada-task-info";
+    if (task_id)
+        _in_buf += " " +  std::to_string(*task_id);
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+   _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+   if (rc.class_ != result_class::done)
+       throw unexpected_result_class(result_class::done, rc.class_);
+
+   std::vector<struct ada_task_info> infos;
+
+   for (const auto & v : find(rc.results, "body").as_list().as_values())
+       infos.push_back(parse_result<struct ada_task_info>(v.as_tuple()));
+
+
+   return infos;
 }
 
 

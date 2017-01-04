@@ -197,6 +197,35 @@ public:
     void break_passcount(std::size_t tracepoint_number, std::size_t passcount);
     watchpoint break_watch(const std::string & expr, bool access = false, bool read = false);
 
+    breakpoint catch_load(const std::string regexp,
+                          bool temporary = false,
+                          bool disabled = false);
+
+    breakpoint catch_unload(const std::string regexp,
+                            bool temporary = false,
+                            bool disabled = false);
+
+    breakpoint catch_assert(const boost::optional<std::string> & condition = boost::none,
+                            bool temporary = false, bool disabled = false);
+    breakpoint catch_exception(const boost::optional<std::string> & condition = boost::none,
+                               bool temporary = false, bool disabled = false);
+
+    void exec_arguments(const std::vector<std::string> & args = {});
+    void environment_cd(const std::string path);
+
+    std::string environment_directory(const std::vector<std::string> & path, bool reset = false);
+    std::string environment_path     (const std::vector<std::string> & path, bool reset = false);
+    std::string environment_pwd();
+
+
+    thread_state   thread_info_(const boost::optional<int> & id);
+    thread_id_list thread_list_ids();
+    thread_select  thread_select(int id);
+
+    std::vector<ada_task_info> ada_task_info(const boost::optional<int> & task_id);
+
+    /* ************************************* */
+
     void communicate(boost::asio::yield_context & yield_);
     void communicate(const std::string & in, boost::asio::yield_context & yield_);
     void handle();

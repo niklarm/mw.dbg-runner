@@ -280,6 +280,27 @@ struct thread_info
         stopped, running
     } state;
     boost::optional<int> core;
+    boost::optional<frame> frame;
+};
+
+struct thread_state
+{
+    std::vector<thread_info> threads;
+    int current_thread_id;
+};
+
+struct thread_id_list
+{
+    std::vector<int> thread_ids;
+    int current_thread_id;
+    int number_of_threads;
+};
+
+struct thread_select
+{
+    boost::optional<frame> frame;
+    int new_thread_id;
+    std::vector<arg> args;
 };
 
 struct thread
@@ -312,6 +333,18 @@ struct watchpoint
 {
     int number;
     std::string exp;
+};
+
+struct ada_task_info
+{
+    boost::optional<std::string> current;
+    int id;
+    int task_id;
+    boost::optional<int> thread_id;
+    boost::optional<int> parent_id;
+    int priority;
+    std::string state;
+    std::string name;
 };
 
 struct linespec_location

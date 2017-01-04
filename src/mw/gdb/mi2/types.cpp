@@ -117,6 +117,116 @@ template<> watchpoint parse_result(const std::vector<result> &r)
 
 }
 
+template<> frame parse_result(const std::vector<result> &r)
+{
+    frame f;
+    f.level = std::stoi(find(r, "level").as_string());
+    if (auto val = find_if(r, "func")) f.func = val->as_string();
+    f.addr = std::stoull(find(r, "addr").as_string());
+    if (auto val = find_if(r, "file")) f.file = val->as_string();
+    if (auto val = find_if(r, "line")) f.line = std::stoi(val->as_string());
+    if (auto val = find_if(r, "from")) f.from = std::stoull(val->as_string(), 0 , 16);
+    if (auto val = find_if(r, "args"))
+    {
+        auto vec = val->as_list().as_results();
+        std::vector<arg> args;
+        args.resize(vec.size());
+        std::transform(vec.begin(), vec.end(), args.begin(),
+                    [](const result & rc) -> arg
+                    {
+                        return {rc.variable, rc.value_.as_string()};
+                    });
+        f.args = std::move(args);
+    }
+
+    return f;
+}
+
+template<> thread_info parse_result(const std::vector<result> &r)
+{
+    thread_info ti;
+    ti.id = std::stoi(find(r, "id").as_string());
+    ti.target_id = find(r, "target-id").as_string();
+
+    ti.state = (find(r, "state").as_string() == "stopped") ?
+               thread_info::stopped : thread_info::running;
+
+
+    if (auto val = find_if(r, "details")) ti.details = val->as_string();
+    if (auto val = find_if(r, "core"))    ti.core = std::stoi(val->as_string());
+    if (auto val = find_if(r, "frame"))   ti.frame = parse_result<frame>(val->as_tuple());
+
+    return ti;
+}
+
+template<> thread_state parse_result(const std::vector<result> & ts)
+{
+    std::vector<thread_info> tis;
+    {
+      auto ths = find(ts, "threads").as_list().as_values();
+      tis.resize(ths.size());
+      std::transform(ths.begin(), ths.end(), tis.begin(),
+              [](const value & v)
+              {
+                  return parse_result<thread_info>(v.as_tuple());
+              });
+    }
+    return {std::move(tis), std::stoi(find(ts, "current-thread-id").as_string())};
+}
+
+template<> thread_id_list parse_result(const std::vector<result> & ts)
+{
+    std::vector<int> tis;
+    {
+      auto ths = find(ts, "thread-ids").as_list().as_results();
+      tis.resize(ths.size());
+      std::transform(ths.begin(), ths.end(), tis.begin(),
+              [](const result & r)
+              {
+                  if (r.variable != "thread-id")
+                      throw missing_value("[" + r.variable + " != thread-id]");
+                  return std::stoi(r.value_.as_string());
+              });
+    }
+    return {std::move(tis), std::stoi(find(ts, "current-thread-id").as_string()), std::stoi(find(ts, "number-of-threads").as_string())};
+}
+
+template<> thread_select parse_result(const std::vector<result> & r)
+{
+    thread_select ts;
+
+    ts.new_thread_id = std::stoi(find(r, "new-thread-id").as_string());
+    if (auto val = find_if(r, "frame")) ts.frame = parse_result<frame>(val->as_tuple());
+    if (auto val = find_if(r, "args"))
+    {
+        auto vec = val->as_list().as_results();
+        std::vector<arg> args;
+        args.resize(vec.size());
+        std::transform(vec.begin(), vec.end(), args.begin(),
+                    [](const result & rc) -> arg
+                    {
+                        return {rc.variable, rc.value_.as_string()};
+                    });
+        ts.args = std::move(args);
+    }
+    return ts;
+}
+
+template<> ada_task_info parse_result(const std::vector<result> & r)
+{
+    ada_task_info ati;
+
+    if (auto val = find_if(r, "current")) ati.current = val->as_string();
+    ati.id =      std::stoi(find(r, "id").as_string());
+    ati.task_id = std::stoi(find(r, "task-id").as_string());
+    if (auto val = find_if(r, "thread-id")) ati.thread_id = std::stoi(val->as_string());
+    if (auto val = find_if(r, "parent-id")) ati.parent_id = std::stoi(val->as_string());
+    ati.priority = std::stoi(find(r, "priority").as_string());
+    ati.state = find(r, "state").as_string();
+    ati.name  = find(r, "name") .as_string();
+
+    return ati;
+}
 
 }
 }
