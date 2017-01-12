@@ -1048,7 +1048,532 @@ void interpreter::exec_until(const std::string & location)
 {
     _in_buf = std::to_string(_token_gen) + "-exec-until " + location + '\n';
     _work(_token_gen++, result_class::running);
+}
 
+void interpreter::enable_frame_filters()
+{
+    _in_buf = std::to_string(_token_gen) + "-enable-frame-filters\n";
+    _work(_token_gen++, result_class::running);
+}
+
+frame interpreter::stacke_info_frame()
+{
+    _in_buf = std::to_string(_token_gen) + "-stack-info-frame\n";
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<frame>(find(rc.results, "frame").as_tuple());
+}
+
+std::size_t interpreter::stack_info_depth()
+{
+    _in_buf = std::to_string(_token_gen) + "-stack-info-depth\n";
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return std::stoull(find(rc.results, "depth").as_string());
+}
+
+std::vector<frame> interpreter::stack_list_arguments(
+        enum print_values print_values,
+        const boost::optional<std::pair<std::size_t, std::size_t>> & frame_range,
+        bool no_frame_filters,
+        bool skip_unavailable)
+{
+    _in_buf = std::to_string(_token_gen) + "-stack-list-arguments ";
+    if (no_frame_filters)
+        _in_buf += "--no-frame-filters ";
+
+    if (skip_unavailable)
+        _in_buf += "--skip-unavailable ";
+
+
+    _in_buf += std::to_string(static_cast<int>(print_values));
+
+    if (frame_range)
+        _in_buf += " " + std::to_string(frame_range->first) + " " + std::to_string(frame_range->second);
+
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    std::vector<frame> fr;
+    auto val = find(rc.results, "stack-args").as_list().as_results();
+    fr.reserve(val.size());
+
+    for (const auto & v : val)
+        fr.push_back(parse_result<frame>(v.value_.as_tuple()));
+
+    return fr;
+}
+
+std::vector<frame> interpreter::stack_list_frames(
+        const boost::optional<std::pair<std::size_t, std::size_t>> & frame_range,
+        bool no_frame_filters)
+{
+    _in_buf = std::to_string(_token_gen) + "-stack-list-frames ";
+    if (no_frame_filters)
+        _in_buf += " --no-frame-filters";
+
+    if (frame_range)
+        _in_buf += " " + std::to_string(frame_range->first) + " " + std::to_string(frame_range->second);
+
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    std::vector<frame> fr;
+    auto val = find(rc.results, "stack").as_list().as_results();
+    fr.reserve(val.size());
+
+    for (const auto & v : val)
+        fr.push_back(parse_result<frame>(v.value_.as_tuple()));
+
+    return fr;
+}
+
+std::vector<frame> interpreter::stack_list_locals(
+        enum print_values print_values,
+        bool no_frame_filters,
+        bool skip_unavailable)
+{
+    _in_buf = std::to_string(_token_gen) + "-stack-list-locals ";
+    if (no_frame_filters)
+        _in_buf += "--no-frame-filters ";
+
+    if (skip_unavailable)
+        _in_buf += "--skip-unavailable ";
+
+
+    _in_buf += std::to_string(static_cast<int>(print_values));
+
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    std::vector<frame> fr;
+    auto val = find(rc.results, "locals").as_list().as_results();
+    fr.reserve(val.size());
+
+    for (const auto & v : val)
+        fr.push_back(parse_result<frame>(v.value_.as_tuple()));
+
+    return fr;
+}
+
+std::vector<frame> interpreter::stack_list_variables(
+        enum print_values print_values,
+        bool no_frame_filters,
+        bool skip_unavailable)
+{
+    _in_buf = std::to_string(_token_gen) + "-stack-list-variables ";
+    if (no_frame_filters)
+        _in_buf += "--no-frame-filters ";
+
+    if (skip_unavailable)
+        _in_buf += "--skip-unavailable ";
+
+
+    _in_buf += std::to_string(static_cast<int>(print_values));
+
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    std::vector<frame> fr;
+    auto val = find(rc.results, "variables").as_list().as_results();
+    fr.reserve(val.size());
+
+    for (const auto & v : val)
+        fr.push_back(parse_result<frame>(v.value_.as_tuple()));
+
+    return fr;
+}
+
+
+void interpreter::stack_select_frame(std::size_t framenum)
+{
+    _in_buf = std::to_string(_token_gen) + "-stack-select-frame " + std::to_string(framenum) + '\n';
+    _work(_token_gen++, result_class::done);
+}
+
+void interpreter::enable_pretty_printing()
+{
+    _in_buf = std::to_string(_token_gen) + "-enable-pretty-printing\n";
+    _work(_token_gen++, result_class::done);
+}
+
+
+varobj interpreter::var_create(const std::string& expression,
+                            const boost::optional<std::string> & name,
+                            const boost::optional<std::uint64_t> & addr)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-create ";
+    if (name)
+        _in_buf += *name + " ";
+    else
+        _in_buf += "- ";
+
+    if (addr)
+        _in_buf += std::to_string(*addr) + " ";
+    else
+        _in_buf += "* ";
+
+
+    _in_buf += expression;
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<varobj>(rc.results);
+}
+
+varobj interpreter::var_create_floating(const std::string & expression, const boost::optional<std::string> & name)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-create ";
+    if (name)
+        _in_buf += *name + " ";
+    else
+        _in_buf += "- ";
+
+    _in_buf += "@ ";
+    _in_buf += expression;
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<varobj>(rc.results);
+}
+
+void interpreter::var_delete(const std::string & name, bool leave_children)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-delete ";
+    if (leave_children)
+        _in_buf += "-c ";
+    _in_buf += name;
+    _in_buf += '\n';
+
+    _work(_token_gen++, result_class::done);
+}
+
+void interpreter::var_set_format(const std::string & name, format_spec fs)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-set-format ";
+    _in_buf += name;
+
+    switch (fs)
+    {
+    case format_spec::binary          : _in_buf += " binary\n";           break;
+    case format_spec::decimal         : _in_buf += " decimal\n";          break;
+    case format_spec::hexadecimal     : _in_buf += " hexadecimal\n";      break;
+    case format_spec::octal           : _in_buf += " octal\n";            break;
+    case format_spec::natural         : _in_buf += " natural\n";          break;
+    case format_spec::zero_hexadecimal: _in_buf += " zero-hexadecimal\n"; break;
+    }
+    _work(_token_gen++, result_class::done);
+}
+
+format_spec interpreter::var_show_format(const std::string & name)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-show-format " + name + '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+    auto var = find(rc.results, "format").as_string();
+
+    if (var == "binary")           return format_spec::binary;
+    if (var == "decimal")          return format_spec::decimal;
+    if (var == "hexadecimal")      return format_spec::hexadecimal;
+    if (var == "octal")            return format_spec::octal;
+    if (var == "natural")          return format_spec::natural;
+    if (var == "zero-hexadecimal") return format_spec::zero_hexadecimal;
+
+    return static_cast<format_spec>(-1);
+}
+
+
+std::size_t interpreter::var_info_num_children(const std::string & name)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-info-num-children " + name + '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+    return std::stoull( find(rc.results, "numchild").as_string() );
+}
+
+std::vector<varobj> interpreter::var_list_children(const std::string & name,
+                                                   const boost::optional<enum print_values> & print_values,
+                                                   const boost::optional<std::pair<int, int>> & range)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-list-children ";
+
+    if (print_values)
+        _in_buf += std::to_string(static_cast<int>(*print_values)) + " ";
+
+    _in_buf += name;
+
+    if (range)
+        _in_buf += " " + std::to_string(range->first) + " " + std::to_string(range->second);
+
+    _in_buf += '\n';
+
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    std::vector<varobj> vec;
+    vec.reserve(std::stoi(find(rc.results, "numchild").as_string()));
+
+    for (auto & elem : find(rc.results, "chlidren").as_list().as_values())
+        vec.push_back(parse_result<varobj>(find(elem.as_tuple(), "child").as_tuple()));
+
+    return vec;
+}
+
+std::string interpreter::var_info_type(const std::string & name)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-info-type " + name + '\n';
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return find(rc.results, "type").as_string();
+}
+
+std::pair<std::string, std::string> interpreter::var_info_expression(const std::string & exp)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-info-expression " + exp + '\n';
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return std::make_pair(find(rc.results, "lang").as_string(), find(rc.results, "exp").as_string());
+}
+
+std::string interpreter::var_info_path_expression(const std::string & name)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-info-path-expression " + name + '\n';
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return find(rc.results, "path_expr").as_string();
+}
+
+std::vector<std::string> interpreter::var_show_attributes(const std::string & name)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-show-attributes " + name + '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    std::vector<std::string> vec;
+    auto in = find(rc.results, "status").as_list().as_values();
+    vec.resize(in.size());
+
+    for (const auto & i : in)
+        vec.push_back(i.as_string());
+
+    return vec;
+}
+
+std::string interpreter::var_evaluate_expression(
+        const std::string & name,
+        const boost::optional<std::string> & format)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-evaluate-expression ";
+
+    if (format)
+        _in_buf += "-f " + *format + " ";
+
+    _in_buf += name + '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return find(rc.results, "value").as_string();
+}
+
+std::string interpreter::var_assign(const std::string & name, const std::string& expr)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-assign " + name + " " + expr + '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return find(rc.results, "value").as_string();
+}
+
+
+std::vector<varobj_update> interpreter::var_update(
+                const boost::optional<std::string> & name,
+                const boost::optional<enum print_values> & print_values)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-update ";
+
+    if (print_values)
+        _in_buf += std::to_string(static_cast<int>(*print_values)) + " ";
+
+    if (name)
+        _in_buf += *name;
+    else
+        _in_buf += "*";
+
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    std::vector<varobj_update> vec;
+    auto in = find(rc.results, "status").as_list().as_values();
+    vec.resize(in.size());
+
+    for (const auto & i : in)
+        vec.push_back(parse_result<varobj_update>(i.as_tuple()));
+
+    return vec;
+}
+
+void interpreter::var_set_frozen(const std::string & name, bool freeze)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-set-frozen " + (name + (freeze ? '1' : '0')) +  '\n';
+    _work(_token_gen++, result_class::done);
+}
+
+void interpreter::var_set_update_range(const std::string & name, int from, int to)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-set-update-range " + name + " " + std::to_string(from) + " " + std::to_string(to) + '\n';
+    _work(_token_gen++, result_class::done);
+}
+
+void interpreter::var_set_visualizer(const std::string & name, const boost::optional<std::string> &visualizer)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-set-visualizer " + name;
+    if (visualizer)
+        _in_buf += " \"" + *visualizer + "\"\n";
+    else
+        _in_buf += " None \n";
+
+    _work(_token_gen++, result_class::done);
+}
+
+void interpreter::var_set_default_visualizer(const std::string & name)
+{
+    _in_buf = std::to_string(_token_gen) + "-var-set-visualizer " + name + " gdb.default_visualizer\n";
+    _work(_token_gen++, result_class::done);
 }
 
 }

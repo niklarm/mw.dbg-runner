@@ -250,25 +250,57 @@ public:
     void exec_until(const explicit_location & el);
     void exec_until(const address_location  & al);
 
-    /* ************************************* */
+    void enable_frame_filters();
+    frame stacke_info_frame();
+    std::size_t stack_info_depth();
+    std::vector<frame> stack_list_arguments(
+            enum print_values print_values,
+            const boost::optional<std::pair<std::size_t, std::size_t>> & frame_range = boost::none,
+            bool no_frame_filters = false,
+            bool skip_unavailable = false);
 
-    void communicate(boost::asio::yield_context & yield_);
-    void communicate(const std::string & in, boost::asio::yield_context & yield_);
-    void handle();
-    void operator()(boost::asio::yield_context & yield_);
+    std::vector<frame> stack_list_frames(
+            const boost::optional<std::pair<std::size_t, std::size_t>> & frame_range = boost::none,
+            bool no_frame_filters = false);
 
-    void exit();
-    void set (const std::string & name, const std::string & value);
-    std::string show(const std::string & name);
-    void version();
-    std::vector<groups> list_thread_groups(bool available = false, int recurse = 0);
+    std::vector<frame> stack_list_locals(
+            enum print_values print_values,
+            bool no_frame_filters = false,
+            bool skip_unavailable = false);
 
-    os_info info_os();
+    std::vector<frame> stack_list_variables(
+            enum print_values print_values,
+            bool no_frame_filters = false,
+            bool skip_unavailable = false);
 
-    std::string add_inferior();
-    void inferior_tty_set(const std::string & str);
+    void stack_select_frame(std::size_t framenum);
 
-    void enable_timings(bool ena = true);
+    void enable_pretty_printing();
+    varobj var_create(const std::string& expression,
+                   const boost::optional<std::string> & name = boost::none,
+                   const boost::optional<std::uint64_t> & addr = boost::none);
+
+    varobj var_create_floating(const std::string & expression, const boost::optional<std::string> & name = boost::none);
+    void var_delete(const std::string & name, bool leave_children = false);
+    void var_set_format(const std::string & name, format_spec fs);
+    format_spec var_show_format(const std::string & name);
+    std::size_t var_info_num_children(const std::string & name);
+    std::vector<varobj> var_list_children(const std::string & name,
+                                          const boost::optional<enum print_values> & print_values = boost::none,
+                                          const boost::optional<std::pair<int, int>> & range = boost::none);
+    std::string var_info_type(const std::string & name);
+    std::pair<std::string, std::string> var_info_expression(const std::string & name);
+    std::string var_info_path_expression(const std::string & name);
+    std::vector<std::string> var_show_attributes(const std::string & name);
+    std::string var_evaluate_expression(const std::string & name, const boost::optional<std::string> & format = boost::none);
+    std::string var_assign(const std::string & name, const std::string& expr);
+    std::vector<varobj_update> var_update(
+                    const boost::optional<std::string> & name = boost::none,
+                    const boost::optional<enum print_values> & print_values = boost::none);
+    void var_set_frozen(const std::string & name, bool freeze = true);
+    void var_set_update_range(const std::string & name, int from, int to);
+    void var_set_visualizer(const std::string & name, const boost::optional<std::string> &visualizer = boost::none);
+    void var_set_default_visualizer(const std::string & name);
 };
 
 

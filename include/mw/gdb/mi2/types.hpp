@@ -259,11 +259,39 @@ struct arg
     std::string value;
 };
 
+struct varobj
+{
+    std::string name;
+    int numchild;
+    std::string value;
+    std::string type;
+    boost::optional<int> thread_id;
+    bool has_more;
+    bool dynamic;
+    boost::optional<std::string> displayhint;
+    boost::optional<std::string> exp;
+    bool frozen;
+};
+
+struct varobj_update
+{
+    std::string name;
+    std::string value;
+    boost::optional<bool> in_scope;
+    boost::optional<bool> type_changed;
+    boost::optional<std::string> new_type;
+    boost::optional<int> new_num_children;
+    boost::optional<std::string> displayhint;
+    bool has_more;
+    bool dynamic;
+    std::vector<std::string> new_children;
+};
+
 struct frame
 {
     int level;
     boost::optional<std::string> func;
-    std::uint64_t addr;
+    boost::optional<std::uint64_t> addr;
     boost::optional<std::string> file;
     boost::optional<int> line;
     boost::optional<std::uint64_t> from;
@@ -345,6 +373,23 @@ struct ada_task_info
     int priority;
     std::string state;
     std::string name;
+};
+
+enum class print_values
+{
+    no_values = 0,
+    all_values = 1,
+    simple_values = 2,
+};
+
+enum class format_spec
+{
+    binary,
+    decimal,
+    hexadecimal,
+    octal,
+    natural,
+    zero_hexadecimal
 };
 
 struct linespec_location

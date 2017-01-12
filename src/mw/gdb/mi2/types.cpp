@@ -122,7 +122,7 @@ template<> frame parse_result(const std::vector<result> &r)
     frame f;
     f.level = std::stoi(find(r, "level").as_string());
     if (auto val = find_if(r, "func")) f.func = val->as_string();
-    f.addr = std::stoull(find(r, "addr").as_string());
+    if (auto val = find_if(r, "addr")) f.addr = std::stoull(find(r, "addr").as_string());
     if (auto val = find_if(r, "file")) f.file = val->as_string();
     if (auto val = find_if(r, "line")) f.line = std::stoi(val->as_string());
     if (auto val = find_if(r, "from")) f.from = std::stoull(val->as_string(), 0 , 16);
@@ -227,6 +227,71 @@ template<> ada_task_info parse_result(const std::vector<result> & r)
 
     return ati;
 }
+
+template<> varobj parse_result(const std::vector<result> & r)
+{
+    varobj ati;
+    ati.name     = find(r, "name").as_string();
+    ati.numchild = std::stoi(find(r, "numchild").as_string());
+    ati.value    = find(r, "value").as_string();
+    ati.type     = find(r, "type").as_string();
+    if (auto val = find_if(r, "thread-id")) ati.thread_id = std::stoi(val->as_string());
+    if (auto val = find_if(r, "has_more"))  ati.has_more = std::stoi(val->as_string()) > 0;
+
+    ati.dynamic = find_if(r, "dynamic").operator bool();
+
+    if (auto val = find_if(r, "displayhint")) ati.displayhint = val->as_string();
+
+    if (auto val = find_if(r, "exp")) ati.exp = val->as_string();
+    ati.frozen = find_if(r, "dynamic").operator bool();
+
+    return ati;
+}
+
+
+template<> varobj_update parse_result(const std::vector<result> & r)
+{
+    varobj_update vu;
+    vu.name     = find(r, "name").as_string();
+    vu.value    = find(r, "value").as_string();
+    if (auto val = find_if(r, "in_scope"))
+    {
+        const auto str = val->as_string();
+        if (str == "true")
+            vu.in_scope = true;
+        else if (str == "false")
+            vu.in_scope = false;
+    }
+    if (auto val = find_if(r, "type_changed"))
+    {
+        const auto str = val->as_string();
+        if (str == "true")
+            vu.type_changed = true;
+        else if (str == "false")
+            vu.type_changed = false;
+    }
+    if (auto val = find_if(r, "has_more")) vu.has_more = std::stoi(val->as_string()) > 0;
+    if (auto val = find_if(r, "new_type")) vu.new_type = val->as_string();
+    if (auto val = find_if(r, "new_num_children"))   vu.new_num_children = std::stoi(val->as_string());
+
+    vu.dynamic = find_if(r, "dynamic").operator bool();
+
+    if (auto val = find_if(r, "displayhint")) vu.displayhint = val->as_string();
+
+     vu.dynamic      = static_cast<bool>(find_if(r, "dynamic"));
+     if (auto val = find_if(r, "new_children"))
+     {
+         auto vals = val->as_list().as_values();
+         vu.new_children.clear();
+         vu.new_children.resize(vals.size());
+         for (auto & v : vals)
+             vu.new_children.push_back(v.as_string());
+     }
+
+    return vu;
+}
+
+
 
 }
 }
