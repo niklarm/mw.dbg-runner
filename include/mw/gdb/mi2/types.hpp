@@ -389,8 +389,43 @@ enum class format_spec
     hexadecimal,
     octal,
     natural,
-    zero_hexadecimal
+    zero_hexadecimal,
+    raw
 };
+
+enum class output_format
+{
+    hexadecimal,
+    signed_,
+    unsigned_,
+    octal,
+    bianry,
+    address,
+    character,
+    floating,
+    string,
+    padded_hex,
+    raw
+};
+
+inline char to_char(output_format of)
+{
+    switch(of)
+    {
+        case output_format::hexadecimal: return 'x';
+        case output_format::signed_:     return 'd';
+        case output_format::unsigned_:   return 'u';
+        case output_format::octal:       return 'o';
+        case output_format::bianry:      return 't';
+        case output_format::address:     return 'a';
+        case output_format::character:   return 'c';
+        case output_format::floating:    return 'f';
+        case output_format::string:      return 's';
+        case output_format::padded_hex:  return 'z';
+        case output_format::raw:         return 'r';
+        default: return '\0';
+    }
+}
 
 struct linespec_location
 {
@@ -433,6 +468,121 @@ struct address_location
     address_location(std::uint64_t funcaddr) : funcaddr(funcaddr) {}
     address_location(const std::string & filename, std::uint64_t funcaddr)
         : funcaddr(funcaddr), filename(filename) {}
+};
+
+enum class disassemble_mode
+{
+    disassembly_only = 0,
+    mixed_source_and_disassembly_deprecated = 1,
+    disassembly_with_raw_opcodes = 2,
+    mixed_source_and_disassembly_with_raw_opcodes_deprecated = 3,
+    mixed_source_and_disassembly                  = 4,
+    mixed_source_and_disassembly_with_raw_opcodes = 5
+};
+
+struct line_asm_insn
+{
+    std::uint64_t address;
+    std::string func_name;
+    std::size_t offset;
+    std::string inst;
+    boost::optional<std::string>  opcodes;
+};
+
+struct src_and_asm_line
+{
+    int line;
+    std::string file;
+    std::string fullname;
+    boost::optional<std::vector<struct line_asm_insn>> line_asm_insn;
+};
+
+struct dissambled_data
+{
+    std::uint64_t address;
+    std::string func_name;
+    std::size_t offset;
+    std::string inst;
+    boost::optional<std::string>  opcodes;
+    boost::optional<std::vector<struct src_and_asm_line>> src_and_asm_line;
+};
+
+struct register_value
+{
+    std::size_t number;
+    std::string value;
+};
+
+struct memory_entry
+{
+    std::uint64_t addr;
+    std::vector<std::uint8_t> data;
+    boost::optional<std::string> ascii;
+};
+
+struct read_memory
+{
+    std::uint64_t addr;
+    std::size_t nr_bytes;
+    std::size_t total_bytes;
+    std::uint64_t next_row;
+    std::uint64_t prev_row;
+    std::uint64_t next_page;
+    std::uint64_t prev_page;
+    std::vector<memory_entry> memory;
+};
+
+struct read_memory_bytes
+{
+    std::uint64_t begin;
+    std::uint64_t offset;
+    std::uint64_t end;
+    std::vector<std::uint8_t> contents;
+};
+
+struct found_tracepoint
+{
+    int traceframe;
+    int tracepoint;
+    boost::optional<frame> frame;
+};
+
+struct memory_region
+{
+    std::uint64_t address;
+    std::size_t length;
+    boost::optional<std::vector<std::uint8_t>> contents;
+};
+
+struct traceframe_collection
+{
+    std::vector<register_value> explicit_variables;
+    std::vector<register_value> computed_expressions;
+    std::vector<register_value> registers;
+    std::vector<register_value> tvars;
+    std::vector<memory_region> memory;
+};
+
+struct trace_variable
+{
+    std::string name;
+    std::int64_t initial;
+    boost::optional<std::int64_t> current;
+};
+
+struct trace_status
+{
+    bool supported;
+    bool running;
+    boost::optional<std::string> stop_reason;
+    boost::optional<int> stopping_tracepoint;
+    boost::optional<std::size_t> frames;
+    boost::optional<std::size_t> frames_created;
+    boost::optional<std::size_t> buffer_size;
+    boost::optional<std::size_t> buffer_free;
+    bool circular;
+    bool disconnected;
+    boost::optional<std::string> trace_file;
 };
 
 }

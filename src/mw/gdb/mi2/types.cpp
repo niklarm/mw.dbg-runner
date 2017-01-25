@@ -292,6 +292,288 @@ template<> varobj_update parse_result(const std::vector<result> & r)
 }
 
 
+template<> line_asm_insn parse_result(const std::vector<result> & r)
+{
+    line_asm_insn lai;
+
+    lai.address   = std::stoi(find(r, "address").as_string());
+    lai.func_name = find(r, "func-name").as_string();
+    lai.offset    = std::stoi(find(r, "offset").as_string());
+    lai.inst      = find(r, "inst").as_string();
+
+    if (auto val = find_if(r, "opcodes"))
+            lai.opcodes = val->as_string();
+
+    return lai;
+}
+
+template<> src_and_asm_line parse_result(const std::vector<result> & r)
+{
+    src_and_asm_line lai;
+
+    lai.line     = std::stoi(find(r, "line").as_string());
+    lai.file     = find(r, "file").as_string();
+    lai.fullname = find(r, "fullname").as_string();
+
+    if (auto val = find_if(r, "line_asm_insn"))
+    {
+        auto in = val->as_list().as_values();
+
+        std::vector<line_asm_insn> vec;
+        vec.reserve(in.size());
+
+        for (auto & i : in)
+            vec.push_back(parse_result<line_asm_insn>(i.as_tuple()));
+
+        lai.line_asm_insn = std::move(vec);
+    }
+
+    return lai;
+}
+
+template<> dissambled_data parse_result(const std::vector<result> & r)
+{
+    dissambled_data lai;
+
+    lai.address     = std::stoi(find(r, "address").as_string());
+    lai.func_name   = find(r, "func_name").as_string();
+    lai.offset      = std::stoi(find(r, "offset").as_string());
+    lai.inst        = find(r, "inst").as_string();
+
+    if (auto val = find_if(r, "opcodes"))
+        lai.opcodes = val->as_string();
+
+    if (auto val = find_if(r, "src_and_asm_line"))
+    {
+        auto in = val->as_list().as_values();
+
+        std::vector<src_and_asm_line> vec;
+        vec.reserve(in.size());
+
+        for (auto & i : in)
+            vec.push_back(parse_result<src_and_asm_line>(i.as_tuple()));
+
+        lai.src_and_asm_line = std::move(vec);
+    }
+
+    return lai;
+}
+
+template<> register_value parse_result(const std::vector<result> & r)
+{
+    register_value lai;
+
+    lai.number  = std::stoi(find(r, "number").as_string());
+    lai.value   = find(r, "value").as_string();
+
+    return lai;
+}
+
+template<> memory_entry parse_result(const std::vector<result> & r)
+{
+    memory_entry me;
+
+    me.addr  = std::stoull(find(r, "addr").as_string(), nullptr, 16);
+
+    auto data = find(r, "data").as_list().as_values();
+    me.data.resize(data.size());
+
+    for (auto & d : data)
+        me.data.push_back(
+            static_cast<std::uint8_t>(std::stoul(d.as_string(), nullptr, 16)));
+
+    if (auto val = find_if(r, "ascii")) me.ascii = val->as_string();
+
+    return me;
+}
+
+
+template<> read_memory parse_result(const std::vector<result> & r)
+{
+    read_memory rm;
+
+    rm.addr        = std::stoull(find(r, "addr").as_string(), nullptr, 16);
+    rm.nr_bytes    = std::stoull(find(r, "nr-bytes").as_string());
+    rm.total_bytes = std::stoull(find(r, "total-bytes").as_string());
+    rm.next_row    = std::stoull(find(r, "next-row").as_string(), nullptr, 16);
+    rm.prev_row    = std::stoull(find(r, "prev-row").as_string(), nullptr, 16);
+    rm.next_page   = std::stoull(find(r, "next-page").as_string(), nullptr, 16);
+    rm.prev_page   = std::stoull(find(r, "prev-page").as_string(), nullptr, 16);
+
+
+    auto mem = find(r, "memory").as_list().as_values();
+    rm.memory.resize(mem.size());
+
+    for (auto & m : mem)
+        rm.memory.push_back(parse_result<memory_entry>(m.as_tuple()));
+
+    return rm;
+}
+
+template<> read_memory_bytes parse_result(const std::vector<result> & r)
+{
+    read_memory_bytes rm;
+
+    rm.begin  = std::stoull(find(r, "begin").as_string(), nullptr, 16);
+    rm.offset = std::stoull(find(r, "offset").as_string());
+    rm.end    = std::stoull(find(r, "end").as_string());
+
+    auto ctn = find(r, "contents").as_string();
+    rm.contents.resize(ctn.size() /2);
+
+
+    auto to_int = [](char c) -> std::uint8_t
+            {
+                if ((c >= '0' ) && (c <= '9'))
+                    return c - '0';
+
+                if ((c >= 'A' ) && (c <= 'F'))
+                    return c - 'A' + 10;
+
+                if ((c >= 'a' ) && (c <= 'f'))
+                    return c - 'a' + 10;
+
+                return 0;
+            };
+
+    auto itr = ctn.begin();
+    for (auto & c : rm.contents)
+    {
+        c  = to_int(*itr++);
+        c |= to_int(*itr++) << static_cast<std::uint8_t>(8);
+    }
+
+    return rm;
+}
+
+
+template <> boost::optional<found_tracepoint> parse_result(const std::vector<result> & r)
+{
+    auto val = find_if(r, "found");
+    if (!val)
+        return boost::none;
+
+    found_tracepoint ft;
+
+    ft.traceframe = std::stoi(find(r, "traceframe").as_string());
+    ft.tracepoint = std::stoi(find(r, "tracepoint").as_string());
+    if (auto val = find_if(r, "frame")) ft.frame = parse_result<frame>(val->as_tuple());
+
+    return ft;
+}
+
+template<> memory_region parse_result(const std::vector<result> & r)
+{
+    auto to_int = [](char c) -> std::uint8_t
+            {
+                if ((c >= '0' ) && (c <= '9'))
+                    return c - '0';
+
+                if ((c >= 'A' ) && (c <= 'F'))
+                    return c - 'A' + 10;
+
+                if ((c >= 'a' ) && (c <= 'f'))
+                    return c - 'a' + 10;
+
+                return 0;
+            };
+
+    memory_region mr;
+
+    mr.address  = std::stoull(find(r, "address").as_string(), nullptr, 16);
+    mr.length   = std::stoull(find(r, "value").as_string());
+    if (auto value = find_if(r, "contents"))
+    {
+        auto ctn = value->as_string();
+        mr.contents = std::vector<std::uint8_t>(ctn.size()/2);
+
+        auto itr = ctn.begin();
+        for (auto & c : *mr.contents)
+        {
+            c  = to_int(*itr++);
+            c |= to_int(*itr++) << static_cast<std::uint8_t>(8);
+        }
+    }
+    return mr;
+}
+
+template <> traceframe_collection parse_result(const std::vector<result> & r)
+{
+    traceframe_collection tc;
+
+    if (auto val = find_if(r, "explicit-variables"))
+    {
+        auto vec = val->as_list().as_values();
+        tc.explicit_variables.reserve(vec.size());
+        for (auto & ev : vec)
+            tc.explicit_variables.push_back(parse_result<register_value>(ev.as_tuple()));
+    }
+
+    if (auto val = find_if(r, "computed-expressions"))
+    {
+        auto vec = val->as_list().as_values();
+        tc.computed_expressions.reserve(vec.size());
+        for (auto & ev : vec)
+            tc.computed_expressions.push_back(parse_result<register_value>(ev.as_tuple()));
+    }
+
+    if (auto val = find_if(r, "registers"))
+    {
+        auto vec = val->as_list().as_values();
+        tc.registers.reserve(vec.size());
+        for (auto & ev : vec)
+            tc.registers.push_back(parse_result<register_value>(ev.as_tuple()));
+    }
+
+    if (auto val = find_if(r, "tvars"))
+    {
+        auto vec = val->as_list().as_values();
+        tc.tvars.reserve(vec.size());
+        for (auto & ev : vec)
+            tc.tvars.push_back(parse_result<register_value>(ev.as_tuple()));
+    }
+
+    if (auto val = find_if(r, "tvars"))
+    {
+        auto vec = val->as_list().as_values();
+        tc.memory.reserve(vec.size());
+        for (auto & ev : vec)
+            tc.memory.push_back(parse_result<memory_region>(ev.as_tuple()));
+    }
+
+
+    return tc;
+}
+
+template <> trace_variable parse_result(const std::vector<result> & r)
+{
+    trace_variable ft;
+
+    ft.name = std::stoull(find(r, "name").as_string());
+    ft.initial = std::stoull(find(r, "initial").as_string());
+    if (auto val = find_if(r, "current")) ft.current = std::stoll(val->as_string());
+
+    return ft;
+}
+
+template <> trace_status parse_result(const std::vector<result> & r)
+{
+    trace_status ft;
+
+    ft.supported    = find(r, "supported").as_string() == "1";
+    if (auto value = find_if(r, "running")) ft.running = (value->as_string() == "1");
+    if (auto value = find_if(r, "stop-reason")) ft.stop_reason = value->as_string();
+    if (auto value = find_if(r, "stopping-tracepoint")) ft.stopping_tracepoint = std::stoi(value->as_string());
+    if (auto value = find_if(r, "frames")) ft.frames = std::stoull(value->as_string());
+    if (auto value = find_if(r, "frames-created")) ft.frames_created = std::stoull(value->as_string());
+    if (auto value = find_if(r, "buffer-size")) ft.buffer_size = std::stoull(value->as_string());
+    if (auto value = find_if(r, "buffer-free")) ft.buffer_free = std::stoull(value->as_string());
+    if (auto value = find_if(r, "circular"))     ft.circular     = (value->as_string() == "1");
+    if (auto value = find_if(r, "disconnected")) ft.disconnected = (value->as_string() == "1");
+    if (auto value = find_if(r, "trace-file")) ft.trace_file = value->as_string();
+
+    return ft;
+}
 
 }
 }

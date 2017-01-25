@@ -1325,6 +1325,7 @@ void interpreter::var_set_format(const std::string & name, format_spec fs)
     case format_spec::octal           : _in_buf += " octal\n";            break;
     case format_spec::natural         : _in_buf += " natural\n";          break;
     case format_spec::zero_hexadecimal: _in_buf += " zero-hexadecimal\n"; break;
+    default: break;
     }
     _work(_token_gen++, result_class::done);
 }
@@ -1573,6 +1574,477 @@ void interpreter::var_set_visualizer(const std::string & name, const boost::opti
 void interpreter::var_set_default_visualizer(const std::string & name)
 {
     _in_buf = std::to_string(_token_gen) + "-var-set-visualizer " + name + " gdb.default_visualizer\n";
+    _work(_token_gen++, result_class::done);
+}
+
+
+dissambled_data interpreter::data_disassemble (disassemble_mode de)
+{
+    _in_buf = std::to_string(_token_gen) + "-data-disassemble -- " + std::to_string(static_cast<int>(de)) + '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<dissambled_data>(find(rc.results, "asm_insns").as_tuple());
+}
+
+dissambled_data interpreter::data_disassemble (disassemble_mode de, std::size_t start_addr, std::size_t end_addr)
+{
+    _in_buf = std::to_string(_token_gen) + "-data-disassemble";
+    _in_buf += " -s " + std::to_string(start_addr);
+    _in_buf += " -e " + std::to_string(end_addr);
+    _in_buf += " -- " + std::to_string(static_cast<int>(de)) + '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<dissambled_data>(find(rc.results, "asm_insns").as_tuple());
+}
+
+dissambled_data interpreter::data_disassemble (disassemble_mode de, const std::string & filename, std::size_t linenum, const boost::optional<int> &lines)
+{
+    _in_buf = std::to_string(_token_gen) + "-data-disassemble ";
+    _in_buf += " -f " + filename;
+    _in_buf += " -l " + std::to_string(linenum);
+
+    if (lines)
+        _in_buf += " -n " + std::to_string(*lines);
+
+    _in_buf += " -- " + std::to_string(static_cast<int>(de)) + '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<dissambled_data>(find(rc.results, "asm_insns").as_tuple());
+}
+
+std::string interpreter::data_evaluate_expression(const std::string & expr)
+{
+    _in_buf = std::to_string(_token_gen) + "-data-evaluate-expression " + expr + '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return find(rc.results, "value").as_string();
+}
+
+
+std::vector<std::string> interpreter::data_list_changed_registers()
+{
+    _in_buf = std::to_string(_token_gen) + "-data-list-changed-registers\n";
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    auto l = find(rc.results, "changed-registers").as_list().as_values();
+
+    std::vector<std::string> ret;
+    ret.reserve(l.size());
+    for (auto & v : l)
+        ret.push_back(v.as_string());
+
+    return ret;
+}
+
+std::vector<std::string> interpreter::data_list_register_names()
+{
+    _in_buf = std::to_string(_token_gen) + "-data-list-register-names\n";
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    auto l = find(rc.results, "register-names").as_list().as_values();
+
+    std::vector<std::string> ret;
+    ret.reserve(l.size());
+    for (auto & v : l)
+        ret.push_back(v.as_string());
+
+    return ret;
+}
+
+std::vector<register_value> interpreter::data_list_register_values(
+                     format_spec fmt, const boost::optional<std::vector<int>> & regno, bool skip_unavaible)
+{
+    _in_buf = std::to_string(_token_gen) + "-data-list-register-values ";
+
+    if (skip_unavaible)
+        _in_buf += "--skip-unavailable ";
+
+    switch (fmt)
+    {
+    case format_spec::hexadecimal: _in_buf += "x"; break;
+    case format_spec::octal:       _in_buf += "o"; break;
+    case format_spec::binary:      _in_buf += "t"; break;
+    case format_spec::decimal:     _in_buf += "d"; break;
+    case format_spec::raw:         _in_buf += "r"; break;
+    case format_spec::natural:     _in_buf += "N"; break;
+    default: break;
+    }
+
+    if (regno)
+        for (auto & v : *regno)
+            _in_buf += " " + std::to_string(v);
+
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    auto l = find(rc.results, "register-values").as_list().as_values();
+
+    std::vector<register_value> ret;
+    ret.reserve(l.size());
+    for (auto & v : l)
+        ret.push_back(parse_result<register_value>(v.as_tuple()));
+
+    return ret;
+}
+
+read_memory interpreter::data_read_memory(const std::string & address,
+                 std::size_t word_size,
+                 std::size_t nr_rows,
+                 std::size_t nr_cols,
+                 const boost::optional<int> & byte_offset,
+                 const boost::optional<char> & aschar)
+{
+    _in_buf = std::to_string(_token_gen) + "-data-read-memory";
+
+    if (byte_offset)
+        _in_buf += " -o " + std::to_string(*byte_offset);
+
+    _in_buf += " " + address;
+    _in_buf += " x"; //always hex
+    _in_buf += " " + std::to_string(word_size);
+    _in_buf += " " + std::to_string(nr_rows);
+    _in_buf += " " + std::to_string(nr_cols);
+    if (aschar)
+        (_in_buf += " ") += *aschar;
+
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<read_memory>(rc.results);
+}
+
+read_memory_bytes interpreter::data_read_memory_bytes(const std::string & address, std::size_t count, const boost::optional<int> & offset)
+{
+    _in_buf = std::to_string(_token_gen) + "-data-read-memory-bytes";
+
+    if (offset)
+        _in_buf += " -o " + std::to_string(*offset);
+
+    _in_buf += " " + address;
+    _in_buf += " " + std::to_string(count);
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<read_memory_bytes>(find(rc.results, "memory").as_tuple());
+}
+
+void interpreter::data_write_memory_bytes(const std::string & address, const std::vector<std::uint8_t> & contents, const boost::optional<std::size_t> & count)
+{
+    _in_buf = std::to_string(_token_gen) + "-data-write-memory-bytes " + address;
+
+    std::stringstream ss;
+    ss << " ";
+
+    constexpr static char arr_conv[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+    for (auto & c : contents)
+        ss << arr_conv[(c & 0xFF00) >> 8] << arr_conv[c & 0xFF];
+
+    if (count)
+        ss << " " << std::hex << *count;
+
+    ss << std::endl;
+    _in_buf += ss.str();
+
+    _work(_token_gen++, result_class::done);
+}
+
+boost::optional<found_tracepoint> interpreter::trace_find(boost::none_t)
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-find none\n";
+    _work(_token_gen++, result_class::done);
+    return boost::none;
+}
+
+boost::optional<found_tracepoint> interpreter::trace_find(const std::string & str)
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-find " + str + "\n";
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<boost::optional<found_tracepoint>>(rc.results);
+}
+
+
+boost::optional<found_tracepoint> interpreter::trace_find_by_frame(int frame)
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-find frame-number " + std::to_string(frame) + "\n";
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<boost::optional<found_tracepoint>>(rc.results);
+}
+
+boost::optional<found_tracepoint> interpreter::trace_find(int number)
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-find tracepoint-number " + std::to_string(number) + "\n";
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<boost::optional<found_tracepoint>>(rc.results);
+}
+
+boost::optional<found_tracepoint> interpreter::trace_find_at(std::uint64_t addr)
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-find pc " + std::to_string(addr) + "\n";
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<boost::optional<found_tracepoint>>(rc.results);
+}
+
+boost::optional<found_tracepoint> interpreter::trace_find_inside(std::uint64_t start, std::uint64_t end)
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-find pc-inside-range " + std::to_string(start) + " " + std::to_string(end) + "\n";
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<boost::optional<found_tracepoint>>(rc.results);
+}
+
+boost::optional<found_tracepoint> interpreter::trace_find_outside(std::uint64_t start, std::uint64_t end)
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-find pc-outside-range " + std::to_string(start) + " " + std::to_string(end) + "\n";
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<boost::optional<found_tracepoint>>(rc.results);
+}
+
+boost::optional<found_tracepoint> interpreter::trace_find_line(std::size_t & line, const boost::optional<std::string> & file)
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-find line ";
+
+    if (file)
+        _in_buf += *file + ":";
+    _in_buf += std::to_string(line) + '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<boost::optional<found_tracepoint>>(rc.results);
+}
+
+void interpreter::trace_define_variable(const std::string & name, const boost::optional<std::string> & value)
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-define-variable " + name ;;
+
+    if (value)
+        _in_buf += " " + *value;
+    _in_buf += '\n';
+
+    _work(_token_gen++, result_class::done);
+}
+
+
+traceframe_collection interpreter::trace_frame_collected(
+                       const boost::optional<std::string> & var_pval,
+                       const boost::optional<std::string> & comp_pval,
+                       const boost::optional<std::string> & regformat,
+                       bool memory_contents)
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-find line ";
+
+    if (var_pval)
+        _in_buf += "--var-print-values "   + *var_pval;
+    if (comp_pval)
+        _in_buf += "--comp-print-valuess "   + *comp_pval;
+    if (regformat)
+        _in_buf += "--registers-format "   + *regformat;
+    if (memory_contents)
+        _in_buf += "--memory-contents";
+
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<traceframe_collection>(rc.results);
+}
+
+
+std::vector<trace_variable> interpreter::trace_list_variables()
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-list-variable\n";
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    std::vector<trace_variable> vars;
+
+    auto ls = find(rc.results, "body").as_list().as_results();
+
+    vars.resize(ls.size());
+
+    for (auto & l : ls)
+        vars.push_back(parse_result<trace_variable>(l.value_.as_tuple()));
+
+    return vars;
+}
+
+void interpreter::trace_save(const std::string & filename, bool remote)
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-save ";
+
+    if (remote)
+        _in_buf += "-r ";
+
+    _in_buf += filename + '\n';
+
+    _work(_token_gen++, result_class::done);
+}
+
+void interpreter::trace_start()
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-start\n";
+    _work(_token_gen++, result_class::done);
+}
+
+struct trace_status interpreter::trace_status()
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-status\n";
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<struct trace_status>(rc.results);
+}
+
+void interpreter::trace_stop()
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-stop\n";
     _work(_token_gen++, result_class::done);
 }
 

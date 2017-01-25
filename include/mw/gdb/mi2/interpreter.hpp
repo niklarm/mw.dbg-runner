@@ -254,7 +254,7 @@ public:
     frame stacke_info_frame();
     std::size_t stack_info_depth();
     std::vector<frame> stack_list_arguments(
-            enum print_values print_values,
+            print_values print_values_,
             const boost::optional<std::pair<std::size_t, std::size_t>> & frame_range = boost::none,
             bool no_frame_filters = false,
             bool skip_unavailable = false);
@@ -264,12 +264,12 @@ public:
             bool no_frame_filters = false);
 
     std::vector<frame> stack_list_locals(
-            enum print_values print_values,
+            print_values print_values_,
             bool no_frame_filters = false,
             bool skip_unavailable = false);
 
     std::vector<frame> stack_list_variables(
-            enum print_values print_values,
+            print_values print_values_,
             bool no_frame_filters = false,
             bool skip_unavailable = false);
 
@@ -286,7 +286,7 @@ public:
     format_spec var_show_format(const std::string & name);
     std::size_t var_info_num_children(const std::string & name);
     std::vector<varobj> var_list_children(const std::string & name,
-                                          const boost::optional<enum print_values> & print_values = boost::none,
+                                          const boost::optional<print_values> & print_values_ = boost::none,
                                           const boost::optional<std::pair<int, int>> & range = boost::none);
     std::string var_info_type(const std::string & name);
     std::pair<std::string, std::string> var_info_expression(const std::string & name);
@@ -296,11 +296,63 @@ public:
     std::string var_assign(const std::string & name, const std::string& expr);
     std::vector<varobj_update> var_update(
                     const boost::optional<std::string> & name = boost::none,
-                    const boost::optional<enum print_values> & print_values = boost::none);
+                    const boost::optional<print_values> & print_values_ = boost::none);
     void var_set_frozen(const std::string & name, bool freeze = true);
     void var_set_update_range(const std::string & name, int from, int to);
     void var_set_visualizer(const std::string & name, const boost::optional<std::string> &visualizer = boost::none);
     void var_set_default_visualizer(const std::string & name);
+
+    dissambled_data data_disassemble (disassemble_mode de);
+    dissambled_data data_disassemble (disassemble_mode de, std::size_t start_addr, std::size_t end_addr);
+    dissambled_data data_disassemble (disassemble_mode de, const std::string & filename, std::size_t linenum, const boost::optional<int> &lines = boost::none);
+
+    std::string data_evaluate_expression(const std::string & expr);
+    std::vector<std::string> data_list_changed_registers();
+    std::vector<std::string> data_list_register_names();
+
+    std::vector<register_value> data_list_register_values(
+                         format_spec fmt,
+                         const boost::optional<std::vector<int>> & regno = boost::none,
+                         bool skip_unavaible = false);
+
+    //note: removed output format, you'll get that directly as byte anyway
+    read_memory data_read_memory(const std::string & address,
+                     std::size_t word_size,
+                     std::size_t nr_rows,
+                     std::size_t nr_cols,
+                     const boost::optional<int> & byte_offset = boost::none,
+                     const boost::optional<char> & aschar = boost::none
+                     );
+
+    read_memory_bytes data_read_memory_bytes(const std::string &address, std::size_t count, const boost::optional<int> & offset = boost::none);
+
+    void data_write_memory_bytes(const std::string & address,
+                                 const std::vector<std::uint8_t> & contents,
+                                 const boost::optional<std::size_t> & count = boost::none);
+
+    boost::optional<found_tracepoint> trace_find(boost::none_t = boost::none);
+    boost::optional<found_tracepoint> trace_find(const std::string & );
+    boost::optional<found_tracepoint> trace_find_by_frame(int frame);
+    boost::optional<found_tracepoint> trace_find(int number);
+    boost::optional<found_tracepoint> trace_find_at(std::uint64_t addr);
+    boost::optional<found_tracepoint> trace_find_inside(std::uint64_t start, std::uint64_t end);
+    boost::optional<found_tracepoint> trace_find_outside(std::uint64_t start, std::uint64_t end);
+    boost::optional<found_tracepoint> trace_find_line(std::size_t & line, const boost::optional<std::string> & file = boost::none);
+
+    void trace_define_variable(const std::string & name, const boost::optional<std::string> & value = boost::none);
+
+    traceframe_collection trace_frame_collected(
+            const boost::optional<std::string> & var_pval  = boost::none,
+            const boost::optional<std::string> & comp_pval = boost::none,
+            const boost::optional<std::string> & regformat = boost::none,
+            bool memory_contents = false);
+
+    std::vector<trace_variable> trace_list_variables();
+    void trace_save(const std::string & filename, bool remote = false);
+    void trace_start();
+    void trace_stop();
+
+    struct trace_status trace_status();
 };
 
 
