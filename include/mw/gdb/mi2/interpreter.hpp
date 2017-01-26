@@ -353,6 +353,16 @@ public:
     void trace_stop();
 
     struct trace_status trace_status();
+    std::vector<symbol_line> symbol_list_lines(const std::string & filename);
+
+    void file_exec_and_symbols(const std::string & file);
+    void file_exec_file(const std::string & file);
+
+    source_info file_list_exec_source_file();
+    std::vector<source_info> file_list_exec_source_files();
+
+    void file_symbol_file(const std::string & file);
+
 };
 
 

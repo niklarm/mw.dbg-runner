@@ -585,10 +585,22 @@ struct trace_status
     boost::optional<std::string> trace_file;
 };
 
-}
-}
-}
+struct symbol_line
+{
+    std::uint64_t pc;
+    std::string line;
+};
 
+struct source_info
+{
+    boost::optional<int> line;
+    std::string file;
+    boost::optional<std::string> fullname;
+    boost::optional<std::string> macro_info;
+};
 
+}
+}
+}
 
 #endif /* MW_GDB_MI2_TYPES_HPP_ */

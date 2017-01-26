@@ -2048,6 +2048,89 @@ void interpreter::trace_stop()
     _work(_token_gen++, result_class::done);
 }
 
+std::vector<symbol_line> interpreter::symbol_list_lines(const std::string & filename)
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-status\n";
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    auto var = find(rc.results, "lines").as_list().as_values();
+
+    std::vector<symbol_line> res;
+    res.reserve(var.size());
+
+    for (auto & v : var)
+        res.push_back(parse_result<symbol_line>(v.as_tuple()));
+
+    return res;
+}
+
+void interpreter::file_exec_and_symbols(const std::string & file)
+{
+    _in_buf = std::to_string(_token_gen) + "-file-exec-and-symbols " + file + '\n';
+    _work(_token_gen++, result_class::done);
+}
+
+void interpreter::file_exec_file(const std::string & file)
+{
+    _in_buf = std::to_string(_token_gen) + "-file-exec-file " + file + '\n';
+    _work(_token_gen++, result_class::done);
+}
+
+
+source_info interpreter::file_list_exec_source_file()
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-status\n";
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<source_info>(rc.results);
+}
+
+std::vector<source_info> interpreter::file_list_exec_source_files()
+{
+    _in_buf = std::to_string(_token_gen) + "-trace-status\n";
+
+     mw::gdb::mi2::result_output rc;
+     _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+            {
+                rc = std::move(rc_in);
+            });
+
+     if (rc.class_ != result_class::done)
+         throw unexpected_result_class(result_class::done, rc.class_);
+
+     auto var = find(rc.results, "files").as_list().as_values();
+
+     std::vector<source_info> res;
+     res.reserve(var.size());
+
+     for (auto & v : var)
+         res.push_back(parse_result<source_info>(v.as_tuple()));
+
+     return res;
+}
+
+void interpreter::file_symbol_file(const std::string & file)
+{
+    _in_buf = std::to_string(_token_gen) + "-file-symbol-file " + file + '\n';
+    _work(_token_gen++, result_class::done);
+}
+
 }
 }
 }

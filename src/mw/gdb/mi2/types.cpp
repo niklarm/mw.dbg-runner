@@ -575,6 +575,27 @@ template <> trace_status parse_result(const std::vector<result> & r)
     return ft;
 }
 
+template <> symbol_line parse_result(const std::vector<result> & r)
+{
+    symbol_line sl;
+
+    sl.pc = std::stoull(find(r, "pc").as_string());
+    sl.line = find(r, "line").as_string();
+
+    return sl;
+}
+
+template <> source_info parse_result(const std::vector<result> & r)
+{
+    source_info sl;
+
+    sl.file     = find(r, "file").as_string();
+    if (auto val = find_if(r, "line")) sl.line     = std::stoi(val->as_string());
+    if (auto val = find_if(r, "line")) sl.fullname = val->as_string();
+    if (auto val = find_if(r, "macro-info")) sl.macro_info = val->as_string();
+    return sl;
+}
+
 }
 }
 }
