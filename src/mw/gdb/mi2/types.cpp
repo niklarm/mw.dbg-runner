@@ -142,6 +142,57 @@ template<> frame parse_result(const std::vector<result> &r)
     return f;
 }
 
+template<> thread parse_result(const std::vector<result> &r)
+{
+    thread t;
+    t.id        = std::stoi(find(r, "id").as_string());
+    t.target_id = find(r, "target-id").as_string();
+    if (auto val = find_if(r, "frames"))
+    {
+        auto vec = val->as_list().as_values();
+        std::vector<frame> res;
+        for (auto & v : vec)
+            res.push_back(parse_result<frame>(v.as_tuple()));
+        t.frames = std::move(res);
+    }
+    t.state     = find(r, "state").as_string();
+
+    return t;
+}
+
+template<> groups parse_result(const std::vector<result> &r)
+{
+    groups g;
+
+    g.id = std::stoi(find(r, "id").as_string());
+    g.type = find(r, "type").as_string();
+
+    if (auto val = find_if(r, "pid"))          g.pid          = std::stoi(val->as_string());
+    if (auto val = find_if(r, "exit_code"))    g.exit_code    = std::stoi(val->as_string());
+    if (auto val = find_if(r, "num_children")) g.num_children = std::stoi(val->as_string());
+
+    if (auto val = find_if(r, "threads"))
+    {
+        auto vec = val->as_list().as_values();
+        std::vector<thread> res;
+        for (auto & v : vec)
+            res.push_back(parse_result<thread>(v.as_tuple()));
+        g.threads = std::move(res);
+    }
+    if (auto val = find_if(r, "exit_code"))
+    {
+        auto vec = val->as_list().as_values();
+        std::vector<int> res;
+        for (auto & v : vec)
+            res.push_back(std::atoi(v.as_string().c_str()));
+        g.cores = std::move(res);
+    }
+    if (auto val = find_if(r, "executable")) g.executable = val->as_string();
+
+    return g;
+}
+
+
 template<> thread_info parse_result(const std::vector<result> &r)
 {
     thread_info ti;
@@ -595,6 +646,58 @@ template <> source_info parse_result(const std::vector<result> & r)
     if (auto val = find_if(r, "macro-info")) sl.macro_info = val->as_string();
     return sl;
 }
+
+template<> download_info parse_result(const std::vector<result> & r)
+{
+    download_info di;
+
+    di.address       = std::stoull(find(r, "address").as_string(), nullptr, 16);
+    di.load_size     = std::stoull(find(r, "load-size").as_string());
+    di.transfer_rate = std::stoull(find(r, "transfer-rate").as_string());
+    di.write_rate    = std::stoull(find(r, "write-rate").as_string());
+
+    return di;
+}
+
+template<> download_status parse_result(const std::vector<result> & r)
+{
+    download_status ds;
+
+    ds.section = find(r, "section").as_string();
+    if (auto val = find_if(r, "section-sent")) ds.section_sent = std::stoull(find(r, "sections-sent").as_string());
+    if (auto val = find_if(r, "total-sent"))   ds.total_sent   = std::stoull(find(r, "total-sent").as_string());
+    ds.section_size  = std::stoull(find(r, "sections-size").as_string());
+    ds.total_size    = std::stoull(find(r, "total-size").as_string());
+
+    return ds;
+}
+
+template<> connection_notification parse_result(const std::vector<result> & r)
+{
+    connection_notification cn;
+
+    cn.addr = std::stoull(find(r, "addr").as_string(), nullptr, 16);
+    cn.func = find(r, "func").as_string();
+
+    auto v = find(r, "args").as_list().as_values();
+
+    cn.args.reserve(v.size());
+    for (auto & x : v)
+        cn.args.push_back(x.as_string());
+
+    return cn;
+}
+
+template<> info_ada_exception parse_result(const std::vector<result> & r)
+{
+    info_ada_exception ai;
+
+    ai.name          = find(r, "name").as_string();
+    ai.address       = std::stoull(find(r, "address").as_string(), nullptr, 16);
+
+    return ai;
+}
+
 
 }
 }

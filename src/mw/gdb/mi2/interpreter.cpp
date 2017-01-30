@@ -348,6 +348,18 @@ inline const value& find(const std::vector<result> & input, const char * id)
     return itr->value_;
 }
 
+inline boost::optional<const value&> find_if(const std::vector<result> & input, const char * id)
+{
+    auto itr = std::find_if(input.begin(), input.end(),
+                            [&](const result &r){return r.variable == id;});
+
+    if (itr == input.end())
+        return boost::none;
+    else
+        return itr->value_;
+}
+
+
 breakpoint interpreter::break_insert(const linespec_location & exp,
         bool temporary, bool hardware, bool pending,
         bool disabled, bool tracepoint,
@@ -2130,6 +2142,270 @@ void interpreter::file_symbol_file(const std::string & file)
     _in_buf = std::to_string(_token_gen) + "-file-symbol-file " + file + '\n';
     _work(_token_gen++, result_class::done);
 }
+
+download_info interpreter::target_download()
+{
+    _in_buf = std::to_string(_token_gen) + "-target-download\n";
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<download_info>(rc.results);
+}
+
+connection_notification interpreter::target_select(const std::string & type, const std::vector<std::string> & args)
+{
+    _in_buf = std::to_string(_token_gen) + "-target-select " + type ;
+
+    for (auto & arg : args)
+        _in_buf += " " + arg;
+
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return parse_result<connection_notification>(rc.results);
+}
+
+void interpreter::target_file_put(const std::string & hostfile, const std::string & targetfile)
+{
+    _in_buf = std::to_string(_token_gen) + "-target-file-put " + hostfile + ' ' + targetfile + '\n';
+    _work(_token_gen++, result_class::done);
+}
+
+void interpreter::target_file_get(const std::string & targetfile, const std::string & hostfile)
+{
+    _in_buf = std::to_string(_token_gen) + "-target-file-get " + targetfile + ' ' + hostfile + '\n';
+    _work(_token_gen++, result_class::done);
+}
+
+void interpreter::target_file_delete(const std::string & targetfile)
+{
+    _in_buf = std::to_string(_token_gen) + "-target-file-delete " + targetfile + '\n';
+    _work(_token_gen++, result_class::done);
+}
+
+std::vector<info_ada_exception> interpreter::info_ada_exceptions(const std::string & regexp)
+{
+    _in_buf = std::to_string(_token_gen) + "-info-ada-exceptions " + regexp + '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    auto entries = find(rc.results, "body").as_list().as_values();
+    std::vector<info_ada_exception> vec;
+    vec.reserve(entries.size());
+
+    for (auto & e : entries)
+        vec.push_back(parse_result<info_ada_exception>(e.as_tuple()));
+
+    return vec;
+}
+
+bool interpreter::info_gdb_mi_command(const std::string & cmd_name)
+{
+    _in_buf = std::to_string(_token_gen) + "-info-gdb-mi-command " + cmd_name + '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+
+    return find(rc.results, "exists").as_string() == "true";
+}
+
+std::vector<std::string> interpreter::list_features()
+{
+    _in_buf = std::to_string(_token_gen) + "-list-features\n";
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    auto entries = find(rc.results, "result").as_list().as_values();
+    std::vector<std::string> vec;
+    vec.reserve(entries.size());
+
+    for (auto & e : entries)
+        vec.push_back(e.as_string());
+
+    return vec;
+}
+
+std::vector<std::string> interpreter::list_target_features()
+{
+    _in_buf = std::to_string(_token_gen) + "-list-target-features\n";
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    auto entries = find(rc.results, "result").as_list().as_values();
+    std::vector<std::string> vec;
+    vec.reserve(entries.size());
+
+    for (auto & e : entries)
+        vec.push_back(e.as_string());
+
+    return vec;
+}
+
+void interpreter::gdb_exit()
+{
+    _in_buf = std::to_string(_token_gen) + "-gdb-exit\n";
+    _work(_token_gen++, result_class::done);
+}
+void interpreter::gdb_set(const std::string & name, const std::string & value)
+{
+    _in_buf = std::to_string(_token_gen) + "-gdb-set " + name + " " + value + '\n';
+    _work(_token_gen++, result_class::done);
+}
+std::string interpreter::gdb_show(const std::string & name)
+{
+    _in_buf = std::to_string(_token_gen) + "-gdb-show " + name + '\n';
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return find(rc.results, "value").as_string();
+
+}
+std::string interpreter::gdb_version()
+{
+    std::string value;
+    boost::signals2::scoped_connection conn = _stream_console.connect([&](const std::string & str){value += str; value += '\n';});
+    _in_buf = std::to_string(_token_gen) + "-gdb-version\n";
+    _work(_token_gen++, result_class::done);
+
+    return value;
+}
+
+std::vector<groups> interpreter::list_thread_groups(bool available, boost::optional<int> recurse, std::vector<int> groups)
+{
+    _in_buf = std::to_string(_token_gen) + "-list-thread-groups";
+    if (available)
+        _in_buf += " --available";
+    if (recurse)
+        _in_buf += " --recurse " + std::to_string(*recurse);
+
+    for (auto & g : groups)
+        _in_buf += " " + std::to_string(g);
+
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    std::vector<value> res;
+
+    if (auto val = find_if(rc.results, "threads"))
+        res = std::move(val->as_list().as_values());
+    else if (auto val = find_if(rc.results, "groups"))
+        res = std::move(val->as_list().as_values());
+
+    std::vector<struct groups> vec;
+
+    vec.reserve(res.size());
+
+    for (auto & r : res)
+        vec.push_back(parse_result<struct groups>(r.as_tuple()));
+
+    return vec;
+}
+
+std::vector<std::vector<std::string>> interpreter::info_os(const boost::optional<std::string> & type)
+{
+    _in_buf = std::to_string(_token_gen) + "-info-os";
+    if (type)
+        _in_buf += " " + *type;
+
+    _in_buf += '\n';
+
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    std::vector<std::string> titles;
+    std::vector<std::string> ids;
+    {
+        auto in = find(rc.results, "hdr").as_list().as_values();
+        for (auto & v : in)
+        {
+            auto tup = v.as_tuple();
+            titles.push_back(find(tup, "col_name").as_string());
+            ids.   push_back(find(tup, "colhdr").as_string());
+        }
+    }
+
+    auto body = find(rc.results, "body").as_list().as_values();
+
+    std::vector<std::vector<std::string>> res;
+    res.reserve(body.size() + 1);
+    res.push_back(std::move(titles));
+
+
+    for (auto & b : body)
+    {
+        std::vector<std::string> line;
+        line.reserve(ids.size());
+        for (auto & id : ids)
+            line.push_back(find(b.as_tuple(), id.c_str()).as_string());
+
+        res.push_back(std::move(line));
+    }
+    return res;
+}
+
 
 }
 }

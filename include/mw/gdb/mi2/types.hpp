@@ -101,18 +101,6 @@ struct stopped
     std::string core;
 };
 
-inline auto reflect(const stopped & e)
-    -> std::tuple<std::pair<const char*, decltype(&stopped::reason)>,
-                  std::pair<const char*, decltype(&stopped::stopped)>,
-                  std::pair<const char*, decltype(&stopped::core)>>
-{
-    return std::make_tuple(
-            std::make_pair<const char*>("reason",  &stopped::reason),
-            std::make_pair<const char*>("stopped", &stopped::stopped),
-            std::make_pair<const char*>("core",    &stopped::core)
-            );
-}
-
 
 struct thread_group_added   { int id; };
 struct thread_group_removed { int id; };
@@ -597,6 +585,37 @@ struct source_info
     std::string file;
     boost::optional<std::string> fullname;
     boost::optional<std::string> macro_info;
+};
+
+struct download_info
+{
+    std::uint64_t address;
+    std::size_t load_size;
+    std::size_t transfer_rate;
+    std::size_t write_rate;
+};
+
+
+struct download_status
+{
+    std::string section;
+    boost::optional<std::size_t> section_sent;
+    boost::optional<std::size_t> total_sent;
+    std::size_t section_size;
+    std::size_t total_size;
+};
+
+struct connection_notification
+{
+    std::string addr;
+    std::string func;
+    std::vector<std::string> args;
+};
+
+struct info_ada_exception
+{
+    std::string name;
+    std::uint64_t address;
 };
 
 }

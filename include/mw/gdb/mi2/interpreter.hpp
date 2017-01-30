@@ -363,6 +363,65 @@ public:
 
     void file_symbol_file(const std::string & file);
 
+    download_info target_download();
+
+    template<typename Func>
+    download_info target_download(Func && f)
+    {
+        boost::signals2::scoped_connection conn =
+                _async_sink.connect(
+                        [&](const async_output & ao)
+                        {
+                            if ((ao.type == async_output::status)
+                             && (ao.class_ == "download"))
+                                f(parse_result<download_status>(ao.results));
+                        });
+        return target_download();
+    }
+
+    connection_notification target_select(const std::string & type, const std::vector<std::string> & args);
+    connection_notification target_select_core(const std::string & filename) { return target_select("core", {filename}); }
+    connection_notification target_select_exec(const std::string & filename, const std::vector<std::string> & args = {})
+    {
+        std::vector<std::string> vec = { filename };
+        vec.insert(vec.end(), args.begin(), args.end());
+        return target_select("exec", vec);
+    }
+    connection_notification target_select_extended_remote(const std::string & medium)
+    {
+        return target_select("extended-remote", {medium});
+    }
+    connection_notification target_select_native(const std::string & filename, const std::vector<std::string> & args= {})
+    {
+        std::vector<std::string> vec = { filename };
+        vec.insert(vec.end(), args.begin(), args.end());
+        return target_select("native", vec);
+    }
+    connection_notification target_select_record()        { return target_select("record", {}); }
+    connection_notification target_select_record_btrace() { return target_select("record-btrace", {}); }
+    connection_notification target_select_record_core()   { return target_select("record-core", {}); }
+    connection_notification target_select_record_full()   { return target_select("record-full", {}); }
+    connection_notification target_select_remote(const std::string & medium) { return target_select("remote", {medium}); }
+    connection_notification target_select_tfile(const std::string& file)     { return target_select("tfile", {file}); }
+
+    void target_file_put(const std::string & hostfile,  const std::string & targetfile);
+    void target_file_get(const std::string & targetfile, const std::string & hostfile);
+    void target_file_delete(const std::string & targetfile);
+
+    std::vector<info_ada_exception> info_ada_exceptions(const std::string & regexp);
+
+    bool info_gdb_mi_command(const std::string & cmd_name);
+
+    std::vector<std::string> list_features();
+    std::vector<std::string> list_target_features();
+
+    void gdb_exit();
+    void gdb_set(const std::string & name, const std::string & value);
+    std::string gdb_show(const std::string & name);
+    std::string gdb_version();
+    std::vector<groups> list_thread_groups(bool available = false, boost::optional<int> recurse = boost::none, std::vector<int> groups = {});
+
+    std::vector<std::vector<std::string>> info_os(const boost::optional<std::string> & type = boost::none);
 };
 
 
