@@ -20,7 +20,7 @@ template<typename T> struct tag {};
 template<typename T> constexpr inline auto reflect(const T& );
 
 
-inline const value& find(const std::vector<result> & input, const char * id)
+const value& find(const std::vector<result> & input, const char * id)
 {
     auto itr = std::find_if(input.begin(), input.end(),
                             [&](const result &r){return r.variable == id;});
@@ -31,7 +31,7 @@ inline const value& find(const std::vector<result> & input, const char * id)
     return itr->value_;
 }
 
-inline boost::optional<const value&> find_if(const std::vector<result> & input, const char * id)
+boost::optional<const value&> find_if(const std::vector<result> & input, const char * id)
 {
     auto itr = std::find_if(input.begin(), input.end(),
                             [&](const result &r){return r.variable == id;});

@@ -19,6 +19,9 @@
 
 namespace mw { namespace gdb { namespace mi2 {
 
+
+mw::debug::var parse_var(interpreter &interpreter_, std::string value);
+
 struct frame_impl : mw::debug::frame
 {
     std::unordered_map<std::string, std::uint64_t> regs() override;
@@ -31,9 +34,8 @@ struct frame_impl : mw::debug::frame
                std::vector<mw::debug::arg> && args,
                process & proc,
                mi2::interpreter & interpreter,
-               boost::asio::yield_context & yield_,
                std::ostream & log_)
-            : mw::debug::frame(std::move(id), std::move(args)), proc(proc), _interpreter(interpreter), yield_(yield_), _log(log_)
+            : mw::debug::frame(std::move(id), std::move(args)), proc(proc), _interpreter(interpreter), _log(log_)
     {
     }
     void set_exit(int code) override;
@@ -46,7 +48,6 @@ struct frame_impl : mw::debug::frame
 
     process & proc;
     mw::gdb::mi2::interpreter & _interpreter;
-    boost::asio::yield_context & yield_;
     std::ostream & _log;
 };
 

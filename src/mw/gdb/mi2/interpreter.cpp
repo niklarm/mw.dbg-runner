@@ -126,8 +126,10 @@ std::pair<std::string, std::vector<result>> interpreter::wait_for_stop()
                 if ((ao.type == async_output::exec) &&
                     (ao.class_ == "stopped"))
                 {
-                    pr.first  = ao.class_;
-                    pr.second = ao.results;
+                    pr.first  = mi2::find(ao.results, "reason").as_string();
+                    pr.second.resize(ao.results.size() - 1);
+                    std::copy_if(ao.results.begin(), ao.results.end(), pr.second.begin(),
+                                    [](const result & r){return r.variable != "reason";});
                 }
              };
 
@@ -376,29 +378,6 @@ static std::string loc_for_break(const address_location & exp)
         location << "'" << *exp.filename << "'" << "0x" << std::hex << *exp.funcaddr;
     return location.str();
 }
-
-inline const value& find(const std::vector<result> & input, const char * id)
-{
-    auto itr = std::find_if(input.begin(), input.end(),
-                            [&](const result &r){return r.variable == id;});
-
-    if (itr == input.end())
-        throw missing_value(id);
-
-    return itr->value_;
-}
-
-inline boost::optional<const value&> find_if(const std::vector<result> & input, const char * id)
-{
-    auto itr = std::find_if(input.begin(), input.end(),
-                            [&](const result &r){return r.variable == id;});
-
-    if (itr == input.end())
-        return boost::none;
-    else
-        return itr->value_;
-}
-
 
 std::vector<breakpoint> interpreter::break_insert(const linespec_location & exp,
         bool temporary, bool hardware, bool pending,

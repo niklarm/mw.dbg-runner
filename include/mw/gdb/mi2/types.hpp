@@ -30,6 +30,9 @@ namespace mw {
 namespace gdb {
 namespace mi2 {
 
+const value& find(const std::vector<result> & input, const char * id);
+boost::optional<const value&> find_if(const std::vector<result> & input, const char * id);
+
 struct async_output;
 struct result_output;
 
@@ -65,14 +68,6 @@ struct running
 {
     std::string thread_id;
 };
-
-inline auto reflect(const running & e)
-    -> std::tuple<std::pair<const char*, decltype(&running::thread_id)>>
-{
-    return std::make_tuple(
-            std::make_pair<const char*>("thread-id", &running::thread_id)
-            );
-}
 
 struct stopped
 {

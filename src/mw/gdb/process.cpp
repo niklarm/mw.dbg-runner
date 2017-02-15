@@ -15,6 +15,7 @@
  */
 
 #include <mw/gdb/process.hpp>
+#include <mw/gdb/mi2/frame_impl.hpp>
 
 #include <boost/variant/get.hpp>
 #include <iostream>
@@ -138,6 +139,62 @@ void process::_start(mi2::interpreter & interpreter)
         interpreter.target_select_remote(_remote);
 
     interpreter.exec_run();
+}
+
+void process::_handle_bps  (mi2::interpreter & interpreter)
+{
+
+    auto val = interpreter.wait_for_stop();
+    while(val.first != "exited")
+    {
+        if (val.first != "breakpoint-hit") //temporary
+        {
+            _log << "unknown stop reason" << std::endl;
+            break;
+        }
+
+        int num = std::stoi(mi2::find(val.second, "bkptno").as_string());
+        int thread_id = std::stoi(mi2::find(val.second, "thread-id").as_string());
+        auto frame = mi2::parse_result<mi2::frame>(mi2::find(val.second, "frame").as_tuple());
+
+        std::string id;
+        if (frame.func)
+            id = *frame.func;
+
+        std::vector<mw::debug::arg> args;
+
+        if (frame.args)
+        {
+            auto & a = *frame.args;
+            args.reserve(a.size());
+            for (auto & aa : a)
+            {
+                auto arg = mi2::parse_var(interpreter, aa.value);
+                mw::debug::arg as;
+                as.ref     = arg.ref;
+                as.value   = arg.value;
+                as.cstring = arg.cstring;
+                as.id      = aa.name;
+
+                args.push_back(as);
+            }
+
+        }
+
+        mi2::frame_impl fi{std::move(id), std::move(args), *this, interpreter, _log};
+
+        std::string file;
+        int line = -1;
+
+        if (frame.file)
+            file = *frame.file;
+        if (frame.line)
+            line = *frame.line;
+
+        _break_point_map[num]->invoke(fi, file, line);
+
+        val = interpreter.wait_for_stop();
+    }
 
 
 }

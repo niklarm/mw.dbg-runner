@@ -189,7 +189,7 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
                 [](char c)
                 {
                     static char arg[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-                    return arg[c = 0xF];
+                    return arg[c & 0xF];
                 };
 
         for (auto & val : val.contents)
@@ -217,6 +217,25 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
     ref_val.value = val;
     return ref_val;
 }
+
+mw::debug::var parse_var(interpreter & interpreter_, std::string val)
+{
+    mw::debug::var ref_val;
+    std::uint64_t ref_value;
+    if (pegtl::parse_string<parser::reference, parser::action>(val, "gdb mi2 value parse", ref_value))
+    {
+        ref_val.ref = ref_value;
+
+        val = interpreter_.data_evaluate_expression("&*" + std::string(val.c_str()+1)); //to remove the @
+    }
+
+    if (pegtl::parse_string<parser::value_ref, parser::action>(val, "gdb mi2 value parse", ref_val))
+        return ref_val;
+
+    ref_val.value = val;
+    return ref_val;
+}
+
 void frame_impl::return_(const std::string & value)
 {
     _interpreter.exec_return(value);
