@@ -246,7 +246,7 @@ int main(int argc, char * argv[])
 
     for (auto & lib : opt.plugins)
     {
-        auto f = boost::dll::experimental::import_mangled<std::vector<std::unique_ptr<mw::gdb::break_point>>()>(lib, "mw_gdb_setup_bps");
+        auto f = boost::dll::experimental::import_mangled<std::vector<std::unique_ptr<mw::debug::break_point>>()>(lib, "mw_gdb_setup_bps");
         proc.add_break_points(f());
     }
 

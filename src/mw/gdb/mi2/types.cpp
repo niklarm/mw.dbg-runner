@@ -61,7 +61,14 @@ template<> breakpoint parse_result(const std::vector<result> &r)
     bp.type         = find(r, "type").        as_string();
     bp.disp         = find(r, "disp").        as_string();
     bp.evaluated_by = find(r, "evaluated-by").as_string();
-    bp.addr         = std::stoull(find(r, "addr").as_string(), 0, 16);
+    {
+        auto addr = find(r, "addr").as_string();
+        if (addr != "<MULTIPLE>")
+            bp.addr = std::stoull(addr, 0, 16);
+        else
+            bp.addr = 0;
+    }
+
     bp.enabled      = find(r, "enabled").as_string() == "y";
     bp.enable       = std::stoi(find(r, "enable").as_string());
     bp.times        = std::stoi(find(r, "times"). as_string());

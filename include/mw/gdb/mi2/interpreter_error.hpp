@@ -16,6 +16,7 @@
 #define MW_GDB_MI2_INTERPRETER_ERROR_HPP_
 
 #include <exception>
+#include <mw/debug/interpreter.hpp>
 
 namespace mw
 {
@@ -24,10 +25,10 @@ namespace gdb
 namespace mi2
 {
 
-struct interpreter_error : std::runtime_error
+struct interpreter_error : mw::debug::interpreter_error
 {
-    using std::runtime_error::runtime_error;
-    using std::runtime_error::operator=;
+    using mw::debug::interpreter_error::interpreter_error;
+    using mw::debug::interpreter_error::operator=;
 };
 
 }

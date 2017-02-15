@@ -1,5 +1,5 @@
 /**
- * @file   mw/gdb/break_point.hpp
+ * @file   mw/debug/break_point.hpp
  * @date   13.06.2016
  * @author Klemens D. Morgenstern
  *
@@ -16,13 +16,13 @@
 #ifndef MW_GDB_RUNNER_BREAK_POINT_HPP_
 #define MW_GDB_RUNNER_BREAK_POINT_HPP_
 
-#include <mw/gdb/frame.hpp>
+#include <mw/debug/frame.hpp>
 #include <string>
 #include <unordered_map>
 #include <iostream>
 
 namespace mw {
-namespace gdb {
+namespace debug {
 
 /** This class is used to implement a break_point, i.e. is inherited by an implementation.
  *

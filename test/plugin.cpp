@@ -1,10 +1,10 @@
 #include <boost/dll/alias.hpp>
-#include <mw/gdb/break_point.hpp>
-#include <mw/gdb/frame.hpp>
+#include <mw/debug/break_point.hpp>
+#include <mw/debug/frame.hpp>
 #include <vector>
 #include <memory>
 
-using namespace mw::gdb;
+using namespace mw::debug;
 
 
 struct f_ptr : break_point
@@ -49,11 +49,11 @@ struct f_ret : break_point
 };
 
 
-extern "C" BOOST_SYMBOL_EXPORT std::vector<std::unique_ptr<mw::gdb::break_point>> mw_gdb_setup_bps();
+extern "C" BOOST_SYMBOL_EXPORT std::vector<std::unique_ptr<mw::debug::break_point>> mw_gdb_setup_bps();
 
-std::vector<std::unique_ptr<mw::gdb::break_point>> mw_gdb_setup_bps()
+std::vector<std::unique_ptr<mw::debug::break_point>> mw_gdb_setup_bps()
 {
-    std::vector<std::unique_ptr<mw::gdb::break_point>> vec;
+    std::vector<std::unique_ptr<mw::debug::break_point>> vec;
 
     vec.push_back(std::make_unique<f_ptr>());
     vec.push_back(std::make_unique<f_ref>());

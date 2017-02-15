@@ -22,10 +22,10 @@ to asser the correctness of the function signatures and linkage.
 #include <vector>
 #include <memory>
 #include <boost/program_options/options_description.hpp>
-#include <mw/gdb/break_point.hpp>
+#include <mw/debug/break_point.hpp>
 
 ///This function is the central function needed to provide a break-point plugin.
-BOOST_SYMBOL_EXPORT std::vector<std::unique_ptr<mw::gdb::break_point>> mw_gdb_setup_bps();
+BOOST_SYMBOL_EXPORT std::vector<std::unique_ptr<mw::debug::break_point>> mw_gdb_setup_bps();
 ///This function can be used to add program options for the plugin.
 BOOST_SYMBOL_EXPORT boost::program_options::options_description mw_gdb_setup_options();
 

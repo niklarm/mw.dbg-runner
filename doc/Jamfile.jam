@@ -17,7 +17,7 @@ local headers = break_point frame location plugin ;
 
 doxygen autodoc
 :
-  ../include/mw/gdb/$(headers).hpp 
+  ../include/mw/debug/$(headers).hpp 
 :
   <doxygen:param>PREDEFINED=BOOST_PROCESS_DOXYGEN
   <doxygen:param>HIDE_UNDOC_CLASSES=YES

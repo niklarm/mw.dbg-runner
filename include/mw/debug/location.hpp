@@ -19,7 +19,7 @@
 
 namespace mw
 {
-namespace gdb
+namespace debug
 {
 ///Simple structure representing a location in code
 struct location

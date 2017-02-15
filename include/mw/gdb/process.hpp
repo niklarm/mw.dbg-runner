@@ -22,11 +22,12 @@
 #include <boost/asio/spawn.hpp>
 #include <boost/asio/deadline_timer.hpp>
 
-#include <mw/gdb/break_point.hpp>
+#include <mw/debug/process.hpp>
 #include <boost/process/child.hpp>
 #include <boost/process/async_pipe.hpp>
 
-#include <boost/spirit/home/support/multi_pass.hpp>
+#include <mw/gdb/mi2/interpreter.hpp>
+
 #include <iterator>
 
 #include <string>
@@ -40,40 +41,18 @@
 namespace mw {
 namespace gdb {
 
-class process
+using mw::debug::break_point;
+
+class process : public mw::debug::process
 {
-    bool _enable_debug = false;
-    int _time_out = 10;
-    int _exit_code = -1;
-    std::ofstream  _log;
 
-    boost::asio::io_service _io_service;
-    boost::asio::deadline_timer _timer{_io_service , boost::posix_time::seconds(_time_out)};
-    boost::process::async_pipe _out{_io_service};
-    boost::process::async_pipe _in {_io_service};
-    boost::process::async_pipe _err{_io_service};
-    boost::asio::streambuf _err_buf;
-    boost::asio::streambuf _out_buf;
-
-    boost::process::child _child;
-
-    std::vector<std::string> _err_vec; //vector for storage
-
-    std::string _remote;
-    std::string _program;
-    int _pid = -1;
-    std::vector<std::uint64_t> _thread_id;
-    std::vector<std::string> _args;
-    std::vector<std::unique_ptr<break_point>> _break_points;
     std::map<int, break_point*>               _break_point_map;
-    void _run_impl(boost::asio::yield_context &yield);
+    void _run_impl(boost::asio::yield_context &yield) override;
 
-    std::vector<std::string> _get_err_data(boost::asio::yield_context & yield_);
-    std::vector<std::string> _read_chunk  (boost::asio::yield_context & yield_);
-    void _read_header(boost::asio::yield_context & yield);
+    void _read_header(mi2::interpreter & interpreter);
     void _set_timer();
-    void _set_breakpoint(break_point & p, boost::asio::yield_context &yield, const std::regex & rx);
-    void _handle_breakpoint(boost::asio::yield_context &yield, const std::vector<std::string> & buf, std::smatch & sm);
+    void _set_breakpoint(break_point & p, mi2::interpreter & interpreter, const std::regex & rx);
+    void _handle_breakpoint(mi2::interpreter & interpreter, const std::vector<std::string> & buf, std::smatch & sm);
     void _err_read_handler(const boost::system::error_code & ec);
 
     void _set_info(const std::string & version, const std::string & toolset, const std::string & config)
@@ -82,56 +61,20 @@ class process
         _log << "GDB Toolset \"" << toolset << '"' << std::endl;
         _log << "Config      \"" << config  << '"' << std::endl;
     }
-    void _terminate()
-    {
-        throw std::runtime_error("mw::gdb_process panic!");
-    }
-    void _read_info();
-    void _init_bps    (boost::asio::yield_context & yield_);
-    void _start       (boost::asio::yield_context & yield_);
-    void _start_remote(boost::asio::yield_context & yield_);
-    void _start_local (boost::asio::yield_context & yield_);
-    void _handle_bps  (boost::asio::yield_context & yield_);
+
+    void _read_info   (mi2::interpreter & interpreter);
+    void _init_bps    (mi2::interpreter & interpreter);
+    void _start       (mi2::interpreter & interpreter);
+    void _start_remote(mi2::interpreter & interpreter);
+    void _start_local (mi2::interpreter & interpreter);
+    void _handle_bps  (mi2::interpreter & interpreter);
+
     bool _exited = false;
 public:
-    void set_exit(int code)
-    {
-        _exited=true;
-        _log << "Exited with " << code << std::endl;
-        _exit_code = code;
-    }
 
-    void set_args(const std::vector<std::string> & args)
-    {
-        _args = args;
-    }
-    void set_remote(const std::string & remote)
-    {
-        _remote = remote;
-    }
-    void enable_debug() {_enable_debug = true;}
-    using buf_iterator = std::istreambuf_iterator<char>;
-    using iterator =  boost::spirit::multi_pass<buf_iterator>;
-
-    iterator _read(const std::string & input, boost::asio::yield_context & yield_);
-    iterator _begin() {return iterator(&_out_buf);}
-    iterator _end()   const {return iterator();}
-
-    std::ostream & log() {return _log;}
     process(const boost::filesystem::path & gdb, const std::string & exe, const std::vector<std::string> & args = {});
     ~process() = default;
-    int exit_code() {return _exit_code;}
-    void set_log(const std::string & name) {_log.open(name); }
-    void set_timeout(int value) {_time_out = value;}
-    void add_break_point(std::unique_ptr<break_point> && ptr) { _break_points.push_back(std::move(ptr)); }
-    void add_break_points(std::vector<std::unique_ptr<break_point>> && ptrs)
-    {
-     /*   _break_points.insert(_break_points.end(),
-                std::make_move_iterator(ptrs.begin()), std::make_move_iterator(ptrs.end()));*/
-        for (auto & in : ptrs)
-            _break_points.emplace_back(in.release());
-    }
-    void run();
+    void run() override;
 };
 
 } /* namespace gdb_runner */

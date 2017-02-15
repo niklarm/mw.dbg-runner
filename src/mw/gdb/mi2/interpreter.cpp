@@ -34,6 +34,12 @@ namespace gdb
 namespace mi2
 {
 
+interpreter::interpreter(
+            boost::process::async_pipe & out,
+            boost::process::async_pipe & in,
+            boost::asio::yield_context & yield_,
+            std::ostream & fwd) : mw::debug::interpreter(out, in, yield_, fwd) {}
+
 void interpreter::_handle_stream_output(const stream_record & sr)
 {
     switch (sr.type)
@@ -85,6 +91,8 @@ void interpreter::_work_impl(Args&&...args)
             _handle_record(line, data->first, data->second, std::forward<Args>(args)...);
             continue;
         }
+        else
+            throw mw::debug::interpreter_error("cannot parse output: '" + line + "'");
         _fwd << line << '\n';
     }
     _fwd << "(gdb)" << std::endl;
@@ -360,7 +368,7 @@ inline boost::optional<const value&> find_if(const std::vector<result> & input, 
 }
 
 
-breakpoint interpreter::break_insert(const linespec_location & exp,
+std::vector<breakpoint> interpreter::break_insert(const linespec_location & exp,
         bool temporary, bool hardware, bool pending,
         bool disabled, bool tracepoint,
         const boost::optional<std::string> & condition,
@@ -370,7 +378,7 @@ breakpoint interpreter::break_insert(const linespec_location & exp,
     return break_insert(loc_for_break(exp), temporary, hardware, pending, disabled, tracepoint, condition, ignore_count, thread_id);
 }
 
-breakpoint interpreter::break_insert(const explicit_location & exp,
+std::vector<breakpoint> interpreter::break_insert(const explicit_location & exp,
         bool temporary, bool hardware, bool pending,
         bool disabled, bool tracepoint,
         const boost::optional<std::string> & condition,
@@ -382,7 +390,7 @@ breakpoint interpreter::break_insert(const explicit_location & exp,
     return break_insert(loc_for_break(exp), temporary, hardware, pending, disabled, tracepoint, condition, ignore_count, thread_id);
 }
 
-breakpoint interpreter::break_insert(const address_location & exp,
+std::vector<breakpoint> interpreter::break_insert(const address_location & exp,
         bool temporary, bool hardware, bool pending,
         bool disabled, bool tracepoint,
         const boost::optional<std::string> & condition,
@@ -392,7 +400,7 @@ breakpoint interpreter::break_insert(const address_location & exp,
     return break_insert(loc_for_break(exp), temporary, hardware, pending, disabled, tracepoint, condition, ignore_count, thread_id);
 }
 
-breakpoint interpreter::break_insert(const std::string & location,
+std::vector<breakpoint> interpreter::break_insert(const std::string & location,
         bool temporary, bool hardware, bool pending,
         bool disabled, bool tracepoint,
         const boost::optional<std::string> & condition,
@@ -428,7 +436,16 @@ breakpoint interpreter::break_insert(const std::string & location,
     if (rc.class_ != result_class::done)
         throw unexpected_result_class(result_class::done, rc.class_);
 
-    return parse_result<breakpoint>(find(rc.results, "bkpt").as_tuple());
+    std::vector<breakpoint> bps;
+
+    for (auto & res : rc.results)
+    {
+        if (res.variable == "bkpt")
+            bps.push_back(parse_result<breakpoint>(res.value_.as_tuple()));
+    }
+
+
+    return bps;
 }
 
 
@@ -878,7 +895,7 @@ void interpreter::exec_finish(bool reverse)
 
 void interpreter::exec_interrupt(bool all)
 {
-    _in_buf = std::to_string(_token_gen) + "-exec-continue";
+    _in_buf = std::to_string(_token_gen) + "-exec-interrupt";
 
     if (all)
         _in_buf += " --all";
@@ -889,7 +906,7 @@ void interpreter::exec_interrupt(bool all)
 
 void interpreter::exec_interrupt(int thread_group)
 {
-    _in_buf = std::to_string(_token_gen) + "-exec-continue";
+    _in_buf = std::to_string(_token_gen) + "-exec-interrupt";
 
     if (thread_group)
         _in_buf += " --thread-group " + std::to_string(thread_group);
@@ -992,9 +1009,14 @@ void interpreter::exec_next_instruction(bool reverse)
     _work(_token_gen++, result_class::running);
 }
 
-frame interpreter::exec_return()
+frame interpreter::exec_return(const boost::optional<std::string> &val)
 {
-    _in_buf = std::to_string(_token_gen) + "-exec-return\n";
+    _in_buf = std::to_string(_token_gen) + "-exec-return";
+
+    if (val)
+        _in_buf += " " + *val;
+
+    _in_buf += "\n";
 
     mw::gdb::mi2::result_output rc;
     _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
@@ -2287,7 +2309,7 @@ std::vector<std::string> interpreter::list_target_features()
 void interpreter::gdb_exit()
 {
     _in_buf = std::to_string(_token_gen) + "-gdb-exit\n";
-    _work(_token_gen++, result_class::done);
+    _work(_token_gen++, result_class::exit);
 }
 void interpreter::gdb_set(const std::string & name, const std::string & value)
 {
@@ -2318,6 +2340,21 @@ std::string interpreter::gdb_version()
 
     return value;
 }
+/**
+ * Lists thread groups (see [Thread groups](https://sourceware.org/gdb/onlinedocs/gdb/Thread-groups.html#Thread-groups). When a single thread group is passed as the argument, lists the children of that group. When several thread group are passed, lists information about those thread groups. Without any parameters, lists information about all top-level thread groups.
+
+Normally, thread groups that are being debugged are reported. With the ‘--available’ option, gdb reports thread groups available on the target.
+
+The output of this command may have either a ‘threads’ result or a ‘groups’ result. The ‘thread’ result has a list of tuples as value, with each tuple describing a thread (see [GDB/MI Thread Information](https://sourceware.org/gdb/onlinedocs/gdb/GDB_002fMI-Thread-Information.html#GDB_002fMI-Thread-Information)). The ‘groups’ result has a list of tuples as value, each tuple describing a thread group. If top-level groups are requested (that is, no parameter is passed), or when several groups are passed, the output always has a ‘groups’ result. The format of the ‘group’ result is described below.
+
+To reduce the number of roundtrips it's possible to list thread groups together with their children, by passing the ‘--recurse’ option and the recursion depth. Presently, only recursion depth of 1 is permitted. If this option is present, then every reported thread group will also include its children, either as ‘group’ or ‘threads’ field.
+
+In general, any combination of option and parameters is permitted, with the following caveats:
+
+ - When a single thread group is passed, the output will typically be the ‘threads’ result. Because threads may not contain anything, the ‘recurse’ option will be ignored.
+ - When the ‘--available’ option is passed, limited information may be available. In particular, the list of threads of a process might be inaccessible. Further, specifying specific thread groups might not give any performance advantage over listing all thread groups. The frontend should assume that ‘-list-thread-groups --available’ is always an expensive operation and cache the results.
+
+ */
 
 std::vector<groups> interpreter::list_thread_groups(bool available, boost::optional<int> recurse, std::vector<int> groups)
 {
@@ -2358,6 +2395,12 @@ std::vector<groups> interpreter::list_thread_groups(bool available, boost::optio
     return vec;
 }
 
+/**
+ *  If no argument is supplied, the command returns a table of available operating-system-specific information types. If one of these types is supplied as an argument type, then the command returns a table of data of that type.
+    The types of information available depend on the target operating system.
+ * @param type The type of information to be obtained.
+ * @return A table, in which the first row is the
+ */
 std::vector<std::vector<std::string>> interpreter::info_os(const boost::optional<std::string> & type)
 {
     _in_buf = std::to_string(_token_gen) + "-info-os";
@@ -2406,6 +2449,66 @@ std::vector<std::vector<std::string>> interpreter::info_os(const boost::optional
     return res;
 }
 
+/**
+ * Creates a new inferior (see [Inferiors and Programs](https://sourceware.org/gdb/onlinedocs/gdb/Inferiors-and-Programs.html#Inferiors-and-Programs)). The created inferior is not associated with any executable. Such association may be established with the ‘-file-exec-and-symbols’ command (see [GDB/MI File Commands](https://sourceware.org/gdb/onlinedocs/gdb/GDB_002fMI-File-Commands.html#GDB_002fMI-File-Commands)). The command response has a single field, ‘inferior’, whose value is the identifier of the thread group corresponding to the new inferior.
+ * @return
+ */
+std::string interpreter::add_inferior()
+{
+    _in_buf = std::to_string(_token_gen) + "-add-inferior\n";
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return find(rc.results, "inferior").as_string();
+}
+
+///Execute the specified command in the given interpreter.
+void interpreter::interpreter_exec(const std::string & interpreter, const std::string & command)
+{
+    _in_buf = std::to_string(_token_gen) + "-interpreter-exec " + interpreter + " " + command + '\n';
+    _work(_token_gen++, result_class::done);
+}
+
+/// Set terminal for future runs of the program being debugged.
+void interpreter::inferior_tty_set(const std::string & terminal)
+{
+    _in_buf = std::to_string(_token_gen) + "-inferior-tty-set " + terminal + '\n';
+    _work(_token_gen++, result_class::done);
+}
+
+///Show terminal for future runs of program being debugged.
+std::string interpreter::inferior_tty_show()
+{
+    _in_buf = std::to_string(_token_gen) + "-inferior-tty-show\n";
+    mw::gdb::mi2::result_output rc;
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
+           {
+               rc = std::move(rc_in);
+           });
+
+    if (rc.class_ != result_class::done)
+        throw unexpected_result_class(result_class::done, rc.class_);
+
+    return find(rc.results, "inferior_tty_terminal").as_string();
+}
+
+///Toggle the printing of the wallclock, user and system times for an MI command as a field in its output. This command is to help frontend developers optimize the performance of their code. The default argument is true.
+void interpreter::enable_timings(bool enable)
+{
+    _in_buf = std::to_string(_token_gen) + "-enable-timings ";
+    if (enable)
+        _in_buf += "yes";
+    else
+        _in_buf += "no";
+    _in_buf += "\n";
+    _work(_token_gen++, result_class::done);
+}
 
 }
 }

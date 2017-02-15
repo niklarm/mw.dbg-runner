@@ -28,6 +28,8 @@
 #include <functional>
 #include <iostream>
 
+#include <mw/debug/interpreter.hpp>
+
 namespace mw
 {
 namespace gdb
@@ -37,8 +39,11 @@ namespace mi2
 
 struct unexpected_result_class : interpreter_error
 {
+    result_class expected;
+    result_class got;
     unexpected_result_class(result_class ex, result_class got) :
-        interpreter_error("unexpected result-class [" + to_string(ex) + " != " + to_string(got) + "]")
+        interpreter_error("unexpected result-class [" + to_string(ex) + " != " + to_string(got) + "]"),
+        expected(ex), got(got)
     {
 
     }
@@ -70,18 +75,8 @@ struct mismatched_token : unexpected_record
 };
 
 
-class interpreter
+class interpreter : public mw::debug::interpreter
 {
-    boost::process::async_pipe & _out;
-    boost::process::async_pipe & _in;
-
-    boost::asio::streambuf _out_buf;
-    std::string _in_buf;
-
-    boost::asio::yield_context & _yield;
-
-    std::ostream &_fwd;
-
     boost::signals2::signal<void(const std::string&)> _stream_console;
     boost::signals2::signal<void(const std::string&)> _stream_log;
 
@@ -112,7 +107,7 @@ public:
     interpreter(boost::process::async_pipe & out,
                 boost::process::async_pipe & in,
                 boost::asio::yield_context & yield_,
-                std::ostream & fwd = std::cout) : _out(out), _in(in), _yield(yield_), _fwd(fwd) {}
+                std::ostream & fwd = std::cout);
 
     boost::signals2::signal<void(const std::string&)> & stream_console_sig() {return _stream_console;}
     boost::signals2::signal<void(const std::string&)> & stream_log_sig() {return _stream_log;}
@@ -133,28 +128,28 @@ public:
 
     breakpoint break_info(int number);
 
-    breakpoint break_insert(const linespec_location & exp,
+    std::vector<breakpoint> break_insert(const linespec_location & exp,
             bool temporary = false, bool hardware = false, bool pending = false,
             bool disabled = false, bool tracepoint = false,
             const boost::optional<std::string> & condition = boost::none,
             const boost::optional<int> & ignore_count = boost::none,
             const boost::optional<int> & thread_id = boost::none);
 
-    breakpoint break_insert(const explicit_location & exp,
+    std::vector<breakpoint> break_insert(const explicit_location & exp,
             bool temporary = false, bool hardware = false, bool pending = false,
             bool disabled = false, bool tracepoint = false,
             const boost::optional<std::string> & condition = boost::none,
             const boost::optional<int> & ignore_count = boost::none,
             const boost::optional<int> & thread_id = boost::none);
 
-    breakpoint break_insert(const address_location & exp,
+    std::vector<breakpoint> break_insert(const address_location & exp,
             bool temporary = false, bool hardware = false, bool pending = false,
             bool disabled = false, bool tracepoint = false,
             const boost::optional<std::string> & condition = boost::none,
             const boost::optional<int> & ignore_count = boost::none,
             const boost::optional<int> & thread_id = boost::none);
 
-    breakpoint break_insert(const std::string & location,
+    std::vector<breakpoint> break_insert(const std::string & location,
             bool temporary = false, bool hardware = false, bool pending = false,
             bool disabled = false, bool tracepoint = false,
             const boost::optional<std::string> & condition = boost::none,
@@ -237,7 +232,7 @@ public:
 
     void exec_next(bool reverse);
     void exec_next_instruction(bool reverse);
-    frame exec_return();
+    frame exec_return(const boost::optional<std::string> &val = boost::none);
 
     void exec_run(bool start = false, bool all = false);
     void exec_run(bool start, int thread_group);
@@ -422,6 +417,12 @@ public:
     std::vector<groups> list_thread_groups(bool available = false, boost::optional<int> recurse = boost::none, std::vector<int> groups = {});
 
     std::vector<std::vector<std::string>> info_os(const boost::optional<std::string> & type = boost::none);
+    std::string add_inferior();
+
+    void interpreter_exec(const std::string & interpreter, const std::string & command);
+    void inferior_tty_set(const std::string & terminal);
+    std::string inferior_tty_show();
+    void enable_timings(bool enable = true);
 };
 
 

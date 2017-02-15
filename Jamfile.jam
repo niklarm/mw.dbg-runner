@@ -27,18 +27,18 @@ alias boosts : system program_options filesystem locale context coroutine  ;
 
 import testing ;
 
-exe mw-gdb-runner : 
-		gdb-runner.cpp 
-		mw/gdb/process.cpp 
-		[ glob mw/gdb/detail/*.cpp ]
+exe mw-dbg-runner : 
+		debug-runner.cpp 
+		[ glob mw/debug/*.cpp ]
 		[ glob mw/gdb/mi2/*.cpp ]
-		boosts : <link>static 
-        <target-os>windows,<toolset>cw:<library>ws2_32
-        <target-os>windows,<toolset>gcc:<library>ws2_32
+		mw/gdb/process.cpp
+		boosts : <link>static
+		<library>/boost//regex 
+        <target-os>windows,<toolset>cw:<library>ws2_32 <target-os>windows,<toolset>gcc:<library>ws2_32
         ;
 
 exe target : ../test/target.cpp /boost//filesystem :  <linkflags>-static-libstdc++ <debug-symbols>on <optimization>off ;
 
-lib mw-newlib-syscalls : mw-newlib.cpp   : <link>shared <use>/boost//headers ;
-lib mw-exitcode        : mw-exitcode.cpp : <link>shared <use>/boost//headers ;
+lib mw-newlib-syscalls : mw-newlib.cpp   : <link>shared <library>/boost//system <target-os>windows,<toolset>cw:<library>ws2_32 <target-os>windows,<toolset>gcc:<library>ws2_32 ;
+lib mw-exitcode        : mw-exitcode.cpp : <link>shared <library>/boost//system <target-os>windows,<toolset>cw:<library>ws2_32 <target-os>windows,<toolset>gcc:<library>ws2_32 ;
 

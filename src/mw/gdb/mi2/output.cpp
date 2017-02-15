@@ -14,7 +14,7 @@
  */
 
 #include <mw/gdb/mi2/output.hpp>
-
+#include <boost/algorithm/string/replace.hpp>
 #include <pegtl.hh>
 
 
@@ -168,7 +168,11 @@ struct action<cstring>
    static void apply( const pegtl::basic_action_input<T> & in , std::string & data, Args&&...)
    {
        if (in.size() > 2)
+       {
            data.assign(in.begin() +1, in.end() - 1);
+           boost::replace_all(data, "\\\"", "\"");
+           boost::replace_all(data, "\\\\\"", "\\\"");
+       }
        else
            data = "";
    }
@@ -237,18 +241,37 @@ struct variable : pegtl::plus<pegtl::not_one<'='>> {};
 template<>
 struct action<variable>
 {
+   thread_local static std::string last_var_name; //since a tuple may have unnamed follow-ups.
    template<typename T>
    static void apply( const pegtl::basic_action_input<T> & in , std::string & data)
    {
        data = in.string();
+       last_var_name = in.string();
    }
    template<typename T, typename ...Args>
    static void apply( const pegtl::basic_action_input<T> & in , std::string & data, Args && ...)
    {
        data = in.string();
+       last_var_name = in.string();
    }
 };
 
+struct inherited_name : pegtl::success {};
+
+template<>
+struct action<inherited_name>
+{
+    template<typename T>
+    static void apply(const T& , std::string & data)
+    {
+        data = action<variable>::last_var_name;
+    }
+    template<typename T, typename ...Args>
+    static void apply(const T& , std::string & data, Args && ...)
+    {
+        data = action<variable>::last_var_name;
+    }
+};
 
 struct value_rule;
 
@@ -283,6 +306,14 @@ struct result_rule : pegtl::seq<
 {
 };
 
+struct anonym_result_rule :
+                pegtl::seq<
+                    member<inherited_name,          decltype(&result::variable), &result::variable>,
+                    member<unique_ptr<value_rule>,  decltype(&result::value_p),&result::value_p>>
+{
+
+};
+
 struct tuple_rule : pegtl::seq<pegtl::one<'{'> , pegtl::list<push_back<result_rule>, pegtl::one<','>>, pegtl::one<'}'>> {};
 
 
@@ -308,7 +339,17 @@ struct async_output_rule : pegtl::seq<
 struct result_record_rule : pegtl::seq<
                             pegtl::one<'^'>,
                             member<result_class, decltype(&result_output::class_), &result_output::class_>,
-                            member<pegtl::star<pegtl::one<','>, push_back<result_rule>>, decltype(&result_output::results), &result_output::results>,
+                            member<
+                                pegtl::star<
+                                    pegtl::one<','>,
+                                    pegtl::seq<
+                                        push_back<result_rule>,
+                                        pegtl::star<
+                                            push_back<
+                                                anonym_result_rule
+                                                >
+                                        >
+                                    >>, decltype(&result_output::results), &result_output::results>,
                             pegtl::opt<pegtl::one<'\r'>>, pegtl::eof> {};
 
 

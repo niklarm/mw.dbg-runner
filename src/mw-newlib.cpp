@@ -1,15 +1,15 @@
 #include <boost/dll/alias.hpp>
 #include <boost/system/api_config.hpp>
 #include <boost/algorithm/string/replace.hpp>
-#include <mw/gdb/break_point.hpp>
-#include <mw/gdb/frame.hpp>
+#include <mw/debug/break_point.hpp>
+#include <mw/debug/frame.hpp>
 #include <vector>
 #include <memory>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <iostream>
-#include <mw/gdb/plugin.hpp>
+#include <mw/debug/plugin.hpp>
 
 #if defined(BOOST_WINDOWS_API)
 #include <windows.h>
@@ -19,7 +19,7 @@
 #include <unistd.h>
 #endif
 
-using namespace mw::gdb;
+using namespace mw::debug;
 
 #if defined(BOOST_POSIX_API)
 #define call(Func, Args...) :: Func ( Args )
@@ -419,9 +419,9 @@ struct mw_func_stub : break_point
     }
 };
 
-std::vector<std::unique_ptr<mw::gdb::break_point>> mw_gdb_setup_bps()
+std::vector<std::unique_ptr<mw::debug::break_point>> mw_gdb_setup_bps()
 {
-    std::vector<std::unique_ptr<mw::gdb::break_point>> vec;
+    std::vector<std::unique_ptr<mw::debug::break_point>> vec;
 
     vec.push_back(std::make_unique<mw_func_stub>());
     return vec;

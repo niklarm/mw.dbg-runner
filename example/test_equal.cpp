@@ -1,7 +1,7 @@
 
-#include <mw/gdb/break_point.hpp>
-#include <mw/gdb/plugin.hpp>
-#include <mw/gdb/frame.hpp>
+#include <mw/debug/break_point.hpp>
+#include <mw/debug/plugin.hpp>
+#include <mw/debug/frame.hpp>
 #include <iostream>
 #include <vector>
 #include <string>
