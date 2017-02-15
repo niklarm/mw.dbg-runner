@@ -705,6 +705,157 @@ template<> info_ada_exception parse_result(const std::vector<result> & r)
     return ai;
 }
 
+template<> thread_group_added parse_result(const std::vector<result> & r)
+{
+    thread_group_added tga;
+
+    tga.id = std::stoi(find(r, "id").as_string());
+
+    return tga;
+}
+
+template<> thread_group_removed parse_result(const std::vector<result> & r)
+{
+    thread_group_removed tgr;
+    tgr.id = std::stoi(find(r, "id").as_string());
+    return tgr;
+}
+
+template<> thread_group_started parse_result(const std::vector<result> & r)
+{
+    thread_group_started tgr;
+    tgr.id  = std::stoi(find(r,  "id").as_string());
+    tgr.pid = std::stoi(find(r, "pid").as_string());
+    return tgr;
+}
+
+template<> thread_group_exited parse_result(const std::vector<result> & r)
+{
+    thread_group_exited tgr;
+    tgr.id  = std::stoi(find(r,  "id").as_string());
+    if (auto val = find_if(r, "exited")) tgr.exited = std::stoi(val->as_string());
+    return tgr;
+}
+
+template<> thread_created parse_result(const std::vector<result> & r)
+{
+    thread_created tgr;
+    tgr.id  = std::stoi(find(r,  "id").as_string());
+    tgr.gid = std::stoi(find(r, "gid").as_string());
+    return tgr;
+}
+
+template<> thread_exited parse_result(const std::vector<result> & r)
+{
+    thread_exited tgr;
+    tgr.id  = std::stoi(find(r,  "id").as_string());
+    tgr.gid = std::stoi(find(r, "gid").as_string());
+    return tgr;
+}
+
+template<> thread_selected parse_result(const std::vector<result> & r)
+{
+    thread_selected tgr;
+    tgr.id  = std::stoi(find(r,  "id").as_string());
+    tgr.gid = std::stoi(find(r, "gid").as_string());
+    return tgr;
+}
+
+template<> library_loaded parse_result(const std::vector<result> & r)
+{
+    library_loaded tgr;
+    tgr.id          = std::stoi(find(r,  "id").as_string());
+    tgr.host_name   = find(r, "host-name").as_string();
+    tgr.target_name = find(r, "target-name").as_string();
+
+    if (auto val = find_if(r, "symbols-loaded")) tgr.symbols_loaded = val->as_string();
+    return tgr;
+}
+
+template<> traceframe_changed parse_result(const std::vector<result> & r)
+{
+    if (find_if(r, "end"))
+        return traceframe_changed_end();
+
+    traceframe_changed_t tct;
+    tct.num         =  std::stoi(find(r,  "num").as_string());
+    tct.tracepoint  = find(r, "tracepoint").as_string();
+    return tct;
+}
+
+template<> tsv_frame parse_result(const std::vector<result> & r)
+{
+    tsv_frame tf;
+    if (auto val = find_if(r, "name")) tf.name = val->as_string();
+    if (auto val = find_if(r, "initial")) tf.initial = val->as_string();
+    return tf;
+}
+
+template<> tsv_modified parse_result(const std::vector<result> & r)
+{
+    tsv_modified tf;
+    tf.name = find(r, "name").as_string();
+    tf.initial = find(r, "initial").as_string();
+    if (auto val = find_if(r, "current")) tf.current = val->as_string();
+    return tf;
+}
+
+template<> breakpoint_created parse_result(const std::vector<result> & r)
+{
+    breakpoint_created bc;
+    bc.bkpt = parse_result<breakpoint>(find(r, "bkpt").as_tuple());
+    return bc;
+}
+
+template<> breakpoint_modified parse_result(const std::vector<result> & r)
+{
+    breakpoint_modified bc;
+    bc.bkpt = parse_result<breakpoint>(find(r, "bkpt").as_tuple());
+    return bc;
+}
+
+template<> breakpoint_deleted parse_result(const std::vector<result> & r)
+{
+    breakpoint_deleted bc;
+    bc.number = std::stoi(find(r, "number").as_string());
+    return bc;
+}
+
+template<> record_started    parse_result(const std::vector<result> & r)
+{
+    record_started bc;
+    bc.thread_group = std::stoi(find(r, "thread-group").as_string());
+    if (auto val = find_if(r, "format")) bc.format = val->as_string();
+    bc.method = find(r, "method").as_string();
+    return bc;
+}
+
+template<> record_stopped    parse_result(const std::vector<result> & r)
+{
+    record_stopped rs;
+    rs.thread_group = std::stoi(find(r, "thread-group").as_string());
+    return rs;
+}
+
+template<> cmd_param_changed parse_result(const std::vector<result> & r)
+{
+    cmd_param_changed rs;
+    rs.param = find(r, "param").as_string();
+    rs.value = find(r, "value").as_string();
+    return rs;
+}
+
+template<> memory_changed    parse_result(const std::vector<result> & r)
+{
+    memory_changed mc;
+    mc.thread_group = std::stoi(find(r, "thread-group").as_string());
+    mc.len = std::stoi(find(r, "len").as_string());
+    mc.addr = std::stoull(find(r, "addr"). as_string(), nullptr, 16);
+    if (auto val = find_if(r, "code")) mc.code = val->as_string();
+    return mc;
+}
+
+
 
 }
 }

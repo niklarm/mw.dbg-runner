@@ -114,6 +114,8 @@ public:
 
     async_record_handler_t async_record_handler{_async_sink};
 
+    std::pair<std::string, std::vector<result>> wait_for_stop();
+
     void break_after(int number, int count);
     void break_commands(int number, const std::vector<std::string> & commands);
     void break_condition(int number, const std::string & condition);

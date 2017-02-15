@@ -57,10 +57,19 @@ void interpreter::_handle_stream_output(const stream_record & sr)
 }
 
 template<typename ...Args>
+constexpr bool needs_record()
+{
+    return sizeof...(Args) > 0;
+}
+
+template<typename ...Args>
 void interpreter::_work_impl(Args&&...args)
 {
     asio::async_write(_in, asio::buffer(_in_buf), _yield);
     asio::async_read_until(_out, _out_buf, "(gdb)", _yield);
+
+    bool holds_record = false;
+    constexpr static bool needs_record_ = needs_record<Args...>();
 
     std::istream out_str(&_out_buf);
     std::string line;
@@ -89,13 +98,17 @@ void interpreter::_work_impl(Args&&...args)
         if (auto data = parse_record(line))
         {
             _handle_record(line, data->first, data->second, std::forward<Args>(args)...);
+            holds_record = true;
             continue;
         }
         else
-            throw mw::debug::interpreter_error("cannot parse output: '" + line + "'");
+            std::cout << line << std::endl;
         _fwd << line << '\n';
     }
     _fwd << "(gdb)" << std::endl;
+
+    if (holds_record && needs_record_)
+        _work_impl(std::forward<Args>(args)...);
 }
 
 
@@ -103,6 +116,25 @@ void interpreter::_work() {_work_impl();}
 void interpreter::_work(std::uint64_t token, result_class rc) { _work_impl(token, rc); }
 //void interpreter::_work(const std::function<void(const result_output&)> & func) {_work_impl(func); }
 void interpreter::_work(std::uint64_t token, const std::function<void(const result_output&)> & func) {_work_impl(token, func);}
+
+std::pair<std::string, std::vector<result>> interpreter::wait_for_stop()
+{
+    std::pair<std::string, std::vector<result>> pr;
+
+    auto l = [&](const async_output& ao)
+             {
+                if ((ao.type == async_output::exec) &&
+                    (ao.class_ == "stopped"))
+                {
+                    pr.first  = ao.class_;
+                    pr.second = ao.results;
+                }
+             };
+
+    boost::signals2::scoped_connection conn = _async_sink.connect(l);
+    _work();
+    return pr;
+}
 
 void interpreter::_handle_record(const std::string& line, const boost::optional<std::uint64_t> &token, const result_output & sr)
 {
