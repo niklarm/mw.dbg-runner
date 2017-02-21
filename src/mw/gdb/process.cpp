@@ -154,7 +154,7 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
         }
 
         int num = std::stoi(mi2::find(val.second, "bkptno").as_string());
-        int thread_id = std::stoi(mi2::find(val.second, "thread-id").as_string());
+       // int thread_id = std::stoi(mi2::find(val.second, "thread-id").as_string());
         auto frame = mi2::parse_result<mi2::frame>(mi2::find(val.second, "frame").as_tuple());
 
         std::string id;
@@ -194,6 +194,7 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
         _break_point_map[num]->invoke(fi, file, line);
 
         val = interpreter.wait_for_stop();
+
     }
 
 

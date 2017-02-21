@@ -69,7 +69,7 @@ protected:
     {
         throw std::runtime_error("mw::gdb::process panic!");
     }
-    virtual void _run_impl(boost::asio::yield_context &yield);
+    virtual void _run_impl(boost::asio::yield_context &yield) = 0;
 
 public:
     void set_exit(int code)

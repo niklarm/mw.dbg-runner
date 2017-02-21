@@ -256,6 +256,8 @@ struct action<variable>
    }
 };
 
+thread_local std::string action<variable>::last_var_name = "";
+
 struct inherited_name : pegtl::success {};
 
 template<>
