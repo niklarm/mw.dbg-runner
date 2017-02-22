@@ -15,11 +15,7 @@
 #ifndef MW_DEBUG_INTERPRETER_HPP_
 #define MW_DEBUG_INTERPRETER_HPP_
 
-#include <boost/asio/streambuf.hpp>
-#include <boost/asio/spawn.hpp>
-#include <boost/process/async_pipe.hpp>
 #include <stdexcept>
-#include <iostream>
 
 #include <boost/regex.hpp>
 
@@ -37,26 +33,8 @@ struct interpreter_error : std::runtime_error
 
 class interpreter
 {
-protected:
-    boost::process::async_pipe & _out;
-    boost::process::async_pipe & _in;
-
-    boost::asio::streambuf _out_buf;
-    std::string _in_buf;
-
-    boost::asio::yield_context & _yield;
-
-    std::ostream &_fwd;
 public:
-    interpreter(boost::process::async_pipe & out,
-                boost::process::async_pipe & in,
-                boost::asio::yield_context & yield_,
-                std::ostream & fwd = std::cout) : _out(out), _in(in), _yield(yield_), _fwd(fwd) {}
-
-    std::vector<std::string> communicate(const std::string & in, char delim);
-    std::vector<std::string> communicate(const std::string & in, const std::string & delim);
-    std::vector<std::string> communicate(const std::string & in, const boost::regex & expr);
-
+    interpreter() = default;
 
     virtual ~interpreter() = default;
 };

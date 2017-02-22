@@ -28,7 +28,7 @@
 #include <functional>
 #include <iostream>
 
-#include <mw/debug/interpreter.hpp>
+#include <mw/debug/interpreter_impl.hpp>
 
 namespace mw
 {
@@ -41,9 +41,17 @@ struct unexpected_result_class : interpreter_error
 {
     result_class expected;
     result_class got;
+    std::string msg;
     unexpected_result_class(result_class ex, result_class got) :
         interpreter_error("unexpected result-class [" + to_string(ex) + " != " + to_string(got) + "]"),
         expected(ex), got(got)
+    {
+
+    }
+
+    unexpected_result_class(result_class ex, result_class got, const std::string & msg) :
+        interpreter_error("unexpected result-class [" + to_string(ex) + " != " + to_string(got) + "] : \"" + msg + "\""),
+            expected(ex), got(got), msg(msg)
     {
 
     }
@@ -75,7 +83,7 @@ struct mismatched_token : unexpected_record
 };
 
 
-class interpreter : public mw::debug::interpreter
+class interpreter : public mw::debug::interpreter_impl
 {
     boost::signals2::signal<void(const std::string&)> _stream_console;
     boost::signals2::signal<void(const std::string&)> _stream_log;
@@ -83,6 +91,8 @@ class interpreter : public mw::debug::interpreter
     boost::signals2::signal<void(const async_output &)> _async_sink;
 
     std::uint32_t _token_gen = 0;
+
+    static void _throw_unexpected_result(result_class rc, const mw::gdb::mi2::result_output & res);
 
     void _handle_stream_output(const stream_record & sr);
     void _handle_async_output(const async_output & ao);
@@ -115,6 +125,9 @@ public:
     async_record_handler_t async_record_handler{_async_sink};
 
     std::pair<std::string, std::vector<result>> wait_for_stop();
+
+    //read the opening of the interpreter
+    std::string read_header();
 
     void break_after(int number, int count);
     void break_commands(int number, const std::vector<std::string> & commands);

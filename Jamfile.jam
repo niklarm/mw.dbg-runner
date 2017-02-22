@@ -8,7 +8,7 @@ if [ os.name ] = NT
 
 import modules ;
 
-project gdb-runner :
+project dbg-runner :
 	source-location src	
 	: requirements
 	<include>./include
@@ -16,24 +16,45 @@ project gdb-runner :
 	;
 	
 
-alias system 			 : /boost//system 			 : <link>static ;
-alias program_options  	 : /boost//program_options   : <link>static ;
-alias filesystem 		 : /boost//filesystem 		 : <link>static ;
-alias locale 			 : /boost//locale 			 : <link>static ;
-alias context 		 	 : /boost//context 			 : <link>static ;
-alias coroutine 		 : /boost//coroutine         : <link>static ;
+alias system 			 : /boost//system 			  ;
+alias program_options  	 : /boost//program_options    ;
+alias filesystem 		 : /boost//filesystem 		  ;
+alias locale 			 : /boost//locale 			  ;
+alias context 		 	 : /boost//context 			  ;
+alias coroutine 		 : /boost//coroutine          ;
+alias regex              : /boost//regex              ;
 
 alias boosts : system program_options filesystem locale context coroutine  ;
 
 import testing ;
 
+lib mw-dbg-core : [ glob mw/debug/*.cpp ] :
+        <target-os>windows,<toolset>cw:<library>ws2_32 
+		<target-os>windows,<toolset>gcc:<library>ws2_32
+		<library>system
+		<library>coroutine
+		<library>regex
+		<library>filesystem
+		<variant>debug:<optimization>space 
+		;
+
+
+lib mw-gdb-mi2 : [ glob mw/gdb/mi2/*.cpp ] mw/gdb/process.cpp mw-dbg-core : 
+		<target-os>windows,<toolset>cw:<library>ws2_32 
+		<target-os>windows,<toolset>gcc:<library>ws2_32
+		<library>system
+		<library>coroutine
+		<library>mw-dbg-core
+		<variant>debug:<optimization>space 
+		;
+
+
 exe mw-dbg-runner : 
 		debug-runner.cpp 
-		[ glob mw/debug/*.cpp ]
-		[ glob mw/gdb/mi2/*.cpp ]
-		mw/gdb/process.cpp
 		boosts : <link>static
-		<library>/boost//regex 
+		<library>/boost//regex
+		<library>mw-gdb-mi2 
+		<library>mw-dbg-core 
 		<variant>debug:<optimization>space
         <target-os>windows,<toolset>cw:<library>ws2_32 <target-os>windows,<toolset>gcc:<library>ws2_32
         ;

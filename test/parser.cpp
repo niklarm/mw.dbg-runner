@@ -18,6 +18,7 @@
 #include <boost/variant/get.hpp>
 
 #define BOOST_TEST_MODULE parser_test
+#define BOOST_TEST_NO_LIB
 
 #include <boost/test/unit_test.hpp>
 #include <string>

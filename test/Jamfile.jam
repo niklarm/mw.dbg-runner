@@ -20,36 +20,14 @@ project gdb-test :
 	
 
 lib plugin : plugin.cpp : <link>shared ;
-alias filesystem : /boost//filesystem : <link>static ;
-exe target : target.cpp /boost//filesystem :  <debug-symbols>on <link>static ;
+alias filesystem : /boost//filesystem ;
+exe target : target.cpp :  <debug-symbols>on <library>/boost//filesystem ;
 
-alias btest : /boost//unit_test_framework ;
+alias boost_test : /boost//unit_test_framework ;
+alias boost_moni : /boost//prg_exec_monitor    ;
 
-rule test-all
-{
-	return ;
-   local all_rules = ;
-   local headers_path = [ path.make ../include/mw/gdb/parsers ] ;
-   for file in [ path.glob-tree $(headers_path) : *.hpp : detail ]
-   {
-        local rel_file = [ path.relative-to $(headers_path) $(file)  ] ;
-        local test_name = [ regex.replace $(rel_file) "/" "-" ] ;
-        
-   		echo Testing Parser $(file) ;
-   		all_rules += [ run parser.cpp /boost//system : : : 
-   					   <library>/boost//unit_test_framework
-   		               <define>"MW_GDB_HEADER=$(rel_file)" 
-   		               <dependency>$(file) 
-   		               <target-os>windows,<toolset>cw:<library>ws2_32
-                       <target-os>windows,<toolset>gcc:<library>ws2_32
-   		               
-   		               : ~$(test_name) ] ;
-   }
-   return $(all_rules) ;
-}	
-
-test-suite gdb-parser : 
-	#[ test-all r ]
-	[ run parser.cpp ../src/mw/gdb/mi2/output.cpp : : : <include>../../libs/pegtl <library>btest ]
-	#[ run test_runner.cpp filesystem : : /gdb-runner//mw-gdb-runner plugin target  ]
+test-suite gdb-parser :
+	[ run parser.cpp ../src/mw/gdb/mi2/output.cpp : : : <include>../../libs/pegtl <library>boost_test <library>boost_moni ]
+	#[ run test_runner.cpp : : /gdb-runner//mw-dbg-runner plugin target : <library>filesystem ]
+	[ run interpreter_mi2.cpp : --log_level=all : target : <library>..//mw-gdb-mi2 <library>..//mw-dbg-core <library>boost_test <library>boost_moni <os>NT,<toolset>cw:<library>ws2_32 <os>NT,<toolset>gcc:<library>ws2_32 <library>..//coroutine <library>filesystem ]
 	;

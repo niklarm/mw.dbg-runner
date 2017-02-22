@@ -13,6 +13,7 @@
  </pre>
  */
 
+#define BOOST_COROUTINE_NO_DEPRECATION_WARNING
 #include <mw/gdb/mi2/interpreter.hpp>
 #include <mw/gdb/mi2/output.hpp>
 #include <mw/gdb/mi2/input.hpp>
@@ -23,6 +24,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <istream>
+#include <iostream>
 #include <sstream>
 
 namespace asio = boost::asio;
@@ -38,7 +40,20 @@ interpreter::interpreter(
             boost::process::async_pipe & out,
             boost::process::async_pipe & in,
             boost::asio::yield_context & yield_,
-            std::ostream & fwd) : mw::debug::interpreter(out, in, yield_, fwd) {}
+            std::ostream & fwd) : mw::debug::interpreter_impl(out, in, yield_, fwd) {}
+
+void interpreter::_throw_unexpected_result(result_class rc, const mw::gdb::mi2::result_output & res)
+{
+    if (res.class_ == result_class::error)
+    {
+        if (auto cp = find_if(res.results, "msg"))
+            throw unexpected_result_class(result_class::done, res.class_, cp->as_string());
+        else
+            throw unexpected_result_class(result_class::done, res.class_);
+    }
+    else
+        throw unexpected_result_class(result_class::done, res.class_);
+}
 
 void interpreter::_handle_stream_output(const stream_record & sr)
 {
@@ -68,46 +83,58 @@ void interpreter::_work_impl(Args&&...args)
     asio::async_write(_in, asio::buffer(_in_buf), _yield);
     asio::async_read_until(_out, _out_buf, "(gdb)", _yield);
 
+
     bool holds_record = false;
     constexpr static bool needs_record_ = needs_record<Args...>();
 
     std::istream out_str(&_out_buf);
     std::string line;
-    while (std::getline(out_str, line) && !boost::starts_with(line, "(gdb)"))
-    {
-        //check streamoutput
-        if (auto data = parse_stream_output(line))
+    try {
+        while (std::getline(out_str, line) && !boost::starts_with(line, "(gdb)"))
         {
-            _handle_stream_output(*data);
-            continue;
-        }
-
-        if (auto data = parse_async_output(line))
-        {
-            if (data->first)
+            //check streamoutput
+            if (auto data = parse_stream_output(line))
             {
-                if (!_handle_async_output(*data->first, data->second))
-                    throw unexpected_async_record(*data->first, line);
+                _handle_stream_output(*data);
+                continue;
             }
 
+            if (auto data = parse_async_output(line))
+            {
+                if (data->first)
+                {
+                    if (!_handle_async_output(*data->first, data->second))
+                        throw unexpected_async_record(*data->first, line);
+                }
+
+                else
+                    _handle_async_output(data->second);
+                continue;
+            }
+
+            if (auto data = parse_record(line))
+            {
+                _handle_record(line, data->first, data->second, std::forward<Args>(args)...);
+                holds_record = true;
+                continue;
+            }
             else
-                _handle_async_output(data->second);
-            continue;
+                _fwd << line << std::endl;
+            _fwd << line << '\n';
         }
-
-        if (auto data = parse_record(line))
-        {
-            _handle_record(line, data->first, data->second, std::forward<Args>(args)...);
-            holds_record = true;
-            continue;
-        }
-        else
-            std::cout << line << std::endl;
-        _fwd << line << '\n';
     }
-    _fwd << "(gdb)" << std::endl;
+    catch (std::exception & e)
+    {
 
-    if (holds_record && needs_record_)
+        _fwd << "***** Interpreter exception ***** : " << e.what() << std::endl;
+        while (std::getline(out_str, line) && !boost::starts_with(line, "(gdb)"))
+            _fwd << line;
+        _fwd << "(gdb)" << std::endl;
+        throw ;
+    }
+
+
+    if (!holds_record && needs_record_)
         _work_impl(std::forward<Args>(args)...);
 }
 
@@ -148,6 +175,7 @@ void interpreter::_handle_record(const std::string& line, const boost::optional<
     if (!token)
         throw mismatched_token(expected_token, 0);
 
+
     if (*token != expected_token)
         throw mismatched_token(expected_token, *token);
 
@@ -165,6 +193,7 @@ void interpreter::_handle_record(const std::string& line, const boost::optional<
 void interpreter::_handle_record(const std::string& line, const boost::optional<std::uint64_t> &token, const result_output & sr,
                     std::uint64_t expected_token, const std::function<void(const result_output&)> & func)
 {
+
     if (!token)
         throw mismatched_token(expected_token, 0);
 
@@ -191,6 +220,14 @@ bool interpreter::_handle_async_output(std::uint64_t token, const async_output &
         }
 
     return cnt != 0;
+}
+
+std::string interpreter::read_header()
+{
+    std::string value;
+    boost::signals2::scoped_connection conn = _stream_console.connect([&](const std::string & str){value += str; value += '\n';});
+    _work();
+    return value;
 }
 
 /**
@@ -315,7 +352,7 @@ breakpoint interpreter::break_info(int number)
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<breakpoint>(rc.results);
 }
@@ -445,7 +482,7 @@ std::vector<breakpoint> interpreter::break_insert(const std::string & location,
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+        _throw_unexpected_result(result_class::done, rc);
 
     std::vector<breakpoint> bps;
 
@@ -535,7 +572,7 @@ breakpoint interpreter::dprintf_insert(
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<breakpoint>(find(rc.results, "bpkt").as_tuple());
 }
@@ -554,7 +591,7 @@ std::vector<breakpoint> interpreter::break_list()
                         });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     auto body = find(rc.results, "body").as_list().as_results();
 
@@ -594,7 +631,7 @@ watchpoint interpreter::break_watch(const std::string & expr, bool access, bool 
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<watchpoint>(find(rc.results, "wpt").as_tuple());
 }
@@ -618,7 +655,7 @@ breakpoint interpreter::catch_load(const std::string regexp,
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<breakpoint>(find(rc.results, "bkpt").as_tuple());
 }
@@ -643,7 +680,7 @@ breakpoint interpreter::catch_unload(const std::string regexp,
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<breakpoint>(find(rc.results, "bkpt").as_tuple());
 }
@@ -668,7 +705,7 @@ breakpoint interpreter::catch_assert(const boost::optional<std::string> & condit
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<breakpoint>(find(rc.results, "bkpt").as_tuple());
 }
@@ -693,7 +730,7 @@ breakpoint interpreter::catch_exception(const boost::optional<std::string> & con
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<breakpoint>(find(rc.results, "bkpt").as_tuple());
 }
@@ -740,7 +777,7 @@ std::string interpreter::environment_directory(const std::vector<std::string> & 
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return find(rc.results, "source-path").as_string();
 }
@@ -767,7 +804,7 @@ std::string interpreter::environment_path(const std::vector<std::string> & path,
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return find(rc.results, "path").as_string();
 }
@@ -784,7 +821,7 @@ std::string interpreter::environment_pwd()
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return find(rc.results, "cwd").as_string();
 }
@@ -1036,7 +1073,7 @@ frame interpreter::exec_return(const boost::optional<std::string> &val)
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<frame>(find(rc.results, "frame").as_tuple());
 }
@@ -1112,7 +1149,7 @@ frame interpreter::stacke_info_frame()
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<frame>(find(rc.results, "frame").as_tuple());
 }
@@ -1128,7 +1165,7 @@ std::size_t interpreter::stack_info_depth()
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return std::stoull(find(rc.results, "depth").as_string());
 }
@@ -1161,7 +1198,7 @@ std::vector<frame> interpreter::stack_list_arguments(
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     std::vector<frame> fr;
     auto val = find(rc.results, "stack-args").as_list().as_results();
@@ -1193,7 +1230,7 @@ std::vector<frame> interpreter::stack_list_frames(
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     std::vector<frame> fr;
     auto val = find(rc.results, "stack").as_list().as_results();
@@ -1229,7 +1266,7 @@ std::vector<frame> interpreter::stack_list_locals(
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     std::vector<frame> fr;
     auto val = find(rc.results, "locals").as_list().as_results();
@@ -1265,7 +1302,7 @@ std::vector<frame> interpreter::stack_list_variables(
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     std::vector<frame> fr;
     auto val = find(rc.results, "variables").as_list().as_results();
@@ -1317,7 +1354,7 @@ varobj interpreter::var_create(const std::string& expression,
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<varobj>(rc.results);
 }
@@ -1341,7 +1378,7 @@ varobj interpreter::var_create_floating(const std::string & expression, const bo
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<varobj>(rc.results);
 }
@@ -1386,7 +1423,7 @@ format_spec interpreter::var_show_format(const std::string & name)
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
     auto var = find(rc.results, "format").as_string();
 
     if (var == "binary")           return format_spec::binary;
@@ -1411,7 +1448,7 @@ std::size_t interpreter::var_info_num_children(const std::string & name)
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
     return std::stoull( find(rc.results, "numchild").as_string() );
 }
 
@@ -1439,7 +1476,7 @@ std::vector<varobj> interpreter::var_list_children(const std::string & name,
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     std::vector<varobj> vec;
     vec.reserve(std::stoi(find(rc.results, "numchild").as_string()));
@@ -1460,7 +1497,7 @@ std::string interpreter::var_info_type(const std::string & name)
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return find(rc.results, "type").as_string();
 }
@@ -1475,7 +1512,7 @@ std::pair<std::string, std::string> interpreter::var_info_expression(const std::
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return std::make_pair(find(rc.results, "lang").as_string(), find(rc.results, "exp").as_string());
 }
@@ -1490,7 +1527,7 @@ std::string interpreter::var_info_path_expression(const std::string & name)
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return find(rc.results, "path_expr").as_string();
 }
@@ -1506,7 +1543,7 @@ std::vector<std::string> interpreter::var_show_attributes(const std::string & na
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     std::vector<std::string> vec;
     auto in = find(rc.results, "status").as_list().as_values();
@@ -1536,7 +1573,7 @@ std::string interpreter::var_evaluate_expression(
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return find(rc.results, "value").as_string();
 }
@@ -1552,7 +1589,7 @@ std::string interpreter::var_assign(const std::string & name, const std::string&
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return find(rc.results, "value").as_string();
 }
@@ -1581,7 +1618,7 @@ std::vector<varobj_update> interpreter::var_update(
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     std::vector<varobj_update> vec;
     auto in = find(rc.results, "status").as_list().as_values();
@@ -1634,7 +1671,7 @@ dissambled_data interpreter::data_disassemble (disassemble_mode de)
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<dissambled_data>(find(rc.results, "asm_insns").as_tuple());
 }
@@ -1653,7 +1690,7 @@ dissambled_data interpreter::data_disassemble (disassemble_mode de, std::size_t 
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<dissambled_data>(find(rc.results, "asm_insns").as_tuple());
 }
@@ -1676,7 +1713,7 @@ dissambled_data interpreter::data_disassemble (disassemble_mode de, const std::s
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<dissambled_data>(find(rc.results, "asm_insns").as_tuple());
 }
@@ -1692,7 +1729,7 @@ std::string interpreter::data_evaluate_expression(const std::string & expr)
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return find(rc.results, "value").as_string();
 }
@@ -1709,7 +1746,7 @@ std::vector<std::string> interpreter::data_list_changed_registers()
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     auto l = find(rc.results, "changed-registers").as_list().as_values();
 
@@ -1732,7 +1769,7 @@ std::vector<std::string> interpreter::data_list_register_names()
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     auto l = find(rc.results, "register-names").as_list().as_values();
 
@@ -1776,7 +1813,7 @@ std::vector<register_value> interpreter::data_list_register_values(
             });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     auto l = find(rc.results, "register-values").as_list().as_values();
 
@@ -1817,7 +1854,7 @@ read_memory interpreter::data_read_memory(const std::string & address,
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<read_memory>(rc.results);
 }
@@ -1840,7 +1877,7 @@ read_memory_bytes interpreter::data_read_memory_bytes(const std::string & addres
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<read_memory_bytes>(find(rc.results, "memory").as_tuple());
 }
@@ -1883,7 +1920,7 @@ boost::optional<found_tracepoint> interpreter::trace_find(const std::string & st
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<boost::optional<found_tracepoint>>(rc.results);
 }
@@ -1899,7 +1936,7 @@ boost::optional<found_tracepoint> interpreter::trace_find_by_frame(int frame)
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<boost::optional<found_tracepoint>>(rc.results);
 }
@@ -1914,7 +1951,7 @@ boost::optional<found_tracepoint> interpreter::trace_find(int number)
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<boost::optional<found_tracepoint>>(rc.results);
 }
@@ -1929,7 +1966,7 @@ boost::optional<found_tracepoint> interpreter::trace_find_at(std::uint64_t addr)
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<boost::optional<found_tracepoint>>(rc.results);
 }
@@ -1944,7 +1981,7 @@ boost::optional<found_tracepoint> interpreter::trace_find_inside(std::uint64_t s
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<boost::optional<found_tracepoint>>(rc.results);
 }
@@ -1959,7 +1996,7 @@ boost::optional<found_tracepoint> interpreter::trace_find_outside(std::uint64_t 
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<boost::optional<found_tracepoint>>(rc.results);
 }
@@ -1979,7 +2016,7 @@ boost::optional<found_tracepoint> interpreter::trace_find_line(std::size_t & lin
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<boost::optional<found_tracepoint>>(rc.results);
 }
@@ -2022,7 +2059,7 @@ traceframe_collection interpreter::trace_frame_collected(
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<traceframe_collection>(rc.results);
 }
@@ -2039,7 +2076,7 @@ std::vector<trace_variable> interpreter::trace_list_variables()
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     std::vector<trace_variable> vars;
 
@@ -2082,7 +2119,7 @@ struct trace_status interpreter::trace_status()
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<struct trace_status>(rc.results);
 }
@@ -2104,7 +2141,7 @@ std::vector<symbol_line> interpreter::symbol_list_lines(const std::string & file
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     auto var = find(rc.results, "lines").as_list().as_values();
 
@@ -2141,7 +2178,7 @@ source_info interpreter::file_list_exec_source_file()
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<source_info>(rc.results);
 }
@@ -2157,7 +2194,7 @@ std::vector<source_info> interpreter::file_list_exec_source_files()
             });
 
      if (rc.class_ != result_class::done)
-         throw unexpected_result_class(result_class::done, rc.class_);
+        _throw_unexpected_result(result_class::done, rc);
 
      auto var = find(rc.results, "files").as_list().as_values();
 
@@ -2187,7 +2224,7 @@ download_info interpreter::target_download()
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<download_info>(rc.results);
 }
@@ -2208,7 +2245,7 @@ connection_notification interpreter::target_select(const std::string & type, con
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return parse_result<connection_notification>(rc.results);
 }
@@ -2242,7 +2279,7 @@ std::vector<info_ada_exception> interpreter::info_ada_exceptions(const std::stri
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     auto entries = find(rc.results, "body").as_list().as_values();
     std::vector<info_ada_exception> vec;
@@ -2265,7 +2302,7 @@ bool interpreter::info_gdb_mi_command(const std::string & cmd_name)
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
 
     return find(rc.results, "exists").as_string() == "true";
@@ -2282,7 +2319,7 @@ std::vector<std::string> interpreter::list_features()
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     auto entries = find(rc.results, "result").as_list().as_values();
     std::vector<std::string> vec;
@@ -2305,7 +2342,7 @@ std::vector<std::string> interpreter::list_target_features()
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     auto entries = find(rc.results, "result").as_list().as_values();
     std::vector<std::string> vec;
@@ -2337,7 +2374,7 @@ std::string interpreter::gdb_show(const std::string & name)
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return find(rc.results, "value").as_string();
 
@@ -2387,7 +2424,7 @@ std::vector<groups> interpreter::list_thread_groups(bool available, boost::optio
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     std::vector<value> res;
 
@@ -2427,7 +2464,7 @@ std::vector<std::vector<std::string>> interpreter::info_os(const boost::optional
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     std::vector<std::string> titles;
     std::vector<std::string> ids;
@@ -2474,7 +2511,7 @@ std::string interpreter::add_inferior()
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return find(rc.results, "inferior").as_string();
 }
@@ -2504,7 +2541,7 @@ std::string interpreter::inferior_tty_show()
            });
 
     if (rc.class_ != result_class::done)
-        throw unexpected_result_class(result_class::done, rc.class_);
+       _throw_unexpected_result(result_class::done, rc);
 
     return find(rc.results, "inferior_tty_terminal").as_string();
 }

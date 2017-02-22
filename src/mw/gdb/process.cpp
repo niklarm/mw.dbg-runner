@@ -45,7 +45,6 @@ void process::_run_impl(boost::asio::yield_context &yield_)
 
 
     using namespace boost::asio;
-
     _read_info(interpreter);
 
     _init_bps(interpreter);
@@ -64,7 +63,7 @@ void process::_run_impl(boost::asio::yield_context &yield_)
 
 void process::_read_info(mi2::interpreter & interpreter)
 {
-    auto val = interpreter.gdb_version();
+    auto val = interpreter.read_header();
 
     std::regex reg_version{R"_(GNU gdb (\([^)]+\))? ((?:\d+.)+\d+))_"};
     std::regex reg_config {R"_(This GDB was configured as "([\w"\-\= ]+)")_"};

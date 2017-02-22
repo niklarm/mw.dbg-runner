@@ -1,5 +1,5 @@
 #include <mw/gdb/mi2/types.hpp>
-
+#include <iostream>
 #include <boost/fusion/algorithm/iteration/for_each.hpp>
 
 namespace mw
@@ -60,7 +60,7 @@ template<> breakpoint parse_result(const std::vector<result> &r)
     bp.number       = std::stoi(find(r, "number").      as_string());
     bp.type         = find(r, "type").        as_string();
     bp.disp         = find(r, "disp").        as_string();
-    bp.evaluated_by = find(r, "evaluated-by").as_string();
+    if (auto cp = find_if(r, "evaluated-by")) bp.evaluated_by = cp->as_string();
     {
         auto addr = find(r, "addr").as_string();
         if (addr != "<MULTIPLE>")
@@ -70,7 +70,7 @@ template<> breakpoint parse_result(const std::vector<result> &r)
     }
 
     bp.enabled      = find(r, "enabled").as_string() == "y";
-    bp.enable       = std::stoi(find(r, "enable").as_string());
+    if (auto cp = find_if(r, "enable")) bp.enable = std::stoi(cp->as_string());
     bp.times        = std::stoi(find(r, "times"). as_string());
 
     if (auto cp = find_if(r, "catch-type")) bp.catch_type = cp->as_string();

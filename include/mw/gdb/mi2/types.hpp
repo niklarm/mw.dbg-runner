@@ -40,7 +40,10 @@ template<typename T> T parse_result(const std::vector<result>  &);
 
 struct missing_value : interpreter_error
 {
-    using interpreter_error::interpreter_error;
+    std::string value_name;
+
+    missing_value(const std::string & value_name) : interpreter_error("missign value '" + value_name + "' in result"), value_name(value_name) {}
+
     using interpreter_error::operator=;
 };
 
@@ -193,12 +196,12 @@ struct breakpoint
     boost::optional<std::vector<std::string>> thread_groups;
     boost::optional<std::string> at;
     boost::optional<std::string> pending;
-    std::string evaluated_by;
+    boost::optional<std::string> evaluated_by;
     boost::optional<std::string> thread;
     boost::optional<std::string> task;
     boost::optional<std::string> cond;
     boost::optional<int> ignore;
-    int enable;
+    boost::optional<int> enable;
     boost::optional<std::string> traceframe_usage;
     boost::optional<std::string> static_tracepoint_marker_string_id;
     boost::optional<std::string> mask;
