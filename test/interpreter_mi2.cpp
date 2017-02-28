@@ -155,8 +155,3 @@ MW_TEST_CASE( create_bp )
     }
 }
 
-MW_TEST_CASE( other_case )
-{
-    std::cerr << "test 1" << std::endl;
-    //BOOST_CHECK( false );
-}
