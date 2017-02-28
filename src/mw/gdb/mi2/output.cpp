@@ -347,6 +347,7 @@ struct result_record_rule : pegtl::seq<
                                     pegtl::seq<
                                         push_back<result_rule>,
                                         pegtl::star<
+                                            pegtl::one<','>,
                                             push_back<
                                                 anonym_result_rule
                                                 >

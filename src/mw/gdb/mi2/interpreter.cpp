@@ -22,6 +22,7 @@
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/write.hpp>
 
+
 #include <boost/algorithm/string/predicate.hpp>
 #include <istream>
 #include <iostream>
@@ -83,16 +84,15 @@ void interpreter::_work_impl(Args&&...args)
     asio::async_write(_in, asio::buffer(_in_buf), _yield);
     asio::async_read_until(_out, _out_buf, "(gdb)", _yield);
 
-
-    bool holds_record = false;
+    bool received_record = false;
     constexpr static bool needs_record_ = needs_record<Args...>();
 
     std::istream out_str(&_out_buf);
     std::string line;
     try {
+
         while (std::getline(out_str, line) && !boost::starts_with(line, "(gdb)"))
         {
-            //check streamoutput
             if (auto data = parse_stream_output(line))
             {
                 _handle_stream_output(*data);
@@ -115,27 +115,24 @@ void interpreter::_work_impl(Args&&...args)
             if (auto data = parse_record(line))
             {
                 _handle_record(line, data->first, data->second, std::forward<Args>(args)...);
-                holds_record = true;
+                received_record = true;
                 continue;
             }
             else
-                _fwd << line << std::endl;
-            _fwd << line << '\n';
+                _fwd << line << '\n';
         }
+
+        if (needs_record_ && !received_record)
+            throw interpreter_error("No record received, even though expected");
     }
     catch (std::exception & e)
     {
-
         _fwd << "***** Interpreter exception ***** : " << e.what() << std::endl;
         while (std::getline(out_str, line) && !boost::starts_with(line, "(gdb)"))
             _fwd << line;
         _fwd << "(gdb)" << std::endl;
         throw ;
     }
-
-
-    if (!holds_record && needs_record_)
-        _work_impl(std::forward<Args>(args)...);
 }
 
 
@@ -353,8 +350,22 @@ breakpoint interpreter::break_info(int number)
 
     if (rc.class_ != result_class::done)
        _throw_unexpected_result(result_class::done, rc);
+    try {
+        auto tab  = find(rc.results, "BreakpointTable").as_tuple();
+        auto body = find(tab, "body").as_list().as_results();
 
-    return parse_result<breakpoint>(rc.results);
+        auto itr = std::find_if(body.begin(), body.end(), [](const result & r){return r.variable == "bkpt";});
+        if (itr == body.end())
+            throw missing_value("bkpt");
+
+        return parse_result<breakpoint>(itr->value_.as_tuple());
+    }
+    catch (std::exception & e)
+    {
+        std::cerr << "Parser error: '" << e.what() << std::endl;
+        throw;
+        return breakpoint{};
+    }
 }
 
 static std::string loc_for_break(const linespec_location & exp)
@@ -433,8 +444,6 @@ std::vector<breakpoint> interpreter::break_insert(const explicit_location & exp,
         const boost::optional<int> & ignore_count,
         const boost::optional<int> & thread_id)
 {
-
-
     return break_insert(loc_for_break(exp), temporary, hardware, pending, disabled, tracepoint, condition, ignore_count, thread_id);
 }
 
@@ -476,10 +485,12 @@ std::vector<breakpoint> interpreter::break_insert(const std::string & location,
     _in_buf += (location + '\n');
 
     mw::gdb::mi2::result_output rc;
+
     _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
             {
                 rc = std::move(rc_in);
             });
+
 
     if (rc.class_ != result_class::done)
         _throw_unexpected_result(result_class::done, rc);
@@ -491,7 +502,6 @@ std::vector<breakpoint> interpreter::break_insert(const std::string & location,
         if (res.variable == "bkpt")
             bps.push_back(parse_result<breakpoint>(res.value_.as_tuple()));
     }
-
 
     return bps;
 }

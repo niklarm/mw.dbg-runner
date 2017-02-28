@@ -166,3 +166,22 @@ BOOST_AUTO_TEST_CASE(sync_output)
     BOOST_CHECK_EQUAL(boost::get<std::string>(v[0]), "i1");
 
 }
+
+BOOST_AUTO_TEST_CASE(sync_output2)
+{
+    auto str = R"__(1^done,bkpt={number="1",type="breakpoint",disp="keep",enabled="y",addr="0x0000000000401608",func="main()",file="target.cpp",fullname="F:\\mwspace\\test\\gdb-runner\\test\\target.cpp",line="34",thread-groups=["i1"],times="0",original-location="target.cpp:34"})__";
+    auto res = mi2::parse_record(1, str);
+
+    BOOST_CHECK(res);
+    BOOST_CHECK(!mi2::parse_record(2, str));
+}
+
+BOOST_AUTO_TEST_CASE(sync_output3)
+{
+    auto str = R"__(2^done,bkpt={number="2",type="breakpoint",disp="keep",enabled="y",addr="<MULTIPLE>",times="0",original-location="f"},{number="2.1",enabled="y",addr="0x00000000004015b8",func="f(int&)",file="target.cpp",fullname="F:\\mwspace\\test\\gdb-runner\\test\\target.cpp",line="17",thread-groups=["i1"]},{number="2.2",enabled="y",addr="0x00000000004015c3",func="f(int*)",file="target.cpp",fullname="F:\\mwspace\\test\\gdb-runner\\test\\target.cpp",line="21",thread-groups=["i1"]},{number="2.3",enabled="y",addr="0x00000000004015ca",func="f()",file="target.cpp",fullname="F:\\mwspace\\test\\gdb-runner\\test\\target.cpp",line="24",thread-groups=["i1"]})__";
+    auto res = mi2::parse_record(2, str);
+
+    BOOST_CHECK(res);
+    BOOST_CHECK(!mi2::parse_record(1, str));
+
+}
