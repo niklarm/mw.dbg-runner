@@ -30,6 +30,8 @@
 #include <boost/preprocessor/cat.hpp>
 #include <boost/core/demangle.hpp>
 
+#include <boost/algorithm/string/predicate.hpp>
+
 namespace bp = boost::process;
 namespace mi2 = mw::gdb::mi2;
 
@@ -147,6 +149,14 @@ MW_TEST_CASE( create_bp )
         BOOST_REQUIRE_GE(bp2.size(), 1u);
 
         BOOST_CHECK_NO_THROW(mi.break_delete({bp.number, bp2.front().number}));
+
+        BOOST_CHECK_NO_THROW(mi.exec_run());
+
+
+        mi2::async_result ar;
+        BOOST_CHECK_NO_THROW(ar = mi.wait_for_stop());
+
+        BOOST_CHECK_EQUAL(ar.reason, "exited");
     }
     catch (std::exception & e)
     {

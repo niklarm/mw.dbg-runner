@@ -47,6 +47,25 @@ struct missing_value : interpreter_error
     using interpreter_error::operator=;
 };
 
+struct async_result
+{
+    std::string reason;
+    std::vector<result> content;
+
+    template<typename T>
+    T as() const {return parse_result<T>(content);}
+
+    const value & find(const char* key)
+    {
+        return mw::gdb::mi2::find(content, key);
+    }
+
+    boost::optional<const value &> find_if(const char* key)
+    {
+        return mw::gdb::mi2::find_if(content, key);
+    }
+};
+
 struct error_
 {
     std::string msg;

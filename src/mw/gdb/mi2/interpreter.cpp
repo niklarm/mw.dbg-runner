@@ -141,18 +141,18 @@ void interpreter::_work(std::uint64_t token, result_class rc) { _work_impl(token
 //void interpreter::_work(const std::function<void(const result_output&)> & func) {_work_impl(func); }
 void interpreter::_work(std::uint64_t token, const std::function<void(const result_output&)> & func) {_work_impl(token, func);}
 
-std::pair<std::string, std::vector<result>> interpreter::wait_for_stop()
+async_result interpreter::wait_for_stop()
 {
-    std::pair<std::string, std::vector<result>> pr;
+    async_result pr;
 
     auto l = [&](const async_output& ao)
              {
                 if ((ao.type == async_output::exec) &&
                     (ao.class_ == "stopped"))
                 {
-                    pr.first  = mi2::find(ao.results, "reason").as_string();
-                    pr.second.resize(ao.results.size() - 1);
-                    std::copy_if(ao.results.begin(), ao.results.end(), pr.second.begin(),
+                    pr.reason  = mi2::find(ao.results, "reason").as_string();
+                    pr.content.resize(ao.results.size() - 1);
+                    std::copy_if(ao.results.begin(), ao.results.end(), pr.content.begin(),
                                     [](const result & r){return r.variable != "reason";});
                 }
              };

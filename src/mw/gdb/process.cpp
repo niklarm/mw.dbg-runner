@@ -14,6 +14,7 @@
  </pre>
  */
 
+#define BOOST_COROUTINE_NO_DEPRECATION_WARNING
 #include <mw/gdb/process.hpp>
 #include <mw/gdb/mi2/frame_impl.hpp>
 
@@ -144,17 +145,17 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
 {
 
     auto val = interpreter.wait_for_stop();
-    while(val.first != "exited")
+    while(val.reason != "exited")
     {
-        if (val.first != "breakpoint-hit") //temporary
+        if (val.reason != "breakpoint-hit") //temporary
         {
             _log << "unknown stop reason" << std::endl;
             break;
         }
 
-        int num = std::stoi(mi2::find(val.second, "bkptno").as_string());
+        int num = std::stoi(mi2::find(val.content, "bkptno").as_string());
        // int thread_id = std::stoi(mi2::find(val.second, "thread-id").as_string());
-        auto frame = mi2::parse_result<mi2::frame>(mi2::find(val.second, "frame").as_tuple());
+        auto frame = mi2::parse_result<mi2::frame>(mi2::find(val.content, "frame").as_tuple());
 
         std::string id;
         if (frame.func)

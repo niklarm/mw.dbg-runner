@@ -124,7 +124,7 @@ public:
 
     async_record_handler_t async_record_handler{_async_sink};
 
-    std::pair<std::string, std::vector<result>> wait_for_stop();
+    async_result wait_for_stop();
 
     //read the opening of the interpreter
     std::string read_header();
