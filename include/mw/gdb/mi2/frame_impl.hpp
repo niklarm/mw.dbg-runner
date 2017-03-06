@@ -20,7 +20,7 @@
 namespace mw { namespace gdb { namespace mi2 {
 
 
-mw::debug::var parse_var(interpreter &interpreter_, std::string value);
+mw::debug::var parse_var(interpreter &interpreter_, const std::string & id, std::string value);
 
 struct frame_impl : mw::debug::frame
 {

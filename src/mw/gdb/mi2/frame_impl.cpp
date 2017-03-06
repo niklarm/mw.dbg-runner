@@ -145,11 +145,11 @@ std::unordered_map<std::string, std::uint64_t> frame_impl::regs()
 }
 void frame_impl::set(const std::string &var, const std::string & val)
 {
-    _interpreter.data_evaluate_expression(var + " = " + val);
+    _interpreter.data_evaluate_expression('"' + var + " = " + val + '"');
 }
 void frame_impl::set(const std::string &var, std::size_t idx, const std::string & val)
 {
-    _interpreter.data_evaluate_expression(var + "[" + std::to_string(idx) + "] = " + val);
+    _interpreter.data_evaluate_expression('"' + var + "[" + std::to_string(idx) + "] = " + val + '"');
 }
 boost::optional<mw::debug::var> frame_impl::call(const std::string & cl)
 {
@@ -192,22 +192,20 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
                     return arg[c & 0xF];
                 };
 
-        for (auto & val : val.contents)
+        for (auto & v : val.contents)
         {
-            ref_val.value.push_back(nibble_to_str(val));
-            ref_val.value.push_back(nibble_to_str(val >> 8));
+            ref_val.value.push_back(nibble_to_str(v));
+            ref_val.value.push_back(nibble_to_str(v >> 8));
         }
 
         return ref_val;
     }
-
     auto val = _interpreter.data_evaluate_expression(pt);
 
     std::uint64_t ref_value;
     if (pegtl::parse_string<parser::reference, parser::action>(val, "gdb mi2 value parse", ref_value))
     {
         ref_val.ref = ref_value;
-
         val = _interpreter.data_evaluate_expression("&*" + std::string(val.c_str()+1)); //to remove the @
     }
 
@@ -218,15 +216,14 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
     return ref_val;
 }
 
-mw::debug::var parse_var(interpreter & interpreter_, std::string val)
+mw::debug::var parse_var(interpreter & interpreter_,  const std::string & id, std::string val)
 {
     mw::debug::var ref_val;
     std::uint64_t ref_value;
     if (pegtl::parse_string<parser::reference, parser::action>(val, "gdb mi2 value parse", ref_value))
     {
         ref_val.ref = ref_value;
-
-        val = interpreter_.data_evaluate_expression("&*" + std::string(val.c_str()+1)); //to remove the @
+        val = interpreter_.data_evaluate_expression("&*" + id); //to remove the @
     }
 
     if (pegtl::parse_string<parser::value_ref, parser::action>(val, "gdb mi2 value parse", ref_val))

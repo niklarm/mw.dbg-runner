@@ -81,8 +81,21 @@ constexpr bool needs_record()
 template<typename ...Args>
 void interpreter::_work_impl(Args&&...args)
 {
-    asio::async_write(_in, asio::buffer(_in_buf), _yield);
-    asio::async_read_until(_out, _out_buf, "(gdb)", _yield);
+    if (!_in_buf.empty())
+        asio::async_write(_in, asio::buffer(_in_buf), _yield);
+
+
+
+    try {
+        asio::async_read_until(_out, _out_buf, "(gdb)", _yield);
+    }
+    catch (boost::system::system_error & se)
+    {
+        //ignore this exception if this was the last valid command
+        if ((se.code() != boost::asio::error::broken_pipe) || (_out_buf.size() == 0))
+            throw;
+
+    }
 
     bool received_record = false;
     constexpr static bool needs_record_ = needs_record<Args...>();
@@ -90,7 +103,6 @@ void interpreter::_work_impl(Args&&...args)
     std::istream out_str(&_out_buf);
     std::string line;
     try {
-
         while (std::getline(out_str, line) && !boost::starts_with(line, "(gdb)"))
         {
             if (auto data = parse_stream_output(line))
@@ -144,6 +156,7 @@ void interpreter::_work(std::uint64_t token, const std::function<void(const resu
 async_result interpreter::wait_for_stop()
 {
     async_result pr;
+    _in_buf.clear();
 
     auto l = [&](const async_output& ao)
              {
@@ -221,6 +234,8 @@ bool interpreter::_handle_async_output(std::uint64_t token, const async_output &
 
 std::string interpreter::read_header()
 {
+    _in_buf.clear();
+
     std::string value;
     boost::signals2::scoped_connection conn = _stream_console.connect([&](const std::string & str){value += str; value += '\n';});
     _work();

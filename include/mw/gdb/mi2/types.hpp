@@ -42,7 +42,7 @@ struct missing_value : interpreter_error
 {
     std::string value_name;
 
-    missing_value(const std::string & value_name) : interpreter_error("missign value '" + value_name + "' in result"), value_name(value_name) {}
+    missing_value(const std::string & value_name) : interpreter_error("missing value '" + value_name + "' in result"), value_name(value_name) {}
 
     using interpreter_error::operator=;
 };

@@ -25,6 +25,8 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/process/search_path.hpp>
 
+#include <boost/scope_exit.hpp>
+
 #include <string>
 #include <vector>
 #include <iostream>
@@ -155,16 +157,16 @@ struct options_t
         vm.clear();
 
         desc.add_options()
-            ("help,H",      bool_switch(&help), "produce help message")
-            ("exe,E",       value<string>(&exe),             "executable to run")
-            ("args,A",      value<vector<string>>(&args),   "Arguments passed to the target")
-            ("gdb,G",       value<string>(&gdb)->default_value("gdb"), "gdb command"  )
-            ("gdb-args,S",  value<vector<string>>(&gdb_args)->multitoken(), "gdb arguments")
+            ("help,H",      bool_switch(&help),                               "produce help message")
+            ("exe,E",       value<string>(&exe),                              "executable to run")
+            ("args,A",      value<vector<string>>(&args),                     "Arguments passed to the target")
+            ("gdb,G",       value<string>(&gdb)->default_value("gdb"),        "gdb command"  )
+            ("gdb-args,S",  value<vector<string>>(&gdb_args)->multitoken(),   "gdb arguments")
             ("other,O",     value<vector<string>>(&other_cmds)->multitoken(), "other arguments")
-            ("timeout,T",   value<int>(&time_out),       "time_out")
-            ("log,L",       value<string>(&log),         "log file")
-            ("debug,D",     bool_switch(&debug),         "output the log data to stderr")
-            ("remote,R",    value<string>(&remote), "Remote settings")
+            ("timeout,T",   value<int>(&time_out),                            "time_out")
+            ("log,L",       value<string>(&log),                              "log file")
+            ("debug,D",     bool_switch(&debug),                              "output the log data to stderr")
+            ("remote,R",    value<string>(&remote),                           "Remote settings")
             ;
 
         pos.add("gdb", 1).add("exe", 1);

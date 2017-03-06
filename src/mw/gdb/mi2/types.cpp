@@ -127,7 +127,11 @@ template<> watchpoint parse_result(const std::vector<result> &r)
 template<> frame parse_result(const std::vector<result> &r)
 {
     frame f;
-    f.level = std::stoi(find(r, "level").as_string());
+
+    if (auto val = find_if(r, "level"))
+        f.level = std::stoi(val->as_string());
+    else
+        f.level = 0; //< happends in case of breakpoint hit.
     if (auto val = find_if(r, "func")) f.func = val->as_string();
     if (auto val = find_if(r, "addr")) f.addr = std::stoull(find(r, "addr").as_string());
     if (auto val = find_if(r, "file")) f.file = val->as_string();
@@ -135,13 +139,14 @@ template<> frame parse_result(const std::vector<result> &r)
     if (auto val = find_if(r, "from")) f.from = std::stoull(val->as_string(), 0 , 16);
     if (auto val = find_if(r, "args"))
     {
-        auto vec = val->as_list().as_results();
+        auto vec = val->as_list().as_values();
         std::vector<arg> args;
         args.resize(vec.size());
         std::transform(vec.begin(), vec.end(), args.begin(),
-                    [](const result & rc) -> arg
+                    [](const value & rc) -> arg
                     {
-                        return {rc.variable, rc.value_.as_string()};
+                        return {find(rc.as_tuple(), "name"). as_string(),
+                                find(rc.as_tuple(), "value").as_string()};
                     });
         f.args = std::move(args);
     }

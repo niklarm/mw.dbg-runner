@@ -157,11 +157,16 @@ MW_TEST_CASE( create_bp )
         BOOST_CHECK_NO_THROW(ar = mi.wait_for_stop());
 
         BOOST_CHECK_EQUAL(ar.reason, "exited");
+
+        BOOST_CHECK_NO_THROW(mi.gdb_exit());
+
+        BOOST_CHECK_THROW(mi.gdb_exit(), boost::system::system_error);
     }
     catch (std::exception & e)
     {
         std::cerr << "Exception '" << e.what() << std::endl;
         std::cerr << "Ex-Type: '" << boost::core::demangle(typeid(e).name()) << "'" << std::endl;
+        BOOST_CHECK(false);
     }
 }
 

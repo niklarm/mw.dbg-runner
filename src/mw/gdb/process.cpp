@@ -35,15 +35,22 @@ namespace asio = boost::asio;
 namespace mw {
 namespace gdb {
 
+inline std::vector<std::string> set_interpreter_args(const std::vector<std::string> & args)
+{
+    std::vector<std::string> args_ = args;
+    args_.push_back("--interpreter");
+    args_.push_back("mi2");
+    return args_;
+}
+
 process::process(const boost::filesystem::path & gdb, const std::string & exe, const std::vector<std::string> & args)
-    : mw::debug::process(gdb, exe, args)
+    : mw::debug::process(gdb, exe, set_interpreter_args(args))
 {
 }
 
 void process::_run_impl(boost::asio::yield_context &yield_)
 {
     mi2::interpreter interpreter{_out, _in, yield_, _log};
-
 
     using namespace boost::asio;
     _read_info(interpreter);
@@ -134,7 +141,10 @@ void process::_start(mi2::interpreter & interpreter)
         interpreter.exec_arguments(_args);
 
     if (_remote.empty())
-        interpreter.file_exec_and_symbols(_program);
+    {
+        if (!_program.empty()) //empty means it was not changed since starting
+            interpreter.file_exec_and_symbols(_program);
+    }
     else
         interpreter.target_select_remote(_remote);
 
@@ -143,7 +153,6 @@ void process::_start(mi2::interpreter & interpreter)
 
 void process::_handle_bps  (mi2::interpreter & interpreter)
 {
-
     auto val = interpreter.wait_for_stop();
     while(val.reason != "exited")
     {
@@ -169,7 +178,8 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
             args.reserve(a.size());
             for (auto & aa : a)
             {
-                auto arg = mi2::parse_var(interpreter, aa.value);
+                auto arg = mi2::parse_var(interpreter, aa.name, aa.value);
+
                 mw::debug::arg as;
                 as.ref     = arg.ref;
                 as.value   = arg.value;
@@ -180,7 +190,6 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
             }
 
         }
-
         mi2::frame_impl fi{std::move(id), std::move(args), *this, interpreter, _log};
 
         std::string file;
@@ -193,10 +202,19 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
 
         _break_point_map[num]->invoke(fi, file, line);
 
-        val = interpreter.wait_for_stop();
+        interpreter.exec_continue();
 
+        val = interpreter.wait_for_stop();
     }
 
+    if (val.reason == "exited-normally")
+        this->set_exit(0);
+
+    if (val.reason == "exited")
+    {
+        int exit_code = std::stoi(find(val.content, "exit-code").as_string(), nullptr, 8);
+        this->set_exit(exit_code);
+    }
 
 }
 
