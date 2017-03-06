@@ -32,5 +32,3 @@ test-suite gdb-parser :
 	
 exe test_runner : test_runner.cpp : <library>filesystem <dependency>interpreter_mi2 ;
 run test_runner : : /dbg-runner//mw-dbg-runner plugin target : : ~test_runner_test_exec ;
-
-install . : target ;
