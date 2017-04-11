@@ -1,5 +1,5 @@
 /**
- * @file   mw/gdb/plugin.hpp
+ * @file   mw/debug/plugin.hpp
  * @date   10.11.2016
  * @author Klemens D. Morgenstern
  *
@@ -7,9 +7,9 @@
   <pre>
     /  /|  (  )   |  |  /
    /| / |   \/    | /| /
-  / |/  |  / \    |/ |/
- /  /   | (   \   /  |
-               )
+  / |/  |   /\    |/ |/
+ /  /   |  (  \   /  |
+                )
  </pre>
 
 This header provides the function declarations needed to create plugins. It should be included
@@ -25,9 +25,9 @@ to asser the correctness of the function signatures and linkage.
 #include <mw/debug/break_point.hpp>
 
 ///This function is the central function needed to provide a break-point plugin.
-BOOST_SYMBOL_EXPORT std::vector<std::unique_ptr<mw::debug::break_point>> mw_gdb_setup_bps();
+BOOST_SYMBOL_EXPORT std::vector<std::unique_ptr<mw::debug::break_point>> mw_dbg_setup_bps();
 ///This function can be used to add program options for the plugin.
-BOOST_SYMBOL_EXPORT boost::program_options::options_description mw_gdb_setup_options();
+BOOST_SYMBOL_EXPORT boost::program_options::options_description mw_dbg_setup_options();
 
 
 #endif /* MW_GDB_PLUGIN_HPP_ */

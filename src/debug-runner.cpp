@@ -8,9 +8,9 @@
  <pre>
     /  /|  (  )   |  |  /
    /| / |   \/    | /| /
-  / |/  |  / \    |/ |/
- /  /   | (   \   /  |
-               )
+  / |/  |   /\    |/ |/
+ /  /   |  (  \   /  |
+                )
  </pre>
  */
 
@@ -146,9 +146,9 @@ struct options_t
                 continue;
 
             auto & p = plugins.back();
-            if (p.has("mw_gdb_setup_options"))
+            if (p.has("mw_dgb_setup_options"))
             {
-                auto f = boost::dll::experimental::import_mangled<po::options_description()>(p, "mw_gdb_setup_options");
+                auto f = boost::dll::experimental::import_mangled<po::options_description()>(p, "mw_dbg_setup_options");
                 desc.add(f());
             }
         }
@@ -248,7 +248,7 @@ int main(int argc, char * argv[])
 
     for (auto & lib : opt.plugins)
     {
-        auto f = boost::dll::experimental::import_mangled<std::vector<std::unique_ptr<mw::debug::break_point>>()>(lib, "mw_gdb_setup_bps");
+        auto f = boost::dll::experimental::import_mangled<std::vector<std::unique_ptr<mw::debug::break_point>>()>(lib, "mw_dbg_setup_bps");
         proc.add_break_points(f());
     }
 

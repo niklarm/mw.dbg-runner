@@ -7,9 +7,9 @@
   <pre>
     /  /|  (  )   |  |  /
    /| / |   \/    | /| /
-  / |/  |  / \    |/ |/
- /  /   | (   \   /  |
-               )
+  / |/  |   /\    |/ |/
+ /  /   |  (  \   /  |
+                )
  </pre>
  */
 #ifndef MW_GDB_MI2_INTERPRETER_HPP_
@@ -332,7 +332,7 @@ public:
                      std::size_t nr_cols,
                      const boost::optional<int> & byte_offset = boost::none,
                      const boost::optional<char> & aschar = boost::none
-                     );
+                      );
 
     read_memory_bytes data_read_memory_bytes(const std::string &address, std::size_t count, const boost::optional<int> & offset = boost::none);
 

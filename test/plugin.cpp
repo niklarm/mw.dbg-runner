@@ -49,7 +49,7 @@ struct f_ret : break_point
     }
 };
 
-std::vector<std::unique_ptr<mw::debug::break_point>> mw_gdb_setup_bps()
+std::vector<std::unique_ptr<mw::debug::break_point>> mw_dbg_setup_bps()
 {
     std::vector<std::unique_ptr<mw::debug::break_point>> vec;
 
