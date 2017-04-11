@@ -146,10 +146,13 @@ struct options_t
                 continue;
 
             auto & p = plugins.back();
-            if (p.has("mw_dgb_setup_options"))
+            try//if (p.has("mw_dgb_setup_options"))
             {
                 auto f = boost::dll::experimental::import_mangled<po::options_description()>(p, "mw_dbg_setup_options");
                 desc.add(f());
+            }
+            catch (...)
+            {
             }
         }
 
