@@ -72,6 +72,7 @@ protected:
     virtual void _run_impl(boost::asio::yield_context &yield) = 0;
 
 public:
+    bool running() {return _child.running();}
     void set_exit(int code)
     {
         _exited=true;

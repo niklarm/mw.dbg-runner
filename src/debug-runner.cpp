@@ -229,7 +229,7 @@ int main(int argc, char * argv[])
     fs::path dbg = opt.dbg;
     if ((opt.vm.count("dbg") == 0))
         dbg = bp::search_path("gdb");
-    else if (!fs::exists(dbg))
+    else if (!fs::exists(dbg) && !fs::exists(dbg = bp::search_path(opt.dbg)))
         std::cerr << "Gdb binary " << dbg << " not found" << std::endl;
 
     mw::gdb::process proc(dbg, opt.exe, opt.dbg_args);
@@ -254,6 +254,18 @@ int main(int argc, char * argv[])
         auto f = boost::dll::experimental::import_mangled<std::vector<std::unique_ptr<mw::debug::break_point>>()>(lib, "mw_dbg_setup_bps");
         proc.add_break_points(f());
     }
+    if (!proc.running())
+    {
+        std::cerr << "Error launching the debugger process" << std::endl;
+        std::cerr << "Debugger: " << dbg
+                  << "\nExe: " << opt.exe
+                  << "\nArs:";
+        for (auto & a : opt.dbg_args)
+            std::cerr << " " << a ;
+        std::cerr << std::endl;
+
+        return 1;
+    }
 
     proc.run();
 
@@ -268,7 +280,7 @@ int main(int argc, char * argv[])
     }
     catch (std::exception & e)
     {
-        cerr << "Exception thrown " << e.what() << endl;
+        cerr << "Exception thrown '" << e.what() << "'" << endl;
         return 1;
     }
     catch (...)

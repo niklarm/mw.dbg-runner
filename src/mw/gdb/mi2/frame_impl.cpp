@@ -265,9 +265,6 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
     if (pegtl::parse_string<parser::reference, parser::action>(val, "gdb mi2 value parse", ref_value))
     {
         ref_val.ref = ref_value;
-        std::cerr << "ValCStr: '" << val << "'" << std::endl;
-        if (bitwise)
-            std::cerr << "I am bitwise" << std::endl;
         val = _interpreter.data_evaluate_expression("*" + std::string(val.c_str()+1)); //to remove the @
 
     }

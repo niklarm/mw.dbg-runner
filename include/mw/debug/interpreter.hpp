@@ -17,8 +17,6 @@
 
 #include <stdexcept>
 
-#include <boost/regex.hpp>
-
 namespace mw
 {
 
