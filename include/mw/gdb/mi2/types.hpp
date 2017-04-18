@@ -313,7 +313,7 @@ struct thread_info
         stopped, running
     } state;
     boost::optional<int> core;
-    boost::optional<frame> frame;
+    boost::optional<struct frame> frame;
 };
 
 struct thread_state
