@@ -502,8 +502,8 @@ template<> read_memory_bytes parse_result(const std::vector<result> & r)
     auto itr = ctn.begin();
     for (auto & c : rm.contents)
     {
-        c  = to_int(*itr++);
-        c |= to_int(*itr++) << static_cast<std::uint8_t>(8);
+        c  = to_int(*itr++) << static_cast<std::uint8_t>(4);
+        c |= to_int(*itr++);
     }
 
     return rm;

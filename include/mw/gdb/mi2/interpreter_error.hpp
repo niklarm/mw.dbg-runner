@@ -9,7 +9,7 @@
    /| / |   \/    | /| /
   / |/  |   /\    |/ |/
  /  /   |  (  \   /  |
-                )
+               )
  </pre>
  */
 #ifndef MW_GDB_MI2_INTERPRETER_ERROR_HPP_
@@ -24,7 +24,7 @@ namespace gdb
 {
 namespace mi2
 {
-
+///Exception for an error occuring in the gdb interpreter.
 struct interpreter_error : mw::debug::interpreter_error
 {
     using mw::debug::interpreter_error::interpreter_error;

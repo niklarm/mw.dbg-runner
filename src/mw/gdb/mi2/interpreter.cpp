@@ -1884,7 +1884,7 @@ read_memory interpreter::data_read_memory(const std::string & address,
     return parse_result<read_memory>(rc.results);
 }
 
-read_memory_bytes interpreter::data_read_memory_bytes(const std::string & address, std::size_t count, const boost::optional<int> & offset)
+std::vector<read_memory_bytes> interpreter::data_read_memory_bytes(const std::string & address, std::size_t count, const boost::optional<int> & offset)
 {
     _in_buf = std::to_string(_token_gen) + "-data-read-memory-bytes";
 
@@ -1895,6 +1895,7 @@ read_memory_bytes interpreter::data_read_memory_bytes(const std::string & addres
     _in_buf += " " + std::to_string(count);
     _in_buf += '\n';
 
+
     mw::gdb::mi2::result_output rc;
     _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
            {
@@ -1904,7 +1905,17 @@ read_memory_bytes interpreter::data_read_memory_bytes(const std::string & addres
     if (rc.class_ != result_class::done)
        _throw_unexpected_result(result_class::done, rc);
 
-    return parse_result<read_memory_bytes>(find(rc.results, "memory").as_tuple());
+    std::vector<read_memory_bytes> vec;
+
+    auto memory = find(rc.results, "memory").as_list().as_values();
+    vec.reserve(memory.size());
+
+    for (auto & mem : memory)
+        vec.push_back(parse_result<read_memory_bytes>(mem.as_tuple()));
+
+    return vec;
+
+
 }
 
 void interpreter::data_write_memory_bytes(const std::string & address, const std::vector<std::uint8_t> & contents, const boost::optional<std::size_t> & count)

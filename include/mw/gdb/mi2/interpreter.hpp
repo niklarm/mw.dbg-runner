@@ -1,5 +1,5 @@
 /**
- * @file   /mw/gdb/mi2/session.hpp
+ * @file   /mw/gdb/mi2/interpreter.hpp
  * @date   09.12.2016
  * @author Klemens D. Morgenstern
  *
@@ -36,7 +36,7 @@ namespace gdb
 {
 namespace mi2
 {
-
+///Thrown if the wrong result class is yielded by the operation.
 struct unexpected_result_class : interpreter_error
 {
     result_class expected;
@@ -57,6 +57,7 @@ struct unexpected_result_class : interpreter_error
     }
 };
 
+///Is thrown if the record the interpreter yields is another than expected
 struct unexpected_record : interpreter_error
 {
     unexpected_record(const std::string & line) : interpreter_error("unexpected record " + line)
@@ -65,6 +66,7 @@ struct unexpected_record : interpreter_error
     }
 };
 
+///Thrown if a async record with token that was not expected is yielded.
 struct unexpected_async_record : unexpected_record
 {
     unexpected_async_record(std::uint64_t token, const std::string & line) : unexpected_record("unexpected async record [" + std::to_string(token) + "]" + line)
@@ -73,6 +75,7 @@ struct unexpected_async_record : unexpected_record
     }
 };
 
+///Thrown if a synchronous operation has another token then expected.
 struct mismatched_token : unexpected_record
 {
     mismatched_token(std::uint64_t expected, std::uint64_t got)
@@ -334,7 +337,7 @@ public:
                      const boost::optional<char> & aschar = boost::none
                       );
 
-    read_memory_bytes data_read_memory_bytes(const std::string &address, std::size_t count, const boost::optional<int> & offset = boost::none);
+    std::vector<read_memory_bytes> data_read_memory_bytes(const std::string &address, std::size_t count, const boost::optional<int> & offset = boost::none);
 
     void data_write_memory_bytes(const std::string & address,
                                  const std::vector<std::uint8_t> & contents,

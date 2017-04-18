@@ -25,6 +25,8 @@ namespace gdb
 namespace mi2
 {
 
+
+
 result::result(const result & rhs) : variable(rhs.variable) {value_ = rhs.value_;}
 
 result & result::operator=(const result & rhs)
