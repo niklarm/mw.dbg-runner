@@ -7,9 +7,9 @@
   <pre>
     /  /|  (  )   |  |  /
    /| / |   \/    | /| /
-  / |/  |  / \    |/ |/
- /  /   | (   \   /  |
-               )
+  / |/  |   /\    |/ |/
+ /  /   |  (  \   /  |
+                )
  </pre>
  */
 #ifndef MW_GDB_LOCATION_HPP_
@@ -19,7 +19,7 @@
 
 namespace mw
 {
-namespace gdb
+namespace debug
 {
 ///Simple structure representing a location in code
 struct location

@@ -8,9 +8,9 @@
  <pre>
     /  /|  (  )   |  |  /
    /| / |   \/    | /| /
-  / |/  |  / \    |/ |/
- /  /   | (   \   /  |
-               )
+  / |/  |   /\    |/ |/
+ /  /   |  (  \   /  |
+                )
  </pre>
  */
 
@@ -24,6 +24,8 @@
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/process/search_path.hpp>
+
+#include <boost/scope_exit.hpp>
 
 #include <string>
 #include <vector>
@@ -45,12 +47,12 @@ struct options_t
 
     bool help;
     bool debug;
-    string gdb;
+    string dbg;
     string exe;
     string log;
     string log_level;
     vector<string> args;
-    vector<string> gdb_args;
+    vector<string> dbg_args;
     vector<string> other_cmds;
     vector<fs::path> dlls;
 
@@ -144,10 +146,13 @@ struct options_t
                 continue;
 
             auto & p = plugins.back();
-            if (p.has("mw_gdb_setup_options"))
+            try//if (p.has("mw_dgb_setup_options"))
             {
-                auto f = boost::dll::experimental::import_mangled<po::options_description()>(p, "mw_gdb_setup_options");
+                auto f = boost::dll::experimental::import_mangled<po::options_description()>(p, "mw_dbg_setup_options");
                 desc.add(f());
+            }
+            catch (...)
+            {
             }
         }
 
@@ -155,19 +160,19 @@ struct options_t
         vm.clear();
 
         desc.add_options()
-            ("help,H",      bool_switch(&help), "produce help message")
-            ("exe,E",       value<string>(&exe),             "executable to run")
-            ("args,A",      value<vector<string>>(&args),   "Arguments passed to the target")
-            ("gdb,G",       value<string>(&gdb)->default_value("gdb"), "gdb command"  )
-            ("gdb-args,S",  value<vector<string>>(&gdb_args)->multitoken(), "gdb arguments")
+            ("help,H",      bool_switch(&help),                               "produce help message")
+            ("exe,E",       value<string>(&exe),                              "executable to run")
+            ("args,A",      value<vector<string>>(&args),                     "Arguments passed to the target")
+            ("dbg,G",       value<string>(&dbg)->default_value("gdb"),        "dbg command"  )
+            ("dbg-args,S",  value<vector<string>>(&dbg_args)->multitoken(),   "dbg arguments")
             ("other,O",     value<vector<string>>(&other_cmds)->multitoken(), "other arguments")
-            ("timeout,T",   value<int>(&time_out),       "time_out")
-            ("log,L",       value<string>(&log),         "log file")
-            ("debug,D",     bool_switch(&debug),         "output the log data to stderr")
-            ("remote,R",    value<string>(&remote), "Remote settings")
+            ("timeout,T",   value<int>(&time_out),                            "time_out")
+            ("log,L",       value<string>(&log),                              "log file")
+            ("debug,D",     bool_switch(&debug),                              "output the log data to stderr")
+            ("remote,R",    value<string>(&remote),                           "Remote settings")
             ;
 
-        pos.add("gdb", 1).add("exe", 1);
+        pos.add("dbg", 1).add("exe", 1);
 
         po::store(po::command_line_parser(argc, argv).
                   options(desc).positional(pos).extra_parser(at_option_parser).run(), vm);
@@ -221,13 +226,13 @@ int main(int argc, char * argv[])
         }
     }
 
-    fs::path gdb = opt.gdb;
-    if ((opt.vm.count("count") == 0))
-        gdb = bp::search_path("gdb");
-    else if (!fs::exists(gdb))
-        std::cerr << "Gdb binary " << gdb << " not found" << std::endl;
+    fs::path dbg = opt.dbg;
+    if ((opt.vm.count("dbg") == 0))
+        dbg = bp::search_path("gdb");
+    else if (!fs::exists(dbg))
+        std::cerr << "Gdb binary " << dbg << " not found" << std::endl;
 
-    mw::gdb::process proc(gdb, opt.exe, opt.gdb_args);
+    mw::gdb::process proc(dbg, opt.exe, opt.dbg_args);
 
     if (!opt.log.empty())
         proc.set_log(opt.log);
@@ -246,7 +251,7 @@ int main(int argc, char * argv[])
 
     for (auto & lib : opt.plugins)
     {
-        auto f = boost::dll::experimental::import_mangled<std::vector<std::unique_ptr<mw::gdb::break_point>>()>(lib, "mw_gdb_setup_bps");
+        auto f = boost::dll::experimental::import_mangled<std::vector<std::unique_ptr<mw::debug::break_point>>()>(lib, "mw_dbg_setup_bps");
         proc.add_break_points(f());
     }
 

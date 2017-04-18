@@ -7,9 +7,9 @@
   <pre>
     /  /|  (  )   |  |  /
    /| / |   \/    | /| /
-  / |/  |  / \    |/ |/
- /  /   | (   \   /  |
-               )
+  / |/  |   /\    |/ |/
+ /  /   |  (  \   /  |
+                )
  </pre>
  */
 
@@ -22,10 +22,11 @@
 #include <unordered_map>
 #include <ostream>
 #include <boost/optional.hpp>
-#include <mw/gdb/location.hpp>
+#include <mw/debug/location.hpp>
+#include <mw/debug/interpreter.hpp>
 
 namespace mw {
-namespace gdb {
+namespace debug {
 
 /**This function represents a null-terminated string in gdb.
  * Gdb can add a display for a c-string if a char* is passed to a function.
@@ -46,7 +47,6 @@ struct var
 {
     boost::optional<std::uint64_t> ref; ///The address of the target the value is a reference.
     std::string value;   ///<The actually value
-    std::string policy;  ///<The storage policy
     cstring_t   cstring; ///<The value as cstring if available.
 };
 
@@ -57,16 +57,6 @@ struct arg : var
 {
     ///The identifier of the parameter.
     std::string id;
-
-#if !defined(MW_GDB_DOXYGEN)
-    arg() = default;
-    arg(const arg &) = default;
-    arg(arg &&) = default;
-    arg& operator=(const arg &) = default;
-    arg& operator=(arg &&) = default;
-    arg(const std::string& id, const std::string& value, const std::string& policy, const cstring_t& cstring)
-        : var{{}, value, policy, cstring}, id(id) {}
-#endif
 };
 
 /** This class represents an entry in the backtrace.
@@ -77,7 +67,6 @@ struct backtrace_elem
     int cnt; ///<The position in the backtrace
     boost::optional<std::uint64_t> call_site; ///<Gives the position the functions
     std::string func; ///<The name of the functions
-    std::string args; ///<A string representation of the passed arguments.
     location loc; ///< Location of the function called.
 };
 
@@ -98,7 +87,7 @@ struct frame
      *  @overload const std::vector<arg> &arg_list() const
      */
     const arg &arg_list(std::size_t index) const {return _arg_list.at(index);}
-    /** This function returns the cstring of the argument requested, if it is a nullterminated-string.
+    /** This function returns the cstring of the argument requested, if it is a null-terminated string.
      * This will take care of the possible ellipsis of passed cstrings.
      *
      * @param index Position of the argument the cstring shall be obtained from.
@@ -171,6 +160,8 @@ struct frame
     virtual std::vector<backtrace_elem> backtrace() = 0;
     ///This function allows access to the log sink of the gdb-runner.
     virtual std::ostream & log() = 0;
+    ///Gives a reference to the interpreter
+    virtual interpreter & interpreter() = 0;
 protected:
 #if !defined(MW_GDB_DOXYGEN)
     frame(std::string && id, std::vector<arg> && args)

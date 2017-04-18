@@ -8,35 +8,23 @@
  <pre>
     /  /|  (  )   |  |  /
    /| / |   \/    | /| /
-  / |/  |  / \    |/ |/
- /  /   | (   \   /  |
-               )
+  / |/  |   /\    |/ |/
+ /  /   |  (  \   /  |
+                )
  </pre>
  */
 
+#define BOOST_COROUTINE_NO_DEPRECATION_WARNING
 #include <mw/gdb/process.hpp>
-#include <mw/gdb/parsers.hpp>
-#include <mw/gdb/detail/frame_impl.hpp>
+#include <mw/gdb/mi2/frame_impl.hpp>
 
 #include <boost/variant/get.hpp>
-#include <boost/process/io.hpp>
-#include <boost/process/async.hpp>
-#include <boost/process/search_path.hpp>
-#include <boost/asio/read_until.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/join.hpp>
-#include <boost/algorithm/string/erase.hpp>
-#include <boost/fusion/sequence/intrinsic/at_c.hpp>
 #include <iostream>
 #include <regex>
 #include <tuple>
 #include <sstream>
 #include <atomic>
 #include <algorithm>
-#include <boost/spirit/home/x3.hpp>
-#include <boost/fusion/include/adapt_struct.hpp>
 
 
 using namespace std;
@@ -44,335 +32,209 @@ namespace bp = boost::process;
 namespace asio = boost::asio;
 
 
-namespace x3 = boost::spirit::x3;
-namespace mwp = mw::gdb::parsers;
-
-
 namespace mw {
 namespace gdb {
 
-
-auto process::_read(const std::string & input, boost::asio::yield_context & yield_) -> iterator
+inline std::vector<std::string> set_interpreter_args(const std::vector<std::string> & args)
 {
-    this->_set_timer();
-    if (_enable_debug)
-        cout << input;
-
-    asio::async_write(_in, asio::buffer(input), yield_);
-    asio::async_read_until(_out, _out_buf, "(gdb)", yield_);
-
-    if (_enable_debug)
-    {
-        boost::asio::streambuf::const_buffers_type bufs = _out_buf.data();
-        cout << std::string (boost::asio::buffers_begin(bufs), boost::asio::buffers_begin(bufs) + _out_buf.size());
-    }
-
-    return iterator(&_out_buf);
+    std::vector<std::string> args_ = args;
+    args_.push_back("--interpreter");
+    args_.push_back("mi2");
+    return args_;
 }
-
-
 
 process::process(const boost::filesystem::path & gdb, const std::string & exe, const std::vector<std::string> & args)
-    : _child(gdb, exe, args, _io_service, bp::std_in < _in, bp::std_out > _out, bp::std_err > _err,
-            bp::on_exit([this](int, const std::error_code&){_timer.cancel();_out.async_close(); _err.async_close();}))
+    : mw::debug::process(gdb, exe, set_interpreter_args(args))
 {
-}
-
-vector<string> process::_get_err_data(boost::asio::yield_context & yield_)
-{
-    size_t sz = 0;
-
-    while (sz != _err_vec.size())
-    {
-        sz = _err_vec.size();
-        _io_service.post(yield_);
-    }
-
-    return std::move(_err_vec);
-}
-
-
-void process::_read_info()
-{
-
-    if (_enable_debug)
-    {
-        boost::asio::streambuf::const_buffers_type bufs = _out_buf.data();
-        cout << std::string (boost::asio::buffers_begin(bufs), boost::asio::buffers_begin(bufs) + _out_buf.size());
-    }
-
-    namespace p = mw::gdb::parsers;
-    info i;
-    auto itr = iterator(&_out_buf);
-    if(x3::phrase_parse(itr, iterator(), p::info, x3::space, i))
-        _set_info(i.version, i.toolset, i.config);
-    else
-    {
-        _log << "Header Parse failed." << endl;
-        _terminate();
-    }
-
-
-
-}
-
-void process::_init_bps(boost::asio::yield_context & yield_)
-{
-    namespace p = mw::gdb::parsers;
-
-    for (auto & bp : _break_points)
-    {
-        _log << "\nSetting Breakpoint " << bp->identifier() << endl;
-        auto itr = _read("break " + bp->identifier() + "\n", yield_);
-        mw::gdb::bp_decl val;
-        if (x3::phrase_parse(itr, _end(), p::bp_decl >> "(gdb)", x3::space, val))
-        {
-            _break_point_map[val.cnt] = bp.get();
-            if (val.locs.which() == 0)
-            {
-
-                auto & loc = boost::get<mw::gdb::location>(val.locs);
-                bp->set_at(val.ptr, loc.file, loc.line);
-                _log << "Set here: " << loc.file << ":" << loc.line << endl << endl;
-            }
-            else
-            {
-                auto & loc = boost::get<mw::gdb::bp_mult_loc>(val.locs);
-                bp->set_multiple(val.ptr, loc.name, loc.num);
-                _log << "Set multiple breakpoints: " << loc.name << ":" << loc.num << endl << endl;
-            }
-        }
-        else if (x3::phrase_parse(itr, _end(), *(!x3::lit("(gdb)") >> x3::char_) >> "(gdb)", x3::space))
-        {
-            _log << bp->identifier() << endl;
-            auto err = this->_get_err_data(yield_);
-            for (auto & e : err)
-                _log << e << endl;
-            _log << endl;
-        }
-        else
-        {
-            _log << "Parse error during breakpoint declaration of " << bp->identifier() << endl;
-            _terminate();
-        }
-    }
-}
-
-void process::_start(boost::asio::yield_context & yield_)
-{
-    if (_remote.empty())
-        _start_local(yield_);
-    else
-        _start_remote(yield_);
-
-}
-
-void process::_start_local(boost::asio::yield_context & yield_)
-{
-    namespace p = mw::gdb::parsers;
-
-
-    string cmd = "run";
-
-    for (auto & a : _args)
-        cmd += " " + a;
-
-    auto itr = _read(cmd +"\n", yield_);
-
-    std::string prog_name;
-    if (x3::phrase_parse(itr, _end(), p::start_prog, x3::space, prog_name))
-    {
-        _log << " Starting program " << prog_name << endl;
-        _program = prog_name;
-    }
-    else
-    {
-        _log << "Parser Error while trying to start program" << endl;
-        _terminate();
-    }
-
-}
-
-void process::_start_remote(boost::asio::yield_context & yield_)
-{
-    namespace p = mw::gdb::parsers;
-
-    //connect
-    string cmd = "target remote " + _remote;
-    auto itr = _read(cmd +"\n", yield_);
-
-    std::string target;
-    if (x3::phrase_parse(itr, _end(),
-            "Remote" >> x3::lit("debugging") >> "using"
-            >> x3::lexeme[+x3::char_("_:A-Za-z0-9")]
-            >> x3::omit[*(!x3::lit("(gdb)") >> x3::char_)] //this may already be the first break-point here
-            >> "(gdb)"
-            , x3::space, target))
-    {
-        _log << " Connected to remote target " << target << endl;
-        _program = "**remote**";
-    }
-    else
-    {
-        _log << "Parser Error while trying to establish remote connection" << endl;
-        _terminate();
-    }
-    //halt the thingy
-
-    itr = _read("monitor reset halt\n", yield_);
-    if (x3::phrase_parse(itr, _end(), *(!x3::lit("(gdb)") >> x3::char_) >> "(gdb)", x3::space))
-        _log << "Reseted the target" << endl;
-
-    itr = _read("load\n", yield_);
-    std::string load_log(itr, _end());
-
-    load_log.resize(load_log.size() - 6);
-    _log << "\n" << load_log << "\n" << endl;
-
-    itr = _read("continue\n", yield_);
-
-    if (x3::phrase_parse(itr, _end(), x3::lit("Continuing."), x3::space))
-        _log << "Starting" << endl;
-
-    {
-
-        for (auto it2 = itr; x3::phrase_parse(itr, _end(),
-                x3::lexeme["Note: " >> +(!(x3::lit('\n') | '\r') >> x3::char_)], x3::space); )
-            _log << string(it2, itr) << endl;
-    }
-}
-
-void process::_handle_bps(boost::asio::yield_context &yield_)
-{
-    namespace p = mw::gdb::parsers;
-    auto start_thread_l = [this](auto & ctx)
-            {
-                mw::gdb::thread_info & ti = x3::_attr(ctx);
-                _pid = ti.thr;
-                _thread_id.push_back(ti.proc);
-                _log << "[New Thread " << _pid << ".0x" << hex << ti.proc << dec <<  "]" << endl;
-            };
-    auto thread = p::start_thread[start_thread_l] | p::switch_thread | p::exit_thread;
-
-    bp_stop b;
-
-    auto itr = _begin();
-
-    //prefixed thread stuff, parse it beforehand.
-    while (x3::phrase_parse(itr, _end(), thread, x3::space));
-
-    //parse the break-point entry
-    while (x3::phrase_parse(itr, _end(), p::bp_stop, x3::space, b))
-    {
-        break_point *bp = _break_point_map.at(b.index);
-
-        vector<mw::gdb::arg> a;
-
-
-        std::atomic<bool> invoked{false};
-        asio::spawn(_io_service,
-                [&](boost::asio::yield_context yield_)
-                {
-                    auto & d = b.loc;
-                    std::string file = d.file;
-                    int line         = d.line;
-                    detail::frame_impl fr(std::move(b.name), std::move(b.args), *this, itr, yield_, _log);
-                    try {
-                        bp->invoke(fr, file, line);
-                    }
-                    catch (std::runtime_error & er)
-                    {
-                        _log << "Parser Error: '" << er.what() << "'" << endl;
-                        _terminate();
-
-                    }
-                    invoked.store(true);
-                });
-
-        while (!invoked.load())
-            _io_service.post(yield_);//now let the thing run.
-
-        if (_exited)
-            break;
-
-        itr = _read("continue\n", yield_);
-
-        if (!x3::phrase_parse(itr, _end(), x3::lit("Continuing."), x3::space))
-        {
-            _log << "Continue parser error";
-            _terminate();
-        }
-
-        //parse if there's more threading stuff
-        while (x3::phrase_parse(itr, _end(), thread, x3::space));
-
-    }
 }
 
 void process::_run_impl(boost::asio::yield_context &yield_)
 {
-    namespace p = mw::gdb::parsers;
+    mi2::interpreter interpreter{_out, _in, yield_, _log};
+
     using namespace boost::asio;
-    using boost::fusion::at_c;
+    _read_info(interpreter);
 
-    asio::async_read_until(_out, _out_buf, "(gdb)", yield_);
-    _read_info();
-
-    _init_bps(yield_);
-   _start(yield_);
+    _init_bps(interpreter);
+   _start(interpreter);
 
 
-   _handle_bps(yield_);
+   _handle_bps(interpreter);
 
-   auto itr = _begin();
-
-   mw::gdb::exit_proc exit;
-
-   if (!_exited && x3::phrase_parse(itr, _end(), mwp::exit_proc, x3::space, exit))
-       set_exit(exit.code);
    _set_timer();
 
-   async_write(_in, buffer("quit\n", 5), yield_);
+   interpreter.gdb_exit();
    if (_enable_debug)
        cout << "quit\n\n";
 
 }
+
+void process::_read_info(mi2::interpreter & interpreter)
+{
+    auto val = interpreter.read_header();
+
+    std::regex reg_version{R"_(GNU gdb (\([^)]+\))? ((?:\d+.)+\d+))_"};
+    std::regex reg_config {R"_(This GDB was configured as "([\w"\-\= ]+)")_"};
+
+    std::string version, toolset, config;
+
+    std::smatch sm;
+    {
+        std::sregex_token_iterator itr{val.begin(), val.end(), reg_version};
+        std::sregex_token_iterator end{};
+
+        if (itr != end)
+            version = *itr;
+        if (++itr != end)
+            toolset = *itr;
+    }
+    if (std::regex_search(val, sm, reg_config))
+        config = sm.str();
+
+    _set_info(version, toolset, config);
+}
+
+void process::_init_bps(mi2::interpreter & interpreter)
+{
+    for (auto & bp : _break_points)
+    {
+        _log << "\nSetting Breakpoint " << bp->identifier() << endl;
+
+        try
+        {
+            auto bpv = interpreter.break_insert(bp->identifier());
+
+            auto & b = bpv[0];
+            _break_point_map[b.number] = bp.get();
+
+            BOOST_ASSERT(bpv.size() > 0);
+            if (bpv.size() == 1)
+            {
+                std::string file = b.filename ? *b.filename : std::string();
+                auto line = b.line ? *b.line : -1;
+                bp->set_at(b.addr, file, line);
+                _log << "Set here: " << file << ":" << line << endl << endl;
+
+            }
+            else
+            {
+                std::string func = b.original_location ? *b.original_location : std::string();
+                bp->set_multiple(b.addr, func, bpv.size() -1);
+                _log << "Set multiple breakpoints: " << func << ":" << (bpv.size() -1) << endl << endl;
+
+            }
+        }
+        catch (mi2::unexpected_result_class & ie) //just ignore it on error
+        {
+            if (ie.got != mi2::result_class::error)
+            {
+                _log << "Parse error during breakpoint declaration of " << bp->identifier() << endl;
+                throw;
+            }
+        }
+    }
+}
+
+void process::_start(mi2::interpreter & interpreter)
+{
+    if (!_args.empty())
+        interpreter.exec_arguments(_args);
+
+    if (_remote.empty())
+    {
+        if (!_program.empty()) //empty means it was not changed since starting
+            interpreter.file_exec_and_symbols(_program);
+    }
+    else
+        interpreter.target_select_remote(_remote);
+
+    interpreter.exec_run();
+}
+
+void process::_handle_bps  (mi2::interpreter & interpreter)
+{
+    auto val = interpreter.wait_for_stop();
+    while(val.reason != "exited")
+    {
+        if (val.reason != "breakpoint-hit") //temporary
+        {
+            _log << "unknown stop reason" << std::endl;
+            break;
+        }
+
+        int num = std::stoi(mi2::find(val.content, "bkptno").as_string());
+       // int thread_id = std::stoi(mi2::find(val.second, "thread-id").as_string());
+        auto frame = mi2::parse_result<mi2::frame>(mi2::find(val.content, "frame").as_tuple());
+
+        std::string id;
+        if (frame.func)
+            id = *frame.func;
+
+        std::vector<mw::debug::arg> args;
+
+        if (frame.args)
+        {
+            auto & a = *frame.args;
+            args.reserve(a.size());
+            for (auto & aa : a)
+            {
+                auto arg = mi2::parse_var(interpreter, aa.name, aa.value);
+
+                mw::debug::arg as;
+                as.ref     = arg.ref;
+                as.value   = arg.value;
+                as.cstring = arg.cstring;
+                as.id      = aa.name;
+
+                args.push_back(as);
+            }
+
+        }
+        mi2::frame_impl fi{std::move(id), std::move(args), *this, interpreter, _log};
+
+        std::string file;
+        int line = -1;
+
+        if (frame.file)
+            file = *frame.file;
+        if (frame.line)
+            line = *frame.line;
+
+        _break_point_map[num]->invoke(fi, file, line);
+
+        interpreter.exec_continue();
+
+        val = interpreter.wait_for_stop();
+    }
+
+    if (val.reason == "exited-normally")
+        this->set_exit(0);
+
+    if (val.reason == "exited")
+    {
+        int exit_code = std::stoi(find(val.content, "exit-code").as_string(), nullptr, 8);
+        this->set_exit(exit_code);
+    }
+
+}
+
 
 void process::_set_timer()
 {
     if (_time_out > 0)
     {
         _timer.expires_from_now(boost::posix_time::seconds(_time_out));
-        _timer.async_wait([this](const boost::system::error_code & ec)
-                        {
-                            if (ec == boost::asio::error::operation_aborted)
-                                return;
-                            if (_child.running())
-                                _child.terminate();
-                            _io_service.stop();
-                            _log << "...Timeout..." << endl;
-                        });
+        _timer.async_wait(
+                [this](const boost::system::error_code & ec)
+                {
+                    if (ec == boost::asio::error::operation_aborted)
+                        return;
+                    if (_child.running())
+                        _child.terminate();
+                    _io_service.stop();
+                    _log << "...Timeout..." << endl;
+                });
     }
-}
-
-void process::_err_read_handler(const boost::system::error_code & ec)
-{
-    std::istream is(&_err_buf);
-    std::string line;
-
-    while (std::getline(is, line))
-    {
-        if (_enable_debug)
-            cerr << line << endl;
-        _err_vec.push_back(std::move(line));
-    }
-    if (!ec)
-        boost::asio::async_read_until(_err, _err_buf, '\n',
-            [this](const boost::system::error_code& ec,
-                    std::size_t bytes_transferred)
-                    {
-                        _err_read_handler(ec);
-                    });
 }
 
 void process::run()
@@ -386,20 +248,10 @@ void process::run()
     _set_timer();
     _log << "Starting run" << endl << endl;
 
-
-    //start
-    boost::asio::async_read_until(_err, _err_buf, '\n',
-                [this](const boost::system::error_code& ec,
-                        std::size_t bytes_transferred)
-                        {
-                            _err_read_handler(ec);
-                        });
-
     boost::asio::spawn(_io_service, [this](boost::asio::yield_context yield){_run_impl(yield);});
     _io_service.run();
 
 }
-
 
 } /* namespace gdb_runner */
 } /* namespace mw */

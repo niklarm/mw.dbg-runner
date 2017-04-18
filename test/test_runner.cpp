@@ -7,9 +7,9 @@
   <pre>
     /  /|  (  )   |  |  /
    /| / |   \/    | /| /
-  / |/  |  / \    |/ |/
- /  /   | (   \   /  |
-               )
+  / |/  |   /\    |/ |/
+ /  /   |  (  \   /  |
+                )
  </pre>
  */
 
@@ -52,7 +52,7 @@ int main(int argc, char * argv[])
     itr = find_if(vec.begin(), vec.end(),
                        [](fs::path & p)
                        {
-                            return p.filename() == "mw-gdb-runner.exe";
+                            return p.filename() == "mw-dbg-runner.exe";
                        });
     fs::path exe;
 
@@ -83,12 +83,19 @@ int main(int argc, char * argv[])
     cout << "Exe:    " << exe    << endl;
     cout << "Target: " << target << endl;
 
+    BOOST_TEST(boost::filesystem::exists(dll));
+    BOOST_TEST(boost::filesystem::exists(exe));
+    BOOST_TEST(boost::filesystem::exists(target));
     {
         cerr << "\n--------------------------- No-Plugin launch    -----------------------------" << endl;
         auto ret = bp::system(exe,  "--exe=" + target.string(), "--debug", "--timeout=5");
         cerr << "\n-------------------------------------------------------------------------------\n" << endl;
 
         BOOST_TEST(ret == 0b11111);
+        if (ret != 0b11111)
+        {
+            std::cerr << "Return value Error [" << ret << " != " << 0b11111 << "]" << std::endl;
+        }
     }
     {
         cerr << "---------------------------    Plugin launch    -----------------------------" << endl;
@@ -96,6 +103,12 @@ int main(int argc, char * argv[])
         cerr << "\n-------------------------------------------------------------------------------\n" << endl;
 
         BOOST_TEST(ret == 0);
+
+        if (ret != 0)
+        {
+            std::cerr << "Return value Error [" << ret << " != " << 0 << "]" << std::endl;
+        }
+
     }
 
     return boost::report_errors();

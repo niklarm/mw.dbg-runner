@@ -7,9 +7,9 @@
   <pre>
     /  /|  (  )   |  |  /
    /| / |   \/    | /| /
-  / |/  |  / \    |/ |/
- /  /   | (   \   /  |
-               )
+  / |/  |   /\    |/ |/
+ /  /   |  (  \   /  |
+                )
  </pre>
  */
 #ifndef MW_GDB_DETAIL_FRAME_IMPL_HPP_
@@ -17,35 +17,37 @@
 
 #include <mw/gdb/process.hpp>
 
-namespace mw { namespace gdb { namespace detail {
+namespace mw { namespace gdb { namespace mi2 {
 
-struct frame_impl : frame
+
+mw::debug::var parse_var(interpreter &interpreter_, const std::string & id, std::string value);
+
+struct frame_impl : mw::debug::frame
 {
     std::unordered_map<std::string, std::uint64_t> regs() override;
     void set(const std::string &var, const std::string & val) override;
     void set(const std::string &var, std::size_t idx, const std::string & val) override;
-    boost::optional<var> call(const std::string & cl) override;
-    var print(const std::string & pt, bool bitwise) override;
+    boost::optional<mw::debug::var> call(const std::string & cl) override;
+    mw::debug::var print(const std::string & pt, bool bitwise) override;
     void return_(const std::string & value) override;
     frame_impl(std::string &&id,
-               std::vector<arg> && args,
+               std::vector<mw::debug::arg> && args,
                process & proc,
-               process::iterator & itr,
-               boost::asio::yield_context & yield_,
+               mi2::interpreter & interpreter,
                std::ostream & log_)
-            : frame(std::move(id), std::move(args)), proc(proc), itr(itr), yield_(yield_), _log(log_)
+            : mw::debug::frame(std::move(id), std::move(args)), proc(proc), _interpreter(interpreter), _log(log_)
     {
     }
     void set_exit(int code) override;
     void select(int frame) override;
-    virtual std::vector<backtrace_elem> backtrace() override;
+    virtual std::vector<mw::debug::backtrace_elem> backtrace() override;
 
-    std::ostream & log() { return _log; }
+    std::ostream & log() override { return _log; }
 
+    mw::debug::interpreter & interpreter() override {return _interpreter; }
 
     process & proc;
-    process::iterator & itr;
-    boost::asio::yield_context & yield_;
+    mw::gdb::mi2::interpreter & _interpreter;
     std::ostream & _log;
 };
 

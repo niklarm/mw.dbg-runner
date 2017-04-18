@@ -5,10 +5,9 @@
  *      Author: Klemens
  */
 
-#include <thread>
 #include <string>
 
-int error;
+int error{0};
 
 
 void f(int & ref)
@@ -23,7 +22,7 @@ void f(int * p)
 
 int f() {return 0;}
 
-int main()
+int main(int argc, char * argv[])
 {
     int value = 0;
     f(value);

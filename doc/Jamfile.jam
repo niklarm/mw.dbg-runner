@@ -17,9 +17,14 @@ local headers = break_point frame location plugin ;
 
 doxygen autodoc
 :
-  ../include/mw/gdb/$(headers).hpp 
+  ../include/mw/debug/$(headers).hpp 
+  ../include/mw/gdb/mi2/output.hpp
+  ../include/mw/gdb/mi2/types.hpp
+  ../include/mw/gdb/mi2/interpreter_error.hpp
+  ../include/mw/gdb/mi2/interpreter.hpp
+  ../src/mw/gdb/mi2/interpreter.cpp
 :
-  <doxygen:param>PREDEFINED=BOOST_PROCESS_DOXYGEN
+  <doxygen:param>PREDEFINED=DBG_RUNNER_DOXYGEN
   <doxygen:param>HIDE_UNDOC_CLASSES=YES
   <doxygen:param>HIDE_UNDOC_MEMBERS=YES
   <doxygen:param>STRIP_FROM_PATH=$(strip-path)
@@ -30,7 +35,7 @@ doxygen autodoc
 
 boostbook standalone
 :
-  gdb-runner.qbk
+  dbg-runner.qbk
 :
   <dependency>autodoc
   <quickbook-binary-dependencies>/boost//tools/quickbook
