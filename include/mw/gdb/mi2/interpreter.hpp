@@ -233,9 +233,9 @@ public:
 
     thread_state   thread_info_(const boost::optional<int> & id);
     thread_id_list thread_list_ids();
-    thread_select  thread_select(int id);
+    struct thread_select  thread_select(int id);
 
-    std::vector<ada_task_info> ada_task_info(const boost::optional<int> & task_id);
+    std::vector<struct ada_task_info> ada_task_info(const boost::optional<int> & task_id);
 
     void exec_continue(bool reverse = false, bool all = false);
     void exec_continue(bool reverse, int thread_group);

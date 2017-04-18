@@ -313,7 +313,7 @@ struct thread_info
         stopped, running
     } state;
     boost::optional<int> core;
-    boost::optional<frame> frame;
+    boost::optional<struct frame> frame;
 };
 
 struct thread_state
@@ -331,7 +331,7 @@ struct thread_id_list
 
 struct thread_select
 {
-    boost::optional<frame> frame;
+    boost::optional<struct frame> frame;
     int new_thread_id;
     std::vector<arg> args;
 };
@@ -549,7 +549,7 @@ struct found_tracepoint
 {
     int traceframe;
     int tracepoint;
-    boost::optional<frame> frame;
+    boost::optional<struct frame> frame;
 };
 
 struct memory_region
