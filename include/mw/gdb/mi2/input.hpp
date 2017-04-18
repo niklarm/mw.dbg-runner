@@ -17,8 +17,6 @@
 
 #include <algorithm>
 #include <numeric>
-#include <boost/hana/string.hpp>
-#include <boost/hana/optional.hpp>
 
 namespace mw
 {

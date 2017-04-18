@@ -114,7 +114,7 @@ struct stopped
         syscall_return,            ///<The inferior returned from a system call. This is reported when catch syscall (see Set Catchpoints) has been used.
         exec                       ///<The inferior called exec. This is reported when catch exec (see Set Catchpoints) has been used.
     } reason;
-    std::string stopped;
+    std::string stopped_;
     std::string core;
 };
 
