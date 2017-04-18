@@ -9,8 +9,8 @@
    /| / |   \/    | /| /
   / |/  |   /\    |/ |/
  /  /   |  (  \   /  |
-                )
- </pre>
+               ) 
+</pre>
  */
 
 #include <mw/gdb/process.hpp>

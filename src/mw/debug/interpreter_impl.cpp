@@ -9,8 +9,8 @@
    /| / |   \/    | /| /
   / |/  |   /\    |/ |/
  /  /   |  (  \   /  |
-                )
- </pre>
+               ) 
+</pre>
  */
 
 #include <mw/debug/interpreter_impl.hpp>

@@ -9,8 +9,8 @@
    /| / |   \/    | /| /
   / |/  |   /\    |/ |/
  /  /   |  (  \   /  |
-                )
- </pre>
+               ) 
+</pre>
  */
 #ifndef MW_GDB_MI2_OUTPUT_HPP_
 #define MW_GDB_MI2_OUTPUT_HPP_

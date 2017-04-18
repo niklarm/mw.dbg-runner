@@ -9,8 +9,8 @@
    /| / |   \/    | /| /
   / |/  |   /\    |/ |/
  /  /   |  (  \   /  |
-                )
- </pre>
+               ) 
+</pre>
 
 This header provides the function declarations needed to create plugins. It should be included
 to asser the correctness of the function signatures and linkage.

@@ -9,8 +9,8 @@
    /| / |   \/    | /| /
   / |/  |   /\    |/ |/
  /  /   |  (  \   /  |
-                )
- </pre>
+               ) 
+</pre>
  */
 #ifndef MW_DEBUG_INTERPRETER_HPP_
 #define MW_DEBUG_INTERPRETER_HPP_

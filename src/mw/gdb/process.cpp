@@ -10,8 +10,8 @@
    /| / |   \/    | /| /
   / |/  |   /\    |/ |/
  /  /   |  (  \   /  |
-                )
- </pre>
+               ) 
+</pre>
  */
 
 #define BOOST_COROUTINE_NO_DEPRECATION_WARNING

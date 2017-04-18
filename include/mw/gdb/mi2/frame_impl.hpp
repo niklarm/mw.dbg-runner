@@ -9,8 +9,8 @@
    /| / |   \/    | /| /
   / |/  |   /\    |/ |/
  /  /   |  (  \   /  |
-                )
- </pre>
+               ) 
+</pre>
  */
 #ifndef MW_GDB_DETAIL_FRAME_IMPL_HPP_
 #define MW_GDB_DETAIL_FRAME_IMPL_HPP_
