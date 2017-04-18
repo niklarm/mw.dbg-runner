@@ -6,10 +6,10 @@
     https://www.apache.org/licenses/LICENSE-2.0)
 ]
 
-[library Gdb Runner
+[library Debug Runner
     [quickbook 1.6]
-    [id gdb-runner] 
-    [dirname gdb-runner]
+    [id dbg-runner] 
+    [dirname dbg-runner]
     [version 0.1]
     [authors [Morgenstern, Klemens David], [Walther, Timon]]
     [copyright 2016 Klemens D. Morgenstern, Timon Walther]

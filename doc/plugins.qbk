@@ -11,15 +11,15 @@ void _exit(int code);
 ```
 
 The plugin will put a breakpoint into this function and try to take the first value passed, which
-will be used as the exit-code of the `gdb-runner` process.
+will be used as the exit-code of the `dbg-runner` process.
 
 [important The exit function must be named `_exit` and take an integer as it's first argument.]
 
 [endsect]
 
 [section:newlib Newlib System Calls]
-The newlib syscalls plugin provides the same functionality as [link gdb-runner.faq.semihosting semihosting]
-but does not require you to interact with the gdb.
+The newlib syscalls plugin provides the same functionality as [link dbg-runner.faq.semihosting semihosting]
+but does not require you to interact with the debugger.
 
 Stubbing the syscalls allows the embedded program to interact with the console and the filesystem on the host system. Since it is stubbed at the lowest
 level functions like [@http://en.cppreference.com/w/cpp/io/c/printf printf or fprintf] and the C++ objects like [@http://en.cppreference.com/w/cpp/io/cout std::cout]
@@ -27,7 +27,7 @@ or [@http://en.cppreference.com/w/cpp/io/basic_fstream std::fstream].
 
 [note If you don't use the I/O library in the code otherwise, it might incurr a too large increase in binary size. For this case you can develop custom plugins.]
 
-[important You need to use our stub code ([@https://github.com/mw-sc/mw.gdb-runner/blob/master/example/mw_newlib_syscalls.c example/mw_newlib_syscalls.c]) in your
+[important You need to use our stub code ([@https://github.com/mw-sc/mw.dbg-runner/blob/master/example/mw_newlib_syscalls.c example/mw_newlib_syscalls.c]) in your
 project in order to enable it.]
 
 It does stub the system-calls and redirects them into one function call[footnote to minimize the breakpoint usage] in which the plugin sets the breakpoint.
