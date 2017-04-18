@@ -549,7 +549,7 @@ struct found_tracepoint
 {
     int traceframe;
     int tracepoint;
-    boost::optional<frame> frame;
+    boost::optional<struct frame> frame;
 };
 
 struct memory_region

@@ -161,7 +161,7 @@ struct frame
     ///This function allows access to the log sink of the gdb-runner.
     virtual std::ostream & log() = 0;
     ///Gives a reference to the interpreter
-    virtual interpreter & interpreter() = 0;
+    virtual class interpreter & interpreter() = 0;
 protected:
 #if !defined(MW_GDB_DOXYGEN)
     frame(std::string && id, std::vector<arg> && args)
