@@ -331,7 +331,7 @@ struct thread_id_list
 
 struct thread_select
 {
-    boost::optional<frame> frame;
+    boost::optional<struct frame> frame;
     int new_thread_id;
     std::vector<arg> args;
 };
