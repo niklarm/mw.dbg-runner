@@ -51,7 +51,7 @@ before_script:
     - cp user-config.travis.jam user-config.jam
     - cd ./dbg-runner/test
 script:
-- $BOOST/b2 release -sBOOST_ROOT=$BOOST define=MW_TRAVISCI_BUILD toolset=gcc-6 linkflags="-ldl -pthread" -sBOOST_BUILD_PATH=$BOOST -j4 address-model=$ADDRESS_MODEL
+- $BOOST/b2 release -sBOOST_ROOT=$BOOST define=MW_TRAVISCI_BUILD toolset=gcc-6 linkflags="-ldl -pthread" -sBOOST_BUILD_PATH=. -j4 address-model=$ADDRESS_MODEL
 before_deploy:
 - cd bin/release
 - tar -zcvf ../../linux_gcc_x64.tar.gz .
