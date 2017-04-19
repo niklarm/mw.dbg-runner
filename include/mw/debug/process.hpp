@@ -67,7 +67,7 @@ protected:
     void _set_timer();
     virtual void _terminate()
     {
-        throw std::runtime_error("mw::gdb::process panic!");
+        BOOST_THROW_EXCEPTION( std::runtime_error("mw::gdb::process panic!") );
     }
     virtual void _run_impl(boost::asio::yield_context &yield) = 0;
 

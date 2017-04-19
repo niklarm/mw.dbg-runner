@@ -37,41 +37,6 @@ namespace gdb
 namespace mi2
 {
 
-interpreter::interpreter(
-            boost::process::async_pipe & out,
-            boost::process::async_pipe & in,
-            boost::asio::yield_context & yield_,
-            std::ostream & fwd) : mw::debug::interpreter_impl(out, in, yield_, fwd) {}
-
-void interpreter::_throw_unexpected_result(result_class rc, const mw::gdb::mi2::result_output & res)
-{
-    if (res.class_ == result_class::error)
-    {
-        if (auto cp = find_if(res.results, "msg"))
-            throw unexpected_result_class(result_class::done, res.class_, cp->as_string());
-        else
-            throw unexpected_result_class(result_class::done, res.class_);
-    }
-    else
-        throw unexpected_result_class(result_class::done, res.class_);
-}
-
-void interpreter::_handle_stream_output(const stream_record & sr)
-{
-    switch (sr.type)
-    {
-    case stream_record::console:
-        _stream_console(sr.content);
-        break;
-    case stream_record::log:
-        _stream_log(sr.content);
-        break;
-    case stream_record::target:
-        _fwd << sr.content;
-        break;
-    }
-}
-
 template<typename ...Args>
 constexpr bool needs_record()
 {
@@ -112,7 +77,7 @@ void interpreter::_work_impl(Args&&...args)
                 if (data->first)
                 {
                     if (!_handle_async_output(*data->first, data->second))
-                        throw unexpected_async_record(*data->first, line);
+                        BOOST_THROW_EXCEPTION( unexpected_async_record(*data->first, line) );
                 }
 
                 else
@@ -131,7 +96,7 @@ void interpreter::_work_impl(Args&&...args)
         }
 
         if (needs_record_ && !received_record)
-            throw interpreter_error("No record received, even though expected");
+            BOOST_THROW_EXCEPTION( interpreter_error("No record received, even though expected"));
     }
     catch (std::exception & e)
     {
@@ -173,27 +138,27 @@ async_result interpreter::wait_for_stop()
 
 void interpreter::_handle_record(const std::string& line, const boost::optional<std::uint64_t> &token, const result_output & sr)
 {
-    throw unexpected_record(line);
+    BOOST_THROW_EXCEPTION( unexpected_record(line) );
 }
 void interpreter::_handle_record(const std::string& line, const boost::optional<std::uint64_t> &token, const result_output & sr,
                     std::uint64_t expected_token, result_class rc)
 {
     if (!token)
-        throw mismatched_token(expected_token, 0);
+        BOOST_THROW_EXCEPTION( mismatched_token(expected_token, 0) );
 
 
     if (*token != expected_token)
-        throw mismatched_token(expected_token, *token);
+        BOOST_THROW_EXCEPTION( mismatched_token(expected_token, *token) );
 
     if (sr.class_ == result_class::error)
     {
         auto err = parse_result<error_>(sr.results);
-        throw exception(err);
+        BOOST_THROW_EXCEPTION( exception(err) );
     }
     if ((sr.class_ == rc) && sr.results.empty())
         return;
     else
-        throw unexpected_record(line);
+        BOOST_THROW_EXCEPTION( unexpected_record(line) );
 }
 
 void interpreter::_handle_record(const std::string& line, const boost::optional<std::uint64_t> &token, const result_output & sr,
@@ -201,10 +166,10 @@ void interpreter::_handle_record(const std::string& line, const boost::optional<
 {
 
     if (!token)
-        throw mismatched_token(expected_token, 0);
+        BOOST_THROW_EXCEPTION( mismatched_token(expected_token, 0) );
 
     if (*token != expected_token)
-        throw mismatched_token(expected_token, *token);
+        BOOST_THROW_EXCEPTION( mismatched_token(expected_token, *token) );
 
     func(sr);
 }
@@ -367,7 +332,7 @@ breakpoint interpreter::break_info(int number)
 
         auto itr = std::find_if(body.begin(), body.end(), [](const result & r){return r.variable == "bkpt";});
         if (itr == body.end())
-            throw missing_value("bkpt");
+            BOOST_THROW_EXCEPTION( missing_value("bkpt") );
 
         return parse_result<breakpoint>(itr->value_.as_tuple());
     }
@@ -879,7 +844,7 @@ thread_id_list interpreter::thread_list_ids()
            });
 
    if (rc.class_ != result_class::done)
-       throw unexpected_result_class(result_class::done, rc.class_);
+       BOOST_THROW_EXCEPTION( unexpected_result_class(result_class::done, rc.class_));
 
    return parse_result<thread_id_list>(rc.results);
 }
@@ -895,7 +860,7 @@ thread_select interpreter::thread_select(int id)
            });
 
    if (rc.class_ != result_class::done)
-       throw unexpected_result_class(result_class::done, rc.class_);
+       BOOST_THROW_EXCEPTION( unexpected_result_class(result_class::done, rc.class_));
 
    return parse_result<struct thread_select>(rc.results);
 }
@@ -914,7 +879,7 @@ std::vector<ada_task_info> interpreter::ada_task_info(const boost::optional<int>
            });
 
    if (rc.class_ != result_class::done)
-       throw unexpected_result_class(result_class::done, rc.class_);
+       BOOST_THROW_EXCEPTION( unexpected_result_class(result_class::done, rc.class_) );
 
    std::vector<struct ada_task_info> infos;
 

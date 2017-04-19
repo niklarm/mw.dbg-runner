@@ -134,7 +134,7 @@ struct value : boost::variant<std::string, tuple, boost::recursive_wrapper<list>
     inline const std::string & as_string() const
     {
         if (type() != boost::typeindex::type_id<std::string>())
-            throw unexpected_type("unexpected type [" + boost::typeindex::type_index(type()).pretty_name() + " != " + "std::string]");
+            BOOST_THROW_EXCEPTION( unexpected_type("unexpected type [" + boost::typeindex::type_index(type()).pretty_name() + " != " + "std::string]") );
         return boost::get<std::string>(*this);
     }
     ///Try to interpret it as a list. May throw unexpected_type if it is not a list.
@@ -143,7 +143,7 @@ struct value : boost::variant<std::string, tuple, boost::recursive_wrapper<list>
     inline const tuple&        as_tuple()  const
     {
         if (type() != boost::typeindex::type_id<tuple>())
-            throw unexpected_type("unexpected type [" + boost::typeindex::type_index(type()).pretty_name() + " != " + "mw::gdb::mi2::tuple]");
+            BOOST_THROW_EXCEPTION( unexpected_type("unexpected type [" + boost::typeindex::type_index(type()).pretty_name() + " != " + "mw::gdb::mi2::tuple]") );
         return boost::get<tuple>(*this);
     }
 };
@@ -158,14 +158,14 @@ struct list : boost::variant<std::vector<value>, std::vector<result>>
     const std::vector<value> & as_values() const
     {
         if (type() != boost::typeindex::type_id<std::vector<value>>())
-            throw unexpected_type("unexpected type [" + boost::typeindex::type_index(type()).pretty_name() + " != " + "std::vector<value>]");
+            BOOST_THROW_EXCEPTION( unexpected_type("unexpected type [" + boost::typeindex::type_index(type()).pretty_name() + " != " + "std::vector<value>]") );
         return boost::get<std::vector<value>>(*this);
     }
     ///Try to interpret it as a sequence of results. May throw unexpected_type if it is a sequence of values instead.
     const std::vector<result> & as_results() const
     {
         if (type() != boost::typeindex::type_id<std::vector<result>>())
-            throw unexpected_type("unexpected type [" + boost::typeindex::type_index(type()).pretty_name() + " != " + "std::vector<result>]");
+            BOOST_THROW_EXCEPTION( unexpected_type("unexpected type [" + boost::typeindex::type_index(type()).pretty_name() + " != " + "std::vector<result>]") );
         return boost::get<std::vector<result>>(*this);
     }
 };
@@ -173,7 +173,7 @@ struct list : boost::variant<std::vector<value>, std::vector<result>>
 const list & value::as_list()   const
 {
     if (type() != boost::typeindex::type_id<list>())
-        throw unexpected_type("unexpected type [" + boost::typeindex::type_index(type()).pretty_name() + " != " + "mw::gdb::mi2::list]");
+        BOOST_THROW_EXCEPTION( unexpected_type("unexpected type [" + boost::typeindex::type_index(type()).pretty_name() + " != " + "mw::gdb::mi2::list]") );
 
     return boost::get<list>(*this);
 }

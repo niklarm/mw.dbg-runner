@@ -26,7 +26,7 @@ const value& find(const std::vector<result> & input, const char * id)
                             [&](const result &r){return r.variable == id;});
 
     if (itr == input.end())
-        throw missing_value(id);
+        BOOST_THROW_EXCEPTION( missing_value(id) );
 
     return itr->value_;
 }
@@ -247,7 +247,7 @@ template<> thread_id_list parse_result(const std::vector<result> & ts)
               [](const result & r)
               {
                   if (r.variable != "thread-id")
-                      throw missing_value("[" + r.variable + " != thread-id]");
+                      BOOST_THROW_EXCEPTION( missing_value("[" + r.variable + " != thread-id]") );
                   return std::stoi(r.value_.as_string());
               });
     }
