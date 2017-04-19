@@ -28,7 +28,7 @@ before_script:
     - "./b2 headers"
     - cd $TRAVIS_BUILD_DIR
     - MW_TEST=$HOME/mw.test
-    - git init MW_TEST
+    - git init $MW_TEST
     - cd $MW_TEST
     - if [ $(BRANCH_TO_TEST) = "master" ]; then
       MW_BRANCH=master; 
