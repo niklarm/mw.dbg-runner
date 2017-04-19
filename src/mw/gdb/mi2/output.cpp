@@ -15,6 +15,7 @@
 
 #include <mw/gdb/mi2/output.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#define __assume(Val)
 #include <tao/pegtl.hpp>
 
 using namespace tao;
