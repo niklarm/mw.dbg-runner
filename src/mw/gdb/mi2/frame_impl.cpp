@@ -19,8 +19,10 @@
 #include <iostream>
 #include <boost/algorithm/string.hpp>
 
-#include <pegtl.hh>
+#define __assume(val)
+#include <tao/pegtl.hpp>
 
+using namespace tao;
 using namespace std;
 
 namespace mw { namespace gdb { namespace mi2 {
@@ -195,13 +197,14 @@ boost::optional<mw::debug::var> frame_impl::call(const std::string & cl)
     mw::debug::var vr;
 
     std::uint64_t ref_value;
-    if (pegtl::parse_string<parser::reference, parser::action>(val, "gdb mi2 value parse", ref_value))
+    pegtl::memory_input<> mi{val, "gdb mi2, value parse"};
+    if (pegtl::parse<parser::reference, parser::action>(mi, ref_value))
     {
         vr.ref = ref_value;
         return vr;
     }
 
-    if (pegtl::parse_string<parser::value_ref, parser::action>(val, "gdb mi2 value parse", vr))
+    if (pegtl::parse<parser::value_ref, parser::action>(mi, vr))
         return vr;
 
     vr.value = val;
@@ -262,14 +265,16 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
     auto val = _interpreter.data_evaluate_expression(pt);
 
     std::uint64_t ref_value;
-    if (pegtl::parse_string<parser::reference, parser::action>(val, "gdb mi2 value parse", ref_value))
+    pegtl::memory_input<> mi{val, "gdb mi2, value parse"};
+
+    if (pegtl::parse<parser::reference, parser::action>(mi, ref_value))
     {
         ref_val.ref = ref_value;
         val = _interpreter.data_evaluate_expression("*" + std::string(val.c_str()+1)); //to remove the @
 
     }
 
-    if (pegtl::parse_string<parser::value_ref, parser::action>(val, "gdb mi2 value parse", ref_val))
+    if (pegtl::parse<parser::value_ref, parser::action>(mi, ref_val))
     {
 
     }
@@ -277,7 +282,9 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
         ref_val.value = val;
 
     std::string char_v;
-    if (pegtl::parse_string<parser::char_t, parser::action>(ref_val.value, "gdb mi2 char parse", char_v))
+    pegtl::memory_input<> mi_ref{ref_val.value, "gdb mi2, char parse"};
+
+    if (pegtl::parse<parser::char_t, parser::action>(mi_ref,  char_v))
         ref_val.value = char_v;
 
     if (bitwise) //turn the int into a binary.
@@ -332,13 +339,15 @@ mw::debug::var parse_var(interpreter & interpreter_,  const std::string & id, st
 {
     mw::debug::var ref_val;
     std::uint64_t ref_value;
-    if (pegtl::parse_string<parser::reference, parser::action>(val, "gdb mi2 value parse", ref_value))
+    pegtl::memory_input<> mi{val, "gdb mi2, value parse"};
+
+    if (pegtl::parse<parser::reference, parser::action>(mi, ref_value))
     {
         ref_val.ref = ref_value;
         val = interpreter_.data_evaluate_expression("&*" + id); //to remove the @
     }
 
-    if (pegtl::parse_string<parser::value_ref, parser::action>(val, "gdb mi2 value parse", ref_val))
+    if (pegtl::parse<parser::value_ref, parser::action>(mi, ref_val))
         return ref_val;
 
     ref_val.value = val;

@@ -15,8 +15,9 @@
 
 #include <mw/gdb/mi2/output.hpp>
 #include <boost/algorithm/string/replace.hpp>
-#include <pegtl.hh>
+#include <tao/pegtl.hpp>
 
+using namespace tao;
 
 namespace mw
 {
@@ -61,16 +62,16 @@ template<typename Rule, typename Ptr, Ptr ptr>
 struct control<member<Rule, Ptr, ptr>> : pegtl::normal<Rule>
 {
 
-    template<pegtl::apply_mode A, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0, typename ... States>
+    template<pegtl::apply_mode A, pegtl::rewind_mode M, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0, typename ... States>
     static bool match( Input & in, State0 && st0,  States && ... st )
     {
-        return control<Rule>::template match<A, Action, Control>(in, st0.*ptr, std::forward<States>(st)...);
+        return control<Rule>::template match<A, M, Action, Control>(in, st0.*ptr, std::forward<States>(st)...);
     }
 
-    template<pegtl::apply_mode A, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0>
+    template<pegtl::apply_mode A, pegtl::rewind_mode M, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0>
     static bool match( Input & in, State0 && st0)
     {
-        return control<Rule>::template match<A, Action, Control>(in, st0.*ptr);
+        return control<Rule>::template match<A, M, Action, Control>(in, st0.*ptr);
     }
 };
 
@@ -81,20 +82,20 @@ template<typename Rule>
 struct control<push_back<Rule>> : pegtl::normal<Rule>
 {
 
-    template<pegtl::apply_mode A, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0, typename ... States>
+    template<pegtl::apply_mode A, pegtl::rewind_mode M, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0, typename ... States>
     static bool match( Input & in, std::vector<State0> & st0,  States && ... st )
     {
         State0 val;
-        auto res = control<Rule>::template match<A, Action, Control>(in, val, std::forward<States>(st)...);
+        auto res = control<Rule>::template match<A, M, Action, Control>(in, val, std::forward<States>(st)...);
         st0.push_back(std::move(val));
         return res;
     }
 
-    template<pegtl::apply_mode A, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0>
+    template<pegtl::apply_mode A, pegtl::rewind_mode M, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0>
     static bool match( Input & in, std::vector<State0> & st0)
     {
         State0 val;
-        auto res = control<Rule>::template match<A, Action, Control>(in, val);
+        auto res = control<Rule>::template match<A, M, Action, Control>(in, val);
         st0.push_back(std::move(val));
         return res;
     }
@@ -107,20 +108,20 @@ struct variant_elem : Rule {};
 template<typename Rule, typename Type>
 struct control<variant_elem<Rule, Type>> : pegtl::normal<Rule>
 {
-    template<pegtl::apply_mode A, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0, typename ... States>
+    template<pegtl::apply_mode A, pegtl::rewind_mode M, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0, typename ... States>
     static bool match( Input & in, State0 & st0,  States && ... st )
     {
         Type val;
-        auto res = control<Rule>::template match<A, Action, Control>(in, val, std::forward<States>(st)...);
+        auto res = control<Rule>::template match<A, M, Action, Control>(in, val, std::forward<States>(st)...);
         st0 = std::move(val);
         return res;
     }
 
-    template<pegtl::apply_mode A, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0>
+    template<pegtl::apply_mode A, pegtl::rewind_mode M, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0>
     static bool match( Input & in, State0 & st0)
     {
         Type val;
-        auto res = control<Rule>::template match<A, Action, Control>(in, val);
+        auto res = control<Rule>::template match<A, M, Action, Control>(in, val);
         st0 = std::move(val);
         return res;
     }
@@ -167,7 +168,7 @@ template<>
 struct action<cstring>
 {
    template<typename T, typename ...Args>
-   static void apply( const pegtl::basic_action_input<T> & in , std::string & data, Args&&...)
+   static void apply( const T & in , std::string & data, Args&&...)
    {
        if (in.size() > 2)
        {
@@ -187,7 +188,7 @@ template<>
 struct action<stream_record_type>
 {
    template<typename T>
-   static void apply( const pegtl::basic_action_input<T> & in , stream_record::type_t & data)
+   static void apply( const T & in , stream_record::type_t & data)
    {
        switch (*in.begin())
        {
@@ -219,7 +220,7 @@ template<>
 struct action<async_output_type>
 {
    template<typename T, typename ...Args>
-   static void apply( const pegtl::basic_action_input<T> & in , async_output::type_t & data, Args&&...)
+   static void apply( const T & in , async_output::type_t & data, Args&&...)
    {
        switch (*in.begin())
        {
@@ -245,13 +246,13 @@ struct action<variable>
 {
    thread_local static std::string last_var_name; //since a tuple may have unnamed follow-ups.
    template<typename T>
-   static void apply( const pegtl::basic_action_input<T> & in , std::string & data)
+   static void apply( const T & in , std::string & data)
    {
        data = in.string();
        last_var_name = in.string();
    }
    template<typename T, typename ...Args>
-   static void apply( const pegtl::basic_action_input<T> & in , std::string & data, Args && ...)
+   static void apply( const T & in , std::string & data, Args && ...)
    {
        data = in.string();
        last_var_name = in.string();
@@ -284,21 +285,21 @@ struct unique_ptr : Rule {};
 
 template<typename Rule> struct control<unique_ptr<Rule>> : pegtl::normal<Rule>
 {
-    template<pegtl::apply_mode A, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0, typename ... States>
+    template<pegtl::apply_mode A, pegtl::rewind_mode M, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0, typename ... States>
     static bool match( Input & in, std::unique_ptr<State0> & st0,  States && ... st )
     {
         if (!st0)
             st0 = std::make_unique<State0>();
 
-        return control<Rule>::template match<A, Action, Control>(in, *st0, std::forward<States>(st)...);
+        return control<Rule>::template match<A, M, Action, Control>(in, *st0, std::forward<States>(st)...);
     }
-    template<pegtl::apply_mode A, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State>
+    template<pegtl::apply_mode A, pegtl::rewind_mode M, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State>
     static bool match( Input & in, std::unique_ptr<State> & st0)
     {
         if (!st0)
             st0 = std::make_unique<State>();
 
-        return control<Rule>::template match<A, Action, Control>(in, *st0);
+        return control<Rule>::template match<A, M, Action, Control>(in, *st0);
     }
 };
 
@@ -367,11 +368,11 @@ struct token : pegtl::plus<pegtl::digit>
 template<>
 struct control<token> : pegtl::normal<token>
 {
-    template<pegtl::apply_mode A, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0, typename ... States>
-    static bool match( pegtl::basic_memory_input<Input> & in, State0 && st0,  const std::uint64_t &tk, States && ... st )
+    template<pegtl::apply_mode A, pegtl::rewind_mode M, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0, typename ... States>
+    static bool match( Input & in, State0 && st0,  const std::uint64_t &tk, States && ... st )
     {
         auto beg = in.begin();
-        auto res = pegtl::normal<token>::template match<A, Action, Control>(in, st0, std::forward<States>(st)...);
+        auto res = pegtl::normal<token>::template match<A, M, Action, Control>(in, st0, std::forward<States>(st)...);
         if (res)
         {
             auto end = in.begin();
@@ -381,11 +382,11 @@ struct control<token> : pegtl::normal<token>
         return false;
     }
 
-    template<pegtl::apply_mode A, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0>
+    template<pegtl::apply_mode A, pegtl::rewind_mode M, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0>
     static bool match( Input & in, State0 && st0, const std::uint64_t &tk)
     {
         auto beg = in.begin();
-        auto res = pegtl::normal<token>::template match<A, Action, Control>(in, st0);
+        auto res = pegtl::normal<token>::template match<A, M, Action, Control>(in, st0);
         if (res)
         {
             auto end = in.begin();
@@ -396,11 +397,11 @@ struct control<token> : pegtl::normal<token>
         return false;
     }
 
-    template<pegtl::apply_mode A, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0, typename ... States>
-    static bool match( pegtl::basic_memory_input<Input> & in, State0 && st0,  boost::optional<std::uint64_t> &tk, States && ... st )
+    template<pegtl::apply_mode A, pegtl::rewind_mode M, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0, typename ... States>
+    static bool match( Input & in, State0 && st0,  boost::optional<std::uint64_t> &tk, States && ... st )
     {
         auto beg = in.begin();
-        auto res = pegtl::normal<token>::template match<A, Action, Control>(in, st0, std::forward<States>(st)...);
+        auto res = pegtl::normal<token>::template match<A, M, Action, Control>(in, st0, std::forward<States>(st)...);
         if (res)
         {
             auto end = in.begin();
@@ -410,11 +411,11 @@ struct control<token> : pegtl::normal<token>
         return false;
     }
 
-    template<pegtl::apply_mode A, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0>
+    template<pegtl::apply_mode A, pegtl::rewind_mode M, template< typename ... > class Action, template< typename ... > class Control, typename Input, typename State0>
     static bool match( Input & in, State0 && st0, boost::optional<std::uint64_t> &tk)
     {
         auto beg = in.begin();
-        auto res = pegtl::normal<token>::template match<A, Action, Control>(in, st0);
+        auto res = pegtl::normal<token>::template match<A, M, Action, Control>(in, st0);
         if (res)
         {
             auto end = in.begin();
@@ -432,7 +433,8 @@ struct control<token> : pegtl::normal<token>
 boost::optional<stream_record> parse_stream_output(const std::string & data)
 {
     stream_record sr;
-    if (pegtl::parse_string<parser::stream_output, parser::action, parser::control>(data, "gdb-input-stream", sr))
+    pegtl::memory_input<> mi{data, "gdb-input-stream"};
+    if (pegtl::parse<parser::stream_output, parser::action, parser::control>(mi, sr))
         return sr;
     else
         return boost::none;
@@ -443,7 +445,8 @@ boost::optional<async_output> parse_async_output(std::uint64_t token, const std:
     using type = pegtl::seq<parser::token, parser::async_output_rule>;
     async_output res;
 
-    if (pegtl::parse_string<type, parser::action, parser::control>(data, "gdb-input-stream", res, token))
+    pegtl::memory_input<> mi{data, "gdb-input-stream"};
+    if (pegtl::parse<type, parser::action, parser::control>(mi, res, token))
         return res;
     else
         return boost::none;
@@ -457,8 +460,8 @@ boost::optional<std::pair<boost::optional<std::uint64_t>, async_output>> parse_a
     boost::optional<std::uint64_t> token;
     async_output res;
 
-
-    if (pegtl::parse_string<type, parser::action, parser::control>(data, "gdb-input-stream", res, token))
+    pegtl::memory_input<> mi{data, "gdb-input-stream"};
+    if (pegtl::parse<type, parser::action, parser::control>(mi, res, token))
     {
         return std::make_pair(token, res);
     }
@@ -469,7 +472,8 @@ boost::optional<std::pair<boost::optional<std::uint64_t>, async_output>> parse_a
 bool is_gdb_end(const std::string & data)
 {
     using type = pegtl::seq<pegtl::string<'(', 'g', 'b', 'd', ')'>, pegtl::opt<pegtl::one<'\r'>>>;
-    return pegtl::parse_string<type>(data, "gdb-input-stream");
+    pegtl::memory_input<> mi{data, "gdb-input-stream"};
+    return pegtl::parse<type>(mi);
 }
 
 
@@ -478,7 +482,8 @@ boost::optional<result_output> parse_record(std::uint64_t token, const std::stri
     using type = pegtl::seq<parser::token, parser::result_record_rule>;
     result_output res;
 
-    if (pegtl::parse_string<type, parser::action, parser::control>(data, "gdb-input-stream", res, token))
+    pegtl::memory_input<> mi{data, "gdb-input-stream"};
+    if (pegtl::parse<type, parser::action, parser::control>(mi, res, token))
         return res;
     else
         return boost::none;
@@ -492,8 +497,8 @@ boost::optional<std::pair<boost::optional<std::uint64_t>, result_output>> parse_
     boost::optional<std::uint64_t> token;
     result_output res;
 
-
-    if (pegtl::parse_string<type, parser::action, parser::control>(data, "gdb-input-stream", res, token))
+    pegtl::memory_input<> mi{data, "gdb-input-stream"};
+    if (pegtl::parse<type, parser::action, parser::control>(mi, res, token))
     {
         return std::make_pair(token, res);
     }
