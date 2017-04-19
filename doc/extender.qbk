@@ -34,13 +34,13 @@ Your plugins only have a binary depency on __program__options__ if you use such 
 
 Your plugin only needs to implement the break_points you want to use and return them in a specially named function, given below.
 
-    std::vector<std::unique_ptr<mw::debug::break_point>> mw_dbg_setup_bps();
+    void mw_dbg_setup_bps(std::vector<std::unique_ptr<mw::debug::break_point>> & bps);
 
 This function will return your [classref mw::debug::break_point break_point] implementations.
 
 Additionally you can add program options that shall be passed to your plugin you need to add another function, which looks like this.
 
-    boost::program_options::options_description mw_gdb_setup_options();
+    void mw_gdb_setup_options(boost::program_options::options_description & po);
 
 This function will return your added program options.
 
