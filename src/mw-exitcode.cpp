@@ -40,10 +40,8 @@ void exit_stub::invoke(mw::debug::frame & fr, const std::string & file, int line
 }
 //]
 //[exit_stub_export
-std::vector<std::unique_ptr<mw::debug::break_point>> mw_dbg_setup_bps()
+void mw_dbg_setup_bps(std::vector<std::unique_ptr<mw::debug::break_point>> & bps)
 {
-    std::vector<std::unique_ptr<mw::debug::break_point>> vec;
-    vec.push_back(std::make_unique<exit_stub>());
-    return vec;
+    bps.push_back(std::make_unique<exit_stub>());
 };
 //]

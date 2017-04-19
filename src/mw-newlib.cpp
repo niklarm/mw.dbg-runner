@@ -419,12 +419,9 @@ struct mw_func_stub : break_point
     }
 };
 
-std::vector<std::unique_ptr<mw::debug::break_point>> mw_dbg_setup_bps()
+void mw_dbg_setup_bps(std::vector<std::unique_ptr<mw::debug::break_point>> & bps)
 {
-    std::vector<std::unique_ptr<mw::debug::break_point>> vec;
-
-    vec.push_back(std::make_unique<mw_func_stub>());
-    return vec;
+    bps.push_back(std::make_unique<mw_func_stub>());
 };
 
 

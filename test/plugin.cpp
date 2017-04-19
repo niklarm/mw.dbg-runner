@@ -49,15 +49,11 @@ struct f_ret : break_point
     }
 };
 
-std::vector<std::unique_ptr<mw::debug::break_point>> mw_dbg_setup_bps()
+void mw_dbg_setup_bps(std::vector<std::unique_ptr<mw::debug::break_point>> & bps)
 {
-    std::vector<std::unique_ptr<mw::debug::break_point>> vec;
-
-    vec.push_back(std::make_unique<f_ptr>());
-    vec.push_back(std::make_unique<f_ref>());
-    vec.push_back(std::make_unique<f_ret>());
-
-    return vec;
+    bps.push_back(std::make_unique<f_ptr>());
+    bps.push_back(std::make_unique<f_ref>());
+    bps.push_back(std::make_unique<f_ret>());
 };
 
 

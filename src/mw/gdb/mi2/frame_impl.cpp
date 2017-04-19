@@ -94,9 +94,9 @@ struct action<char_num> : pegtl::normal<char_num>
 struct char_t :
         pegtl::seq<
             char_num,
-            pegtl::one<' '>,
+            pegtl::star<pegtl::one<' '>>,
             pegtl::one<'\''>,
-            pegtl::rep_max<4,
+            pegtl::rep_max<5,
                 pegtl::sor<
                     pegtl::string<'\\', '\''>,
                     pegtl::minus<pegtl::any, pegtl::one<'\''>>
@@ -285,7 +285,7 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
     pegtl::memory_input<> mi_ref{ref_val.value, "gdb mi2, char parse"};
 
     if (pegtl::parse<parser::char_t, parser::action>(mi_ref,  char_v))
-        ref_val.value = char_v;
+        ref_val.value = char_v; 
 
     if (bitwise) //turn the int into a binary.
     {
