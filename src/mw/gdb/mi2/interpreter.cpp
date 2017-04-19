@@ -83,18 +83,14 @@ void interpreter::_work_impl(Args&&...args)
 {
     if (!_in_buf.empty())
         asio::async_write(_in, asio::buffer(_in_buf), _yield);
-
-
-
     try {
         asio::async_read_until(_out, _out_buf, "(gdb)", _yield);
     }
     catch (boost::system::system_error & se)
     {
         //ignore this exception if this was the last valid command
-        if ((se.code() != boost::asio::error::broken_pipe) || (_out_buf.size() == 0))
+        if (_out_buf.size() == 0)
             throw;
-
     }
 
     bool received_record = false;
