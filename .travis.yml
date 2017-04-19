@@ -1,0 +1,65 @@
+env:
+  global:
+  - BRANCH_TO_TEST=$TRAVIS_BRANCH
+  - secure: MCDN29luqElN8602cqGtWeyd1+YirnbSTGTA5cOqWm6vY5Bw1vVFOhoOKzRUoDoaPQPFth7nIXkGZB61XUdSgOm7aUgIaQ4mnu2JOgXWvMuIWILuZsWzuhV+WzmPz30tmTAuTPNAAMfBMGeYNDLMc/yr11qr4fs9GUpZY0yQQcAvx86Yacg+WolvUt5dZTHFULP/AldqQdQK/6b1jiVnyASx5ArhD4o1535wWlrjMUHQy7CI2nSHPHryEw1wNWV3KL6QPNHXe31X0vmKhmmkGgP4zAoIr9UlPL8YdFW6KXQVeYicES8eCy71mgFKvWI9VnkJYEJgWcEc9UsttoLzI/WyMV1zFlKfYWD+BuKW++rv4Z1i0CIIZgiXQZYo5UiicvVmyNJi4yUoKI//AgVpMoo34LsfspLzAlvG1norZnWMK6WuOFLk7IQ7PxbFrHaITN9l6WxV6GoAz5ylQLq2rm8QjsKpupBJvQBwOmRFTX0l4131N1gBTdCASUOWlp4iUgScKvaDXqOo2B4rnuWj1jGsPI0r+uHdoZarm0tUE8vUq/qmS+Noe+73cQ3HvhpEd8ZsYMsbMK8N/mEMPB+gH2WVg10vN/y6yzvQA0k63zPjxx4QVVUpe9zHmGatfwfcvpRCjER1DkERCrMsYWy6QA6KXSD0DY3WkaBWNxUaIGk=
+  matrix:
+  #- ADDRESS_MODEL=32
+  - ADDRESS_MODEL=64
+language: cpp
+compiler:
+- gcc
+os:
+- linux
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - python-yaml
+    - gcc-6
+    - g++-6
+before_script:
+    - cd $HOME
+    - wget -O boost_1_64_0.tar.gz https://dl.bintray.com/boostorg/beta/1.64.0.rc.1/source/boost_1_64_0_rc1.tar.gz
+    - tar -xf boost_1_64_0.tar.gz > /dev/null
+    - BOOST=$HOME/boost_1_64_0
+    - cd $BOOST
+    - "./bootstrap.sh"
+    - "./b2 headers"
+    - cd $TRAVIS_BUILD_DIR
+    - MW_TEST=$HOME/mw.test
+    - git init MW_TEST
+    - if [ $(BRANCH_TO_TEST) = "master" ]; then
+      MW_BRANCH=master; 
+      else MW_BRANCH=develop; fi
+    - git remote add --not-tags -t $MW_BRANCH origin https://github.com/mw-sc/mw.test.git
+    - git fetch --depth=1
+    - git checkout $MW_BRANCH
+    - git submodule update --init --merge
+    - git remote set-branches --add origin $MW_BRANCH
+    - git pull --recurse-submodules
+    - git submodule update --init
+    - git checkout $MW_BRANCH
+    - git submodule foreach "git reset --quiet --hard; git clean -fxd"
+    - git reset --hard; git clean -fxd
+    - git status
+    - echo "Removing mw.dbg-runner"
+    - rm -rf $MW_TEST/dbg-runner
+    - mv $TRAVIS_BUILD_DIR/../$PROJECT_TO_TEST $MW_TEST/dbg-runner
+    - cd $MW_TEST
+    - cp user-config.travis.jam user-config.jam
+    - cd ./dbg-runner/test
+script:
+- $BOOST/b2 release -sBOOST_ROOT=$BOOST define=MW_TRAVISCI_BUILD toolset=gcc-6 linkflags="-ldl -pthread" -sBOOST_BUILD_PATH=$BOOST -j4 address-model=$ADDRESS_MODEL
+before_deploy:
+- cd bin/release
+- tar -zcvf ../../linux_gcc_x64.tar.gz .
+- cd $TRAVIS_BUILD_DIR
+deploy:
+  provider: releases
+  api_key: 
+        secure: bvCK1RWnQof6ofRxI9uYkinsyhFL+Jez/CBIOgGF3yqdCAEXpfb0sBNsB9BEfKpYp9VyHRNfrxpjFMbUKXL53gV+6QIroRvRDL2rn2N4qX1TMDAV33SRfHf26j+DX63msE4j59AGrH5z+VP2FBpvXWGpnEj0z8BwTQ3KtfPgwpTmyhFdUcBri/92P31oU2etvfQimrpko3FlQrv8SGVO/rZ3eYZMQsnRW4yYpfTOw3RVLOSrljgoTs/TtQx97ZDVRmS37k4Y2B0611NPX0ZIc5pEAk23V76AyhjFlyVUjgrnIhxL1O9qhfkQ3m1UF8xrVKP2fiJQNBNe6xFwWOvYoDinIO8JqDAVdMotk+jPdaDysv0zO7U9Gx3MWyjXP879iofnZ0MgtBpqgo+C/s4xE4MGQqZNSJAzbaCe40KM9+DC3bvGgA6pk/+vL8FWbmWUeV+dp/zWMeiSV7y22tEEO0vbsCgKzfpwHDJWWdj+HmHvJClxMClzGTtSe5qal1Si9K3MXDT2439smUG6I5U5bgN4fGq8SSAdRVpNTUyzpJBUL06sL+fUxGGjw5VbmENIVHSjHSA4qSuVoTWrSgr/hzdtqiy0cipI3DfS/gz9dYxu3uX6+/Yxok3lHeFcjbJp619uC4K6q714ajXZUyZzfoPpEo/wLA9RlYMLR0nCZzI=
+  file: linux_gcc_x64.tar.gz
+  skip_cleanup: true
+  on:
+    tags: true
