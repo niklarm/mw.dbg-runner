@@ -36,7 +36,11 @@ int main(int argc, char * argv[])
     auto itr = find_if(vec.begin(), vec.end(),
                        [](fs::path & p)
                        {
+#if defined(BOOST_WINDOWS_API)
                             return p.extension() == ".dll";
+#else
+                            return p.extension() == ".so";
+#endif
                        });
 
     fs::path dll;
@@ -52,7 +56,11 @@ int main(int argc, char * argv[])
     itr = find_if(vec.begin(), vec.end(),
                        [](fs::path & p)
                        {
+#if defined(BOOST_WINDOWS_API)
                             return p.filename() == "mw-dbg-runner.exe";
+#else
+                            return p.filename() == "mw-dbg-runner";
+#endif
                        });
     fs::path exe;
 
@@ -67,7 +75,11 @@ int main(int argc, char * argv[])
     itr = find_if(vec.begin(), vec.end(),
                        [](fs::path & p)
                        {
+#if defined(BOOST_WINDOWS_API)
                             return p.filename() == "target.exe";
+#else
+                            return p.filename() == "target";
+#endif
                        });
     fs::path target;
 

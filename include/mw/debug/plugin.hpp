@@ -25,9 +25,9 @@ to asser the correctness of the function signatures and linkage.
 #include <mw/debug/break_point.hpp>
 
 ///This function is the central function needed to provide a break-point plugin.
-BOOST_SYMBOL_EXPORT std::vector<std::unique_ptr<mw::debug::break_point>> mw_dbg_setup_bps();
+extern "C" BOOST_SYMBOL_EXPORT void mw_dbg_setup_bps(std::vector<std::unique_ptr<mw::debug::break_point>> & bps);
 ///This function can be used to add program options for the plugin.
-BOOST_SYMBOL_EXPORT boost::program_options::options_description mw_dbg_setup_options();
+extern "C" BOOST_SYMBOL_EXPORT void mw_dbg_setup_options(boost::program_options::options_description & po);
 
 
 #endif /* MW_GDB_PLUGIN_HPP_ */
