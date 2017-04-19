@@ -29,6 +29,7 @@ before_script:
     - cd $TRAVIS_BUILD_DIR
     - MW_TEST=$HOME/mw.test
     - git init MW_TEST
+    - cd $MW_TEST
     - if [ $(BRANCH_TO_TEST) = "master" ]; then
       MW_BRANCH=master; 
       else MW_BRANCH=develop; fi
@@ -46,7 +47,6 @@ before_script:
     - echo "Removing mw.dbg-runner"
     - rm -rf $MW_TEST/dbg-runner
     - mv $TRAVIS_BUILD_DIR/../$PROJECT_TO_TEST $MW_TEST/dbg-runner
-    - cd $MW_TEST
     - cp user-config.travis.jam user-config.jam
     - cd ./dbg-runner/test
 script:
