@@ -18,6 +18,7 @@ addons:
     - python-yaml
     - gcc-6
     - g++-6
+    - gdb
 before_script:
     - PROJECT_TO_TEST=`basename $TRAVIS_BUILD_DIR`
     - cd $HOME

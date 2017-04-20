@@ -79,7 +79,8 @@ struct MyProcess
     template<typename T>
     void run(T & func)
     {
-        BOOST_REQUIRE_MESSAGE(ch.running(), "Gdb is running " << gdb_path);
+        BOOST_REQUIRE_MESSAGE(fs::exists(gdb_path), "Gdb exists " << gdb_path);
+        BOOST_REQUIRE(ch.running());
         boost::asio::spawn(ios,
                 [&](boost::asio::yield_context yield_)
                 {
