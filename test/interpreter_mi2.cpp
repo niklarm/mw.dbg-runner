@@ -33,6 +33,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 namespace bp = boost::process;
+namespace fs = boost::filesystem;
 namespace mi2 = mw::gdb::mi2;
 
 struct MyProcess
@@ -50,7 +51,8 @@ struct MyProcess
     bp::async_pipe out{ios};
     bp::async_pipe in {ios};
     bp::async_pipe err{ios};
-    bp::child ch{bp::search_path("gdb"), bp::args={target(), "--interpreter=mi2"}, ios, bp::std_in < in, bp::std_out > out, bp::std_err > err};
+    fs::path gdb_path = bp::search_path("gdb");
+    bp::child ch{gdb_path, bp::args={target(), "--interpreter=mi2"}, ios, bp::std_in < in, bp::std_out > out, bp::std_err > err};
 
     //std::thread thr{[this]{ios.run();}};
     std::atomic<bool> done{false};
@@ -77,13 +79,20 @@ struct MyProcess
     template<typename T>
     void run(T & func)
     {
+        BOOST_REQUIRE_MESSAGE(ch.running(), "Gdb is running " << gdb_path);
         boost::asio::spawn(ios,
                 [&](boost::asio::yield_context yield_)
                 {
+                    BOOST_TEST_PASSPOINT();
                     mw::gdb::mi2::interpreter intp{out, in, yield_, ss_err};
+                    BOOST_TEST_PASSPOINT();
+
                     if (first_run == true)
                     {
+                        BOOST_TEST_PASSPOINT();
                         intp.read_header();
+                        BOOST_TEST_PASSPOINT();
+
                         first_run = false;
                     }
 
@@ -117,6 +126,7 @@ BOOST_GLOBAL_FIXTURE(MyProcess);
 
 MW_TEST_CASE( create_bp )
 {
+    BOOST_TEST_PASSPOINT();
     BOOST_CHECK_THROW(mi.break_after(42, 2), mw::gdb::mi2::exception);
     BOOST_TEST_PASSPOINT();
 
