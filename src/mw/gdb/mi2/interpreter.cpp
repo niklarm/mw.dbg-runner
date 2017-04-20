@@ -827,7 +827,7 @@ thread_state interpreter::thread_info_(const boost::optional<int> & id)
            });
 
    if (rc.class_ != result_class::done)
-       throw unexpected_result_class(result_class::done, rc.class_);
+       BOOST_THROW_EXCEPTION( unexpected_result_class(result_class::done, rc.class_) );
 
    return parse_result<thread_state>(rc.results);
 }
