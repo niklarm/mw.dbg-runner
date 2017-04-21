@@ -507,6 +507,97 @@ boost::optional<std::pair<boost::optional<std::uint64_t>, result_output>> parse_
         return boost::none;
 }
 
+std::string to_string(const stream_record & ar)
+{
+    std::string ret;
+    switch (ar.type)
+    {
+    case stream_record::console: ret = "~"; break;
+    case stream_record::log:     ret = "&"; break;
+    case stream_record::target:  ret = "@"; break;
+    }
+
+    ret += ar.content;
+    return ret;
+}
+std::string to_string(const result & res)
+{
+    std::string ret;
+    ret = res.variable;
+    ret += "=";
+    ret += to_string(res.value_);
+    return ret;
+}
+
+std::string to_string(const std::vector<result> & tup)
+{
+    std::string ret = "{";
+
+    for (auto & t: tup)
+    {
+        if (&t != &tup.front())
+            ret += ", ";
+
+        ret += to_string(t);
+    }
+
+    ret += "}";
+    return ret;
+}
+std::string to_string(const value & val)
+{
+    struct vis_t : boost::static_visitor<std::string>
+    {
+        std::string operator()(const std::string & str) const {return str;}
+        std::string operator()(const tuple & tup) const {return to_string(tup);}
+        std::string operator()(const list & lst) const {return to_string(lst);}
+    } vis;
+    return boost::apply_visitor(vis, val);
+}
+
+struct list_t : boost::static_visitor<std::string>
+{
+    template<typename T>
+    std::string operator()(const T & tup) const
+    {
+        std::string ret = "[";
+        for (auto & t: tup)
+        {
+            if (&t != &tup.front())
+                ret += ", ";
+            ret += to_string(t);
+        }
+        ret += "]";
+        return ret;
+    }
+};
+
+std::string to_string(const list & ls)
+{
+    list_t list;
+    return boost::apply_visitor(list, ls);
+}
+std::string to_string(const async_output & ao)
+{
+    std::string ret;
+    switch (ao.type)
+    {
+    case async_output::exec: ret = "*";
+    case async_output::notify: ret = "+";
+    case async_output::status: ret = "=";
+    }
+
+
+    ret += ao.class_ + ", ";
+    ret += to_string(ao.results);
+
+    return ret;
+}
+std::string to_string(const result_output & ro)
+{
+    return to_string(ro) + ", " + to_string(ro.results);
+}
+
 
 }
 }

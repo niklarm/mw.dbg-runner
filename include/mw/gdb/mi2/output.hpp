@@ -228,6 +228,15 @@ boost::optional<result_output> parse_record(std::uint64_t token, const std::stri
 ///Parse a string as record, while the token is optional.
 boost::optional<std::pair<boost::optional<std::uint64_t>, result_output>> parse_record(const std::string & data);
 
+std::string to_string(const stream_record & ar);
+std::string to_string(const result & res);
+std::string to_string(const std::vector<result> & tup);
+std::string to_string(const value & val);
+std::string to_string(const list & ls);
+std::string to_string(const async_output & ao);
+std::string to_string(const result_output & ro);
+
+
 }
 }
 }
