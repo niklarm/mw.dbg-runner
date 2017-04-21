@@ -2166,7 +2166,7 @@ void interpreter::file_exec_file(const std::string & file)
 
 source_info interpreter::file_list_exec_source_file()
 {
-    _in_buf = std::to_string(_token_gen) + "-trace-status\n";
+    _in_buf = std::to_string(_token_gen) + "-file-list-exec-source-file\n";
 
     mw::gdb::mi2::result_output rc;
     _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)
@@ -2182,7 +2182,7 @@ source_info interpreter::file_list_exec_source_file()
 
 std::vector<source_info> interpreter::file_list_exec_source_files()
 {
-    _in_buf = std::to_string(_token_gen) + "-trace-status\n";
+    _in_buf = std::to_string(_token_gen) + "-file-list-exec-source-files\n";
 
      mw::gdb::mi2::result_output rc;
      _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)

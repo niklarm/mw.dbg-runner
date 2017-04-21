@@ -113,7 +113,7 @@ int main(int argc, char * argv[])
     BOOST_TEST(boost::filesystem::exists(exe));
     BOOST_TEST(boost::filesystem::exists(target));
 
-    std::string source_dir = "--source-folder=" + source.parent_path().string();
+    std::string source_dir = "--source-dir=" + source.parent_path().string();
 
     {
         cerr << "\n--------------------------- No-Plugin launch    -----------------------------" << endl;
