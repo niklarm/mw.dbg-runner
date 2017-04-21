@@ -91,16 +91,33 @@ int main(int argc, char * argv[])
         return 1;
     }
 
+    fs::path source;
+    itr = find_if(vec.begin(), vec.end(),
+                        [](fs::path & p)
+                        {
+                            return p.filename() == "target.cpp";
+                        });
+    if (itr != vec.end())
+        source = fs::absolute(*itr);
+    else
+    {
+        cout << "Target.cpp not found" << endl;
+        return 1;
+    }
+
     cout << "Dll:    " << dll    << endl;
     cout << "Exe:    " << exe    << endl;
     cout << "Target: " << target << endl;
-
+    cout << "Source: " << source << endl;
     BOOST_TEST(boost::filesystem::exists(dll));
     BOOST_TEST(boost::filesystem::exists(exe));
     BOOST_TEST(boost::filesystem::exists(target));
+
+    std::string source_dir = "--source-folder=" + source.parent_path().string();
+
     {
         cerr << "\n--------------------------- No-Plugin launch    -----------------------------" << endl;
-        auto ret = bp::system(exe,  "--exe=" + target.string(), "--debug", "--timeout=5");
+        auto ret = bp::system(exe,  "--exe=" + target.string(), "--debug", "--timeout=5", source_dir);
         cerr << "\n-------------------------------------------------------------------------------\n" << endl;
 
         BOOST_TEST(ret == 0b11111);
@@ -111,7 +128,7 @@ int main(int argc, char * argv[])
     }
     {
         cerr << "---------------------------    Plugin launch    -----------------------------" << endl;
-        auto ret = bp::system(exe,  "--exe=" + target.string(), "--debug", "--timeout=5", "--lib=" + dll.string());
+        auto ret = bp::system(exe,  "--exe=" + target.string(), "--debug", "--timeout=5", "--lib=" + dll.string(), source_dir);
         cerr << "\n-------------------------------------------------------------------------------\n" << endl;
 
         BOOST_TEST(ret == 0);
