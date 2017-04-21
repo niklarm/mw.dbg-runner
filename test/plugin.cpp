@@ -4,6 +4,7 @@
 #include <mw/debug/plugin.hpp>
 #include <vector>
 #include <memory>
+#include <iostream>
 
 using namespace mw::debug;
 
@@ -17,6 +18,7 @@ struct f_ptr : break_point
 
     void invoke(frame & fr, const std::string & file, int line) override
     {
+        std::cerr << file << "(" << line << "): " << "f(int*)" << std::endl;
         fr.set("p", 0, "1");
         fr.set("p", 1, "2");
         fr.set("p", 2, "3");
@@ -31,6 +33,7 @@ struct f_ref : break_point
 
     void invoke(frame & fr, const std::string & file, int line) override
     {
+        std::cerr << file << "(" << line << "): " << "f(int&)" << std::endl;
         fr.set("ref", "42");
     }
 };
@@ -45,6 +48,7 @@ struct f_ret : break_point
     }
     void invoke(frame & fr, const std::string & file, int line) override
     {
+        std::cerr << file << "(" << line << "): " << "f()" << std::endl;
         fr.return_("42");
     }
 };
