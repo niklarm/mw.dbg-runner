@@ -57,6 +57,7 @@ struct options_t
     string remote;
     std::vector<boost::dll::shared_library> plugins;
 
+    std::string source_folder;
     po::options_description desc;
     po::variables_map vm;
 
@@ -163,6 +164,7 @@ struct options_t
             ("args,A",      value<vector<string>>(&args),                     "Arguments passed to the target")
             ("dbg,G",       value<string>(&dbg)->default_value("gdb"),        "dbg command"  )
             ("dbg-args,S",  value<vector<string>>(&dbg_args)->multitoken(),   "dbg arguments")
+            ("source-folder,F", value<string>(&source_folder),                "folder to look for source source folder")
             ("other,O",     value<vector<string>>(&other_cmds)->multitoken(), "other arguments")
             ("timeout,T",   value<int>(&time_out),                            "time_out")
             ("log,L",       value<string>(&log),                              "log file")
@@ -203,6 +205,8 @@ int main(int argc, char * argv[])
         return 1;
     }
 
+
+
     std::vector<bp::child> other;
     bp::group other_group;
 
@@ -228,7 +232,10 @@ int main(int argc, char * argv[])
     if ((opt.vm.count("dbg") == 0))
         dbg = bp::search_path("gdb");
     else if (!fs::exists(dbg) && !fs::exists(dbg = bp::search_path(opt.dbg)))
-        std::cerr << "Gdb binary " << dbg << " not found" << std::endl;
+        std::cerr << "Debugger binary " << dbg << " not found" << std::endl;
+
+    if (!opt.source_folder.empty())
+        opt.dbg_args.push_back("--directory=" + opt.source_folder);
 
     mw::gdb::process proc(dbg, opt.exe, opt.dbg_args);
 

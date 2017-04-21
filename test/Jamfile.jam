@@ -9,6 +9,10 @@ if [ os.name ] = NT
   lib ws2_32 ;
 }
 
+local pwd = [ path-constant TOP : . ] ;
+
+echo $(pwd) ;
+
 
 project gdb-test :
 	source-location .	
@@ -31,4 +35,4 @@ test-suite gdb-parser :
 	[ run interpreter_mi2.cpp : --log_level=all : target : <dependency>parser <library>..//mw-gdb-mi2 <library>..//mw-dbg-core <library>boost_test <library>boost_moni <os>NT,<toolset>cw:<library>ws2_32 <os>NT,<toolset>gcc:<library>ws2_32 <library>..//coroutine <library>filesystem ] ;
 	
 exe test_runner : test_runner.cpp : <library>filesystem <dependency>interpreter_mi2 ;
-run test_runner : : /dbg-runner//mw-dbg-runner plugin target : : ~test_runner_test_exec ;
+run test_runner : --source-folder=$(pwd) : /dbg-runner//mw-dbg-runner plugin target : : ~test_runner_test_exec ;

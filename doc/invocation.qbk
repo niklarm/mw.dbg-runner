@@ -22,6 +22,7 @@ Here's an overview of all parameters:
 [[`--other`   ] [`O`] [Other processes to launch, i.e. gdb-server] [multiple strings] [['none]]]
 [[`--debug`   ] [`D`] [Enable the debug log, i.e. put the whole gdb-communication into the console ] [bool switch] [['disabled]]]
 [[`--timeout` ] [`T`] [Communication Timeout [s]] [single int] [`10`]]
+[[`--source-folder'] [`F`] [Folder to look for sources] [path] [['none]]]
 [[[#dbg-runner.invocation.help]     `--help`   ] [`H`] [List all parameters, including those of plugins, then do nothing] [bool switch] [['disabled]]]
 ]
 
