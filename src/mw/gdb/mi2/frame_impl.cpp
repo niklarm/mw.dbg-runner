@@ -154,7 +154,17 @@ struct action<reference> : pegtl::normal<hex_num>
     static void apply(const Input & input, std::uint64_t & v)
     {
         auto st = input.string();
-        v = std::stoull(st.c_str() + 1, nullptr, 16);
+        try {
+            v = std::stoull(st.c_str() + 1, nullptr, 16);
+        }
+        catch (std::invalid_argument & ia)
+        {
+            BOOST_THROW_EXCEPTION(parser_error("stoull[reference] - invalid argument '" + st + "'"));
+        }
+        catch (std::out_of_range & oor)
+        {
+            BOOST_THROW_EXCEPTION(parser_error("stoull[reference] - out of range '" + st + "'"));
+        }
     }
 };
 
@@ -211,7 +221,23 @@ boost::optional<mw::debug::var> frame_impl::call(const std::string & cl)
     return vr;
 }
 
+std::size_t frame_impl::get_size(const std::string pt)
+{
+    //ok, we need to check if it's a variable first
+    std::string size_st = _interpreter.data_evaluate_expression("sizeof(" + pt + ")");
+    try {
+        return std::stoull(size_st);
 
+    }
+    catch (std::invalid_argument & ia)
+    {
+        BOOST_THROW_EXCEPTION(parser_error("stoull[sizeof(" + pt + ")] - invalid argument '" + size_st + "'"));
+    }
+    catch (std::out_of_range & oor)
+    {
+        BOOST_THROW_EXCEPTION(parser_error("stoull[sizeof(" + pt + ")] - out of range '" + size_st + "'"));
+    }
+}
 
 
 mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
@@ -227,9 +253,7 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
 
     if (bitwise && !is_var(pt))
     {
-        //ok, we need to check if it's a variable first
-
-        auto size = std::stoull(_interpreter.data_evaluate_expression("sizeof(" + pt + ")"));
+        auto size = get_size(pt);
         auto addr = _interpreter.data_evaluate_expression("&" + pt);
         //addr might be inside ""
         auto idx = addr.find(' ');
@@ -289,7 +313,7 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
 
     if (bitwise) //turn the int into a binary.
     {
-        auto size = std::stoull(_interpreter.data_evaluate_expression("sizeof(" + pt + ")"));
+        auto size = get_size(pt);
 
         auto val = std::stoull(ref_val.value);
 

@@ -42,6 +42,9 @@ struct frame_impl : mw::debug::frame
     void select(int frame) override;
     virtual std::vector<mw::debug::backtrace_elem> backtrace() override;
 
+    std::size_t get_size(const std::string pt);
+
+
     std::ostream & log() override { return _log; }
 
     mw::debug::interpreter & interpreter() override {return _interpreter; }
