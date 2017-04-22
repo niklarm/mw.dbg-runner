@@ -299,7 +299,7 @@ struct frame
     boost::optional<std::uint64_t> addr;
     boost::optional<std::string> file;
     boost::optional<int> line;
-    boost::optional<std::uint64_t> from;
+    boost::optional<std::string> from;
     boost::optional<std::vector<arg>> args;
 };
 

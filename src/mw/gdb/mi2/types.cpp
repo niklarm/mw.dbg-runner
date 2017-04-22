@@ -152,7 +152,7 @@ template<> frame parse_result(const std::vector<result> &r)
     if (auto val = find_if(r, "addr")) f.addr = my_stoull(find(r, "addr").as_string());
     if (auto val = find_if(r, "file")) f.file = val->as_string();
     if (auto val = find_if(r, "line")) f.line = std::stoi(val->as_string());
-    if (auto val = find_if(r, "from")) f.from = my_stoull(val->as_string(), 0 , 16);
+    if (auto val = find_if(r, "from")) f.from = val->as_string();
     if (auto val = find_if(r, "args"))
     {
         auto vec = val->as_list().as_values();

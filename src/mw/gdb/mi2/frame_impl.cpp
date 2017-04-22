@@ -416,7 +416,7 @@ std::vector<mw::debug::backtrace_elem> frame_impl::backtrace()
 
         mw::debug::backtrace_elem e;
         e.cnt =  b.level;
-        e.call_site = b.from;
+        e.addr = b.addr;
         if (b.func)
             e.func = *b.func;
         if (b.file)

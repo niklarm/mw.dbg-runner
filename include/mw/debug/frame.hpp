@@ -65,7 +65,7 @@ struct arg : var
 struct backtrace_elem
 {
     int cnt; ///<The position in the backtrace
-    boost::optional<std::uint64_t> call_site; ///<Gives the position the functions
+    boost::optional<std::uint64_t> addr; ///<Gives the position the functions
     std::string func; ///<The name of the functions
     location loc; ///< Location of the function called.
 };
