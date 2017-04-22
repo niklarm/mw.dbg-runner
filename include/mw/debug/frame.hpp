@@ -93,7 +93,7 @@ struct frame
         }
         catch(std::out_of_range & o)
         {
-            BOOST_THROW_EXCEPTION(std::out_of_range("Out of range in frame[" + id() + "]: " + o.what() )) ;
+            BOOST_THROW_EXCEPTION(std::out_of_range("Out of range in frame::arg_list(idx)[" + id() + "]: " + o.what() )) ;
             //for C++ complacancy
             return _arg_list.front();
         }
