@@ -86,7 +86,19 @@ struct frame
      *  @param index The index for the element.
      *  @overload const std::vector<arg> &arg_list() const
      */
-    const arg &arg_list(std::size_t index) const {return _arg_list.at(index);}
+    const arg &arg_list(std::size_t index) const
+    {
+        try {
+            return _arg_list.at(index);
+        }
+        catch(std::out_of_range & o)
+        {
+            BOOST_THROW_EXCEPTION(std::out_of_range("Out of range in frame[" + id() + "]: " + o.what() )) ;
+            //for C++ complacancy
+            return _arg_list.front();
+        }
+
+    }
     /** This function returns the cstring of the argument requested, if it is a null-terminated string.
      * This will take care of the possible ellipsis of passed cstrings.
      *
