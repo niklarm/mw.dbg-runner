@@ -22,7 +22,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/process/search_path.hpp>
-
+#include <boost/core/demangle.hpp>
 #include <boost/scope_exit.hpp>
 
 #include <string>
@@ -287,7 +287,9 @@ int main(int argc, char * argv[])
     }
     catch (std::exception & e)
     {
-        cerr << "**dgb-runner** Exception thrown '" << e.what() << "'" << endl;
+        cerr << "**dgb-runner** Exception ["
+             << boost::core::demangle(typeid(e).name())
+             << "] thrown: '" << e.what() << "'" << endl;
         return 1;
     }
     catch (...)
