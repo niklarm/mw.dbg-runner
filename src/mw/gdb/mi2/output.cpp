@@ -366,6 +366,23 @@ struct token : pegtl::plus<pegtl::digit>
 };
 
 
+unsigned long long my_stoull(const std::string & st)
+{
+    try {
+        return std::stoull(st);
+    }
+    catch (std::invalid_argument & ia)
+    {
+        BOOST_THROW_EXCEPTION(parser_error("stoull - invalid argument '" + st + "'"));
+    }
+    catch (std::out_of_range & oor)
+    {
+        BOOST_THROW_EXCEPTION(parser_error("stoull - out of range '" + st + "'"));
+    }
+    return 0ull;
+}
+
+
 template<>
 struct control<token> : pegtl::normal<token>
 {
@@ -377,7 +394,7 @@ struct control<token> : pegtl::normal<token>
         if (res)
         {
             auto end = in.begin();
-            auto val = std::stoull(std::string(beg, end));
+            auto val = my_stoull(std::string(beg, end));
             return val == tk;
         }
         return false;
@@ -391,7 +408,7 @@ struct control<token> : pegtl::normal<token>
         if (res)
         {
             auto end = in.begin();
-            auto val = std::stoull(std::string(beg, end));
+            auto val = my_stoull(std::string(beg, end));
             return val == tk;
 
         }
@@ -406,7 +423,7 @@ struct control<token> : pegtl::normal<token>
         if (res)
         {
             auto end = in.begin();
-            tk = std::stoull(std::string(beg, end));
+            tk = my_stoull(std::string(beg, end));
             return true;
         }
         return false;
@@ -420,7 +437,7 @@ struct control<token> : pegtl::normal<token>
         if (res)
         {
             auto end = in.begin();
-            tk = std::stoull(std::string(beg, end));
+            tk = my_stoull(std::string(beg, end));
             return true;
 
         }

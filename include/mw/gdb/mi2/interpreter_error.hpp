@@ -31,6 +31,13 @@ struct interpreter_error : mw::debug::interpreter_error
     using mw::debug::interpreter_error::operator=;
 };
 
+struct parser_error : interpreter_error
+{
+    using interpreter_error::interpreter_error;
+    using interpreter_error::operator=;
+};
+
+
 }
 }
 }

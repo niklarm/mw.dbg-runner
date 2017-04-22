@@ -287,7 +287,7 @@ int main(int argc, char * argv[])
     }
     catch (std::exception & e)
     {
-        cerr << "Exception thrown '" << e.what() << "'" << endl;
+        cerr << "**dgb-runner** Exception thrown '" << e.what() << "'" << endl;
         return 1;
     }
     catch (...)
