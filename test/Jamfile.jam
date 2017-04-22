@@ -25,7 +25,7 @@ project gdb-test :
 
 lib plugin : plugin.cpp : <link>shared ;
 alias filesystem : /boost//filesystem ;
-exe target : target.cpp :  <debug-symbols>on <library>/boost//filesystem ;
+exe target : target.cpp :  <debug-symbols>on <library>/boost//filesystem <cxxflags>-gdwarf-2 ;
 
 alias boost_test : /boost//unit_test_framework ;
 alias boost_moni : /boost//prg_exec_monitor    ;
