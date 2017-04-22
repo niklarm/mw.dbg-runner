@@ -9,6 +9,22 @@ namespace gdb
 namespace mi2
 {
 
+inline unsigned long long my_stoull(const std::string & str, std::size_t *pos = 0, int base = 10)
+{
+    try {
+        return std::stoull(str, pos, base);
+    }
+    catch (std::invalid_argument & ia)
+    {
+        BOOST_THROW_EXCEPTION(parser_error("stoull[base:" + std::to_string(base) + "] - invalid argument '" + str + "'"));
+    }
+    catch (std::out_of_range & oor)
+    {
+        BOOST_THROW_EXCEPTION(parser_error("stoull[base:" + std::to_string(base) + "] - out of range '" + str + "'"));
+    }
+    return 0ull;
+}
+
 template<typename T>
 struct is_vector : std::false_type {};
 
@@ -64,7 +80,7 @@ template<> breakpoint parse_result(const std::vector<result> &r)
     {
         auto addr = find(r, "addr").as_string();
         if (addr != "<MULTIPLE>")
-            bp.addr = std::stoull(addr, 0, 16);
+            bp.addr = my_stoull(addr, 0, 16);
         else
             bp.addr = 0;
     }
@@ -133,10 +149,10 @@ template<> frame parse_result(const std::vector<result> &r)
     else
         f.level = 0; //< happends in case of breakpoint hit.
     if (auto val = find_if(r, "func")) f.func = val->as_string();
-    if (auto val = find_if(r, "addr")) f.addr = std::stoull(find(r, "addr").as_string());
+    if (auto val = find_if(r, "addr")) f.addr = my_stoull(find(r, "addr").as_string());
     if (auto val = find_if(r, "file")) f.file = val->as_string();
     if (auto val = find_if(r, "line")) f.line = std::stoi(val->as_string());
-    if (auto val = find_if(r, "from")) f.from = std::stoull(val->as_string(), 0 , 16);
+    if (auto val = find_if(r, "from")) f.from = my_stoull(val->as_string(), 0 , 16);
     if (auto val = find_if(r, "args"))
     {
         auto vec = val->as_list().as_values();
@@ -436,7 +452,7 @@ template<> memory_entry parse_result(const std::vector<result> & r)
 {
     memory_entry me;
 
-    me.addr  = std::stoull(find(r, "addr").as_string(), nullptr, 16);
+    me.addr  = my_stoull(find(r, "addr").as_string(), nullptr, 16);
 
     auto data = find(r, "data").as_list().as_values();
     me.data.resize(data.size());
@@ -455,13 +471,13 @@ template<> read_memory parse_result(const std::vector<result> & r)
 {
     read_memory rm;
 
-    rm.addr        = std::stoull(find(r, "addr").as_string(), nullptr, 16);
-    rm.nr_bytes    = std::stoull(find(r, "nr-bytes").as_string());
-    rm.total_bytes = std::stoull(find(r, "total-bytes").as_string());
-    rm.next_row    = std::stoull(find(r, "next-row").as_string(), nullptr, 16);
-    rm.prev_row    = std::stoull(find(r, "prev-row").as_string(), nullptr, 16);
-    rm.next_page   = std::stoull(find(r, "next-page").as_string(), nullptr, 16);
-    rm.prev_page   = std::stoull(find(r, "prev-page").as_string(), nullptr, 16);
+    rm.addr        = my_stoull(find(r, "addr").as_string(), nullptr, 16);
+    rm.nr_bytes    = my_stoull(find(r, "nr-bytes").as_string());
+    rm.total_bytes = my_stoull(find(r, "total-bytes").as_string());
+    rm.next_row    = my_stoull(find(r, "next-row").as_string(), nullptr, 16);
+    rm.prev_row    = my_stoull(find(r, "prev-row").as_string(), nullptr, 16);
+    rm.next_page   = my_stoull(find(r, "next-page").as_string(), nullptr, 16);
+    rm.prev_page   = my_stoull(find(r, "prev-page").as_string(), nullptr, 16);
 
 
     auto mem = find(r, "memory").as_list().as_values();
@@ -477,9 +493,9 @@ template<> read_memory_bytes parse_result(const std::vector<result> & r)
 {
     read_memory_bytes rm;
 
-    rm.begin  = std::stoull(find(r, "begin").as_string(), nullptr, 16);
-    rm.offset = std::stoull(find(r, "offset").as_string());
-    rm.end    = std::stoull(find(r, "end").as_string());
+    rm.begin  = my_stoull(find(r, "begin").as_string(), nullptr, 16);
+    rm.offset = my_stoull(find(r, "offset").as_string());
+    rm.end    = my_stoull(find(r, "end").as_string());
 
     auto ctn = find(r, "contents").as_string();
     rm.contents.resize(ctn.size() /2);
@@ -543,8 +559,8 @@ template<> memory_region parse_result(const std::vector<result> & r)
 
     memory_region mr;
 
-    mr.address  = std::stoull(find(r, "address").as_string(), nullptr, 16);
-    mr.length   = std::stoull(find(r, "value").as_string());
+    mr.address  = my_stoull(find(r, "address").as_string(), nullptr, 16);
+    mr.length   = my_stoull(find(r, "value").as_string());
     if (auto value = find_if(r, "contents"))
     {
         auto ctn = value->as_string();
@@ -612,8 +628,8 @@ template <> trace_variable parse_result(const std::vector<result> & r)
 {
     trace_variable ft;
 
-    ft.name = std::stoull(find(r, "name").as_string());
-    ft.initial = std::stoull(find(r, "initial").as_string());
+    ft.name = my_stoull(find(r, "name").as_string());
+    ft.initial = my_stoull(find(r, "initial").as_string());
     if (auto val = find_if(r, "current")) ft.current = std::stoll(val->as_string());
 
     return ft;
@@ -627,10 +643,10 @@ template <> trace_status parse_result(const std::vector<result> & r)
     if (auto value = find_if(r, "running")) ft.running = (value->as_string() == "1");
     if (auto value = find_if(r, "stop-reason")) ft.stop_reason = value->as_string();
     if (auto value = find_if(r, "stopping-tracepoint")) ft.stopping_tracepoint = std::stoi(value->as_string());
-    if (auto value = find_if(r, "frames")) ft.frames = std::stoull(value->as_string());
-    if (auto value = find_if(r, "frames-created")) ft.frames_created = std::stoull(value->as_string());
-    if (auto value = find_if(r, "buffer-size")) ft.buffer_size = std::stoull(value->as_string());
-    if (auto value = find_if(r, "buffer-free")) ft.buffer_free = std::stoull(value->as_string());
+    if (auto value = find_if(r, "frames")) ft.frames = my_stoull(value->as_string());
+    if (auto value = find_if(r, "frames-created")) ft.frames_created = my_stoull(value->as_string());
+    if (auto value = find_if(r, "buffer-size")) ft.buffer_size = my_stoull(value->as_string());
+    if (auto value = find_if(r, "buffer-free")) ft.buffer_free = my_stoull(value->as_string());
     if (auto value = find_if(r, "circular"))     ft.circular     = (value->as_string() == "1");
     if (auto value = find_if(r, "disconnected")) ft.disconnected = (value->as_string() == "1");
     if (auto value = find_if(r, "trace-file")) ft.trace_file = value->as_string();
@@ -642,7 +658,7 @@ template <> symbol_line parse_result(const std::vector<result> & r)
 {
     symbol_line sl;
 
-    sl.pc = std::stoull(find(r, "pc").as_string());
+    sl.pc = my_stoull(find(r, "pc").as_string());
     sl.line = find(r, "line").as_string();
 
     return sl;
@@ -663,10 +679,10 @@ template<> download_info parse_result(const std::vector<result> & r)
 {
     download_info di;
 
-    di.address       = std::stoull(find(r, "address").as_string(), nullptr, 16);
-    di.load_size     = std::stoull(find(r, "load-size").as_string());
-    di.transfer_rate = std::stoull(find(r, "transfer-rate").as_string());
-    di.write_rate    = std::stoull(find(r, "write-rate").as_string());
+    di.address       = my_stoull(find(r, "address").as_string(), nullptr, 16);
+    di.load_size     = my_stoull(find(r, "load-size").as_string());
+    di.transfer_rate = my_stoull(find(r, "transfer-rate").as_string());
+    di.write_rate    = my_stoull(find(r, "write-rate").as_string());
 
     return di;
 }
@@ -676,10 +692,10 @@ template<> download_status parse_result(const std::vector<result> & r)
     download_status ds;
 
     ds.section = find(r, "section").as_string();
-    if (auto val = find_if(r, "section-sent")) ds.section_sent = std::stoull(find(r, "sections-sent").as_string());
-    if (auto val = find_if(r, "total-sent"))   ds.total_sent   = std::stoull(find(r, "total-sent").as_string());
-    ds.section_size  = std::stoull(find(r, "sections-size").as_string());
-    ds.total_size    = std::stoull(find(r, "total-size").as_string());
+    if (auto val = find_if(r, "section-sent")) ds.section_sent = my_stoull(find(r, "sections-sent").as_string());
+    if (auto val = find_if(r, "total-sent"))   ds.total_sent   = my_stoull(find(r, "total-sent").as_string());
+    ds.section_size  = my_stoull(find(r, "sections-size").as_string());
+    ds.total_size    = my_stoull(find(r, "total-size").as_string());
 
     return ds;
 }
@@ -688,7 +704,7 @@ template<> connection_notification parse_result(const std::vector<result> & r)
 {
     connection_notification cn;
 
-    cn.addr = std::stoull(find(r, "addr").as_string(), nullptr, 16);
+    cn.addr = my_stoull(find(r, "addr").as_string(), nullptr, 16);
     cn.func = find(r, "func").as_string();
 
     auto v = find(r, "args").as_list().as_values();
@@ -705,7 +721,7 @@ template<> info_ada_exception parse_result(const std::vector<result> & r)
     info_ada_exception ai;
 
     ai.name          = find(r, "name").as_string();
-    ai.address       = std::stoull(find(r, "address").as_string(), nullptr, 16);
+    ai.address       = my_stoull(find(r, "address").as_string(), nullptr, 16);
 
     return ai;
 }
@@ -855,7 +871,7 @@ template<> memory_changed    parse_result(const std::vector<result> & r)
     memory_changed mc;
     mc.thread_group = std::stoi(find(r, "thread-group").as_string());
     mc.len = std::stoi(find(r, "len").as_string());
-    mc.addr = std::stoull(find(r, "addr"). as_string(), nullptr, 16);
+    mc.addr = my_stoull(find(r, "addr"). as_string(), nullptr, 16);
     if (auto val = find_if(r, "code")) mc.code = val->as_string();
     return mc;
 }

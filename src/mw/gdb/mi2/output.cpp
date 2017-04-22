@@ -366,7 +366,7 @@ struct token : pegtl::plus<pegtl::digit>
 };
 
 
-unsigned long long my_stoull(const std::string & st)
+inline unsigned long long my_stoull(const std::string & st)
 {
     try {
         return std::stoull(st);

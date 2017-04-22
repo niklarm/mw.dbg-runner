@@ -237,6 +237,7 @@ std::size_t frame_impl::get_size(const std::string pt)
     {
         BOOST_THROW_EXCEPTION(parser_error("stoull[sizeof(" + pt + ")] - out of range '" + size_st + "'"));
     }
+    return 0u;
 }
 
 
@@ -314,8 +315,18 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
     if (bitwise) //turn the int into a binary.
     {
         auto size = get_size(pt);
-
-        auto val = std::stoull(ref_val.value);
+        std::size_t val = 0u;
+        try {
+            val = std::stoull(ref_val.value);
+        }
+        catch (std::invalid_argument & ia)
+        {
+            BOOST_THROW_EXCEPTION(parser_error("stoull[print, bitwise] - invalid argument '" + ref_val.value + "'"));
+        }
+        catch (std::out_of_range & oor)
+        {
+            BOOST_THROW_EXCEPTION(parser_error("stoull[print, bitwise] - out of range '" + ref_val.value + "'"));
+        }
 
         std::string res;
         res.reserve(size*8);
