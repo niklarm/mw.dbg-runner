@@ -315,9 +315,9 @@ public:
     void var_set_visualizer(const std::string & name, const boost::optional<std::string> &visualizer = boost::none);
     void var_set_default_visualizer(const std::string & name);
 
-    dissambled_data data_disassemble (disassemble_mode de);
-    dissambled_data data_disassemble (disassemble_mode de, std::size_t start_addr, std::size_t end_addr);
-    dissambled_data data_disassemble (disassemble_mode de, const std::string & filename, std::size_t linenum, const boost::optional<int> &lines = boost::none);
+    src_and_asm_line data_disassemble (disassemble_mode de);
+    src_and_asm_line data_disassemble (disassemble_mode de, std::size_t start_addr, std::size_t end_addr);
+    src_and_asm_line data_disassemble (disassemble_mode de, const std::string & filename, std::size_t linenum, const boost::optional<int> &lines = boost::none);
 
     std::string data_evaluate_expression(const std::string & expr);
     std::vector<std::string> data_list_changed_registers();

@@ -30,9 +30,14 @@ namespace debug {
 class break_point
 {
     std::string _identifier;
+    boost::optional<std::string> _condition;
 public:
-    ///Gives you the identifier string, either the functions name or the location
+    ///Returns the identifier string, either the functions name or the location
     const std::string& identifier() const {return _identifier;}
+
+    ///Return the condition of the breakpoint
+    const boost::optional<std::string> &condition() {return _condition;}
+
     /**Construct the breakpoint from a function identifier.
      * The function signature can either be the pure name of the function,
      * which will yield several breakpoints or you can be an explicit overload.
@@ -78,6 +83,13 @@ public:
      * It is meant to be overridden, this functions is empty.
      */
     virtual void set_not_found() {};
+
+    /** Add a condition for this breakpoint.
+     *
+     * @param condition A code snippet for the breakpoint condition.
+     */
+    void set_condition(const std::string & condition) {_condition = condition;}
+
     ///Destructor
     virtual ~break_point() = default;
 

@@ -102,7 +102,9 @@ void process::_init_bps(mi2::interpreter & interpreter)
 
         try
         {
-            auto bpv = interpreter.break_insert(bp->identifier());
+            auto bpv = interpreter.break_insert(bp->identifier(),
+                    false, false, false, false, false,
+                    bp->condition());
 
             auto & b = bpv[0];
             _break_point_map[b.number] = bp.get();

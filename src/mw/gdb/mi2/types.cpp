@@ -375,7 +375,7 @@ template<> line_asm_insn parse_result(const std::vector<result> & r)
 {
     line_asm_insn lai;
 
-    lai.address   = std::stoi(find(r, "address").as_string());
+    lai.address   = std::stoull(find(r, "address").as_string(), nullptr, 16);
     lai.func_name = find(r, "func-name").as_string();
     lai.offset    = std::stoi(find(r, "offset").as_string());
     lai.inst      = find(r, "inst").as_string();
@@ -405,34 +405,6 @@ template<> src_and_asm_line parse_result(const std::vector<result> & r)
             vec.push_back(parse_result<line_asm_insn>(i.as_tuple()));
 
         lai.line_asm_insn = std::move(vec);
-    }
-
-    return lai;
-}
-
-template<> dissambled_data parse_result(const std::vector<result> & r)
-{
-    dissambled_data lai;
-
-    lai.address     = std::stoi(find(r, "address").as_string());
-    lai.func_name   = find(r, "func_name").as_string();
-    lai.offset      = std::stoi(find(r, "offset").as_string());
-    lai.inst        = find(r, "inst").as_string();
-
-    if (auto val = find_if(r, "opcodes"))
-        lai.opcodes = val->as_string();
-
-    if (auto val = find_if(r, "src_and_asm_line"))
-    {
-        auto in = val->as_list().as_values();
-
-        std::vector<src_and_asm_line> vec;
-        vec.reserve(in.size());
-
-        for (auto & i : in)
-            vec.push_back(parse_result<src_and_asm_line>(i.as_tuple()));
-
-        lai.src_and_asm_line = std::move(vec);
     }
 
     return lai;

@@ -28,6 +28,8 @@
 namespace mw {
 namespace debug {
 
+class break_point;
+
 /**This function represents a null-terminated string in gdb.
  * Gdb can add a display for a c-string if a char* is passed to a function.
  *
@@ -70,6 +72,16 @@ struct backtrace_elem
     location loc; ///< Location of the function called.
 };
 
+/// Ìnformation about a certain address in the program, i.e in source code.
+struct address_info
+{
+    std::string file; ///<The name of the file the code was generated from
+    std::size_t line; ///<The line in the file
+    std::string full_name; ///<The absolute path of the file
+    boost::optional<std::string> function;  ///<The function this piece of code is part of
+    boost::optional<std::uint64_t> offset; ///<The offset in the containing function, if available.
+};
+
 /** This class represents a stackframe.
  * A stackframe let's you examine the stack in gdb. A reference to the frame will be passed to the break-point implementation on invocation.
  *
@@ -97,8 +109,13 @@ struct frame
             //for C++ complacancy
             return _arg_list.front();
         }
-
     }
+
+    /**Examine the program at the given address.
+     *
+     * @return Only returns a set value, if the address is in the right space.
+     */
+    virtual boost::optional<address_info> addr2line(std::uint64_t addr) const = 0;
     /** This function returns the cstring of the argument requested, if it is a null-terminated string.
      * This will take care of the possible ellipsis of passed cstrings.
      *
@@ -174,6 +191,11 @@ struct frame
     virtual std::ostream & log() = 0;
     ///Gives a reference to the interpreter
     virtual class interpreter & interpreter() = 0;
+
+    ///Disable a breakpoint
+    virtual void disable(const break_point & bp) = 0;
+    ///Reenable a breakpoint
+    virtual void enable(const break_point & bp) = 0;
 protected:
 #if !defined(MW_GDB_DOXYGEN)
     frame(std::string && id, std::vector<arg> && args)

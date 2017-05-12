@@ -71,6 +71,7 @@ class process : public mw::debug::process
 
     bool _exited = false;
 public:
+    const std::map<int, break_point*> & break_point_map() const {return _break_point_map;}
 
     process(const boost::filesystem::path & gdb, const std::string & exe, const std::vector<std::string> & args = {});
     ~process() = default;

@@ -14,9 +14,12 @@
  */
 
 #define BOOST_COROUTINE_NO_DEPRECATION_WARNING
+
 #include <mw/gdb/mi2/interpreter.hpp>
 #include <mw/gdb/mi2/output.hpp>
 #include <mw/gdb/mi2/input.hpp>
+
+
 
 #include <boost/asio/read.hpp>
 #include <boost/asio/read_until.hpp>
@@ -36,6 +39,16 @@ namespace gdb
 {
 namespace mi2
 {
+
+inline static std::string quote_if(const std::string & str)
+{
+    if (std::find_if(str.begin(), str.end(), [](char c){return std::isspace(c);}) != str.end())
+    {
+        if ((str.front() != '"') || (str.back() != '"'))
+            return '"' + str + '"';
+    }
+    return str;
+}
 
 template<typename ...Args>
 constexpr bool needs_record()
@@ -452,7 +465,7 @@ std::vector<breakpoint> interpreter::break_insert(const std::string & location,
     if (tracepoint)
         _in_buf += "-a ";
     if (condition)
-        _in_buf += "-c " + *condition + " ";
+        _in_buf += "-c " + quote_if(*condition) + " ";
     if (ignore_count)
         _in_buf += "-i " + std::to_string(*ignore_count) + " ";
     if (thread_id)
@@ -1646,7 +1659,7 @@ void interpreter::var_set_default_visualizer(const std::string & name)
 }
 
 
-dissambled_data interpreter::data_disassemble (disassemble_mode de)
+src_and_asm_line interpreter::data_disassemble (disassemble_mode de)
 {
     _in_buf = std::to_string(_token_gen) + "-data-disassemble -- " + std::to_string(static_cast<int>(de)) + '\n';
 
@@ -1659,10 +1672,28 @@ dissambled_data interpreter::data_disassemble (disassemble_mode de)
     if (rc.class_ != result_class::done)
        _throw_unexpected_result(result_class::done, rc);
 
-    return parse_result<dissambled_data>(find(rc.results, "asm_insns").as_tuple());
+    auto &asm_insns = find(rc.results, "asm_insns");
+
+    if (asm_insns.type() == boost::typeindex::type_id<list>())
+           return parse_result<src_and_asm_line>(find(asm_insns.as_list().as_results(), "src_and_asm_line").as_tuple());
+    else
+    {
+        auto in = asm_insns.as_list().as_values();
+
+        std::vector<line_asm_insn> vec;
+        vec.reserve(in.size());
+
+        for (auto & i : in)
+            vec.push_back(parse_result<line_asm_insn>(i.as_tuple()));
+
+        src_and_asm_line dd;
+        dd.line_asm_insn = std::move(vec);
+
+        return dd;
+    }
 }
 
-dissambled_data interpreter::data_disassemble (disassemble_mode de, std::size_t start_addr, std::size_t end_addr)
+src_and_asm_line interpreter::data_disassemble (disassemble_mode de, std::size_t start_addr, std::size_t end_addr)
 {
     _in_buf = std::to_string(_token_gen) + "-data-disassemble";
     _in_buf += " -s " + std::to_string(start_addr);
@@ -1678,10 +1709,35 @@ dissambled_data interpreter::data_disassemble (disassemble_mode de, std::size_t 
     if (rc.class_ != result_class::done)
        _throw_unexpected_result(result_class::done, rc);
 
-    return parse_result<dissambled_data>(find(rc.results, "asm_insns").as_tuple());
+    auto &asm_insns = find(rc.results, "asm_insns");
+
+    if (asm_insns.type() == boost::typeindex::type_id<list>())
+    {
+        auto & list = asm_insns.as_list();
+        if (list.type() == boost::typeindex::type_id<std::vector<result>>())
+            return parse_result<src_and_asm_line>(find(asm_insns.as_list().as_results(), "src_and_asm_line").as_tuple());
+        else
+            return src_and_asm_line();
+    }
+
+    else
+    {
+        auto in = asm_insns.as_list().as_values();
+
+        std::vector<line_asm_insn> vec;
+        vec.reserve(in.size());
+
+        for (auto & i : in)
+            vec.push_back(parse_result<line_asm_insn>(i.as_tuple()));
+
+        src_and_asm_line dd;
+        dd.line_asm_insn = std::move(vec);
+
+        return dd;
+    }
 }
 
-dissambled_data interpreter::data_disassemble (disassemble_mode de, const std::string & filename, std::size_t linenum, const boost::optional<int> &lines)
+src_and_asm_line interpreter::data_disassemble (disassemble_mode de, const std::string & filename, std::size_t linenum, const boost::optional<int> &lines)
 {
     _in_buf = std::to_string(_token_gen) + "-data-disassemble ";
     _in_buf += " -f " + filename;
@@ -1701,12 +1757,30 @@ dissambled_data interpreter::data_disassemble (disassemble_mode de, const std::s
     if (rc.class_ != result_class::done)
        _throw_unexpected_result(result_class::done, rc);
 
-    return parse_result<dissambled_data>(find(rc.results, "asm_insns").as_tuple());
+    auto &asm_insns = find(rc.results, "asm_insns");
+
+    if (asm_insns.type() == boost::typeindex::type_id<list>())
+           return parse_result<src_and_asm_line>(find(asm_insns.as_list().as_results(), "src_and_asm_line").as_tuple());
+    else
+    {
+        auto in = asm_insns.as_list().as_values();
+
+        std::vector<line_asm_insn> vec;
+        vec.reserve(in.size());
+
+        for (auto & i : in)
+            vec.push_back(parse_result<line_asm_insn>(i.as_tuple()));
+
+        src_and_asm_line dd;
+        dd.line_asm_insn = std::move(vec);
+
+        return dd;
+    }
 }
 
 std::string interpreter::data_evaluate_expression(const std::string & expr)
 {
-    _in_buf = std::to_string(_token_gen) + "-data-evaluate-expression " + expr + '\n';
+    _in_buf = std::to_string(_token_gen) + "-data-evaluate-expression " + quote_if(expr) + "\n";
 
     mw::gdb::mi2::result_output rc;
     _work(_token_gen++, [&](const mw::gdb::mi2::result_output & rc_in)

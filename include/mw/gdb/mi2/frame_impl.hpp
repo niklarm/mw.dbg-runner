@@ -44,6 +44,10 @@ struct frame_impl : mw::debug::frame
 
     std::size_t get_size(const std::string pt);
 
+    boost::optional<mw::debug::address_info> addr2line(std::uint64_t addr) const override;
+
+    void disable(const mw::debug::break_point & bp) override;
+    void enable (const mw::debug::break_point & bp) override;
 
     std::ostream & log() override { return _log; }
 

@@ -502,16 +502,6 @@ struct src_and_asm_line
     boost::optional<std::vector<struct line_asm_insn>> line_asm_insn;
 };
 
-struct dissambled_data
-{
-    std::uint64_t address;
-    std::string func_name;
-    std::size_t offset;
-    std::string inst;
-    boost::optional<std::string>  opcodes;
-    boost::optional<std::vector<struct src_and_asm_line>> src_and_asm_line;
-};
-
 struct register_value
 {
     std::size_t number;

@@ -22,6 +22,9 @@
 #define __assume(val)
 #include <tao/pegtl.hpp>
 
+#include <iostream>
+#include <typeinfo>
+
 using namespace tao;
 using namespace std;
 
@@ -190,14 +193,17 @@ std::unordered_map<std::string, std::uint64_t> frame_impl::regs()
 
     return mp;
 }
+
 void frame_impl::set(const std::string &var, const std::string & val)
 {
     _interpreter.data_evaluate_expression('"' + var + " = " + val + '"');
 }
+
 void frame_impl::set(const std::string &var, std::size_t idx, const std::string & val)
 {
     _interpreter.data_evaluate_expression('"' + var + "[" + std::to_string(idx) + "] = " + val + '"');
 }
+
 boost::optional<mw::debug::var> frame_impl::call(const std::string & cl)
 {
     auto val = _interpreter.data_evaluate_expression(cl);
@@ -427,6 +433,74 @@ std::vector<mw::debug::backtrace_elem> frame_impl::backtrace()
         ret.push_back(std::move(e));
     }
     return ret;
+}
+
+boost::optional<mw::debug::address_info> frame_impl::addr2line(std::uint64_t addr) const
+{
+    try
+    {
+        auto dd = _interpreter.data_disassemble(
+                mi2::disassemble_mode::mixed_source_and_disassembly_with_raw_opcodes_deprecated,
+                addr, addr+1);
+
+        if (dd.file.empty() && dd.fullname.empty() && !dd.line_asm_insn)
+            return boost::none;
+
+        mw::debug::address_info ai;
+
+        ai.file = dd.file;
+        ai.full_name = dd.fullname;
+        ai.line = dd.line;
+
+        if (dd.line_asm_insn)
+        {
+            auto itr = std::find_if(
+                    dd.line_asm_insn->begin(),
+                    dd.line_asm_insn->end(),
+                    [&](const line_asm_insn & lai)
+                    {
+                        return lai.address == addr;
+                    });
+            if (itr != dd.line_asm_insn->end())
+            {
+                ai.function = itr->func_name;
+                ai.offset = itr->offset;
+            }
+        }
+        else
+            std::cout << "no line_asm_isns" << std::endl;
+        return ai;
+    }
+    catch (interpreter_error & ie)
+    {
+        std::cout << "Exception [" << typeid(ie).name() << "]: " << ie.what() << std::endl;
+        return boost::none;
+    }
+}
+
+void frame_impl::disable(const mw::debug::break_point & bp)
+{
+    const auto & bps = proc.break_point_map();
+
+    auto itr = std::find_if(bps.begin(), bps.end(), [&](const std::pair<int, break_point*> & bp_p){return bp_p.second == &bp;});
+    if (itr == bps.end())
+        return ; //should not happen
+
+    int num = itr->first;
+    _interpreter.break_disable(num);
+}
+
+void frame_impl::enable (const mw::debug::break_point & bp)
+{
+    const auto & bps = proc.break_point_map();
+
+    auto itr = std::find_if(bps.begin(), bps.end(), [&](const std::pair<int, break_point*> & bp_p){return bp_p.second == &bp;});
+    if (itr == bps.end())
+        return ; //should not happen
+
+    int num = itr->first;
+    _interpreter.break_enable(num);
+
 }
 
 
