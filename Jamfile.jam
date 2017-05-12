@@ -47,6 +47,7 @@ lib mw-gdb-mi2 : [ glob mw/gdb/mi2/*.cpp ] mw/gdb/process.cpp mw-dbg-core :
 		<library>system
 		<library>coroutine
 		<library>mw-dbg-core
+        <library>asio
 		<variant>debug:<optimization>space 
 		;
 
@@ -57,6 +58,7 @@ exe mw-dbg-runner :
 		<library>/boost//regex
 		<library>mw-gdb-mi2 
 		<library>mw-dbg-core 
+		<library>asio
 		<variant>debug:<optimization>space
         <target-os>windows,<toolset>cw:<library>ws2_32 <target-os>windows,<toolset>gcc:<library>ws2_32
         ;

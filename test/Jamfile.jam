@@ -32,7 +32,7 @@ alias boost_moni : /boost//prg_exec_monitor    ;
 
 test-suite gdb-parser :
 	[ run parser.cpp ../src/mw/gdb/mi2/output.cpp : : : <include>../../libs/pegtl <library>boost_test <library>boost_moni ]
-	[ run interpreter_mi2.cpp : --log_level=all : target : <dependency>parser <library>..//mw-gdb-mi2 <library>..//mw-dbg-core <library>boost_test <library>boost_moni <os>NT,<toolset>cw:<library>ws2_32 <os>NT,<toolset>gcc:<library>ws2_32 <library>..//coroutine <library>filesystem ] ;
+	[ run interpreter_mi2.cpp : --log_level=all : target : <dependency>parser <library>..//mw-gdb-mi2 <library>..//mw-dbg-core <library>boost_test <library>boost_moni <library>../..//asio <os>NT,<toolset>cw:<library>ws2_32 <os>NT,<toolset>gcc:<library>ws2_32 <library>..//coroutine <library>filesystem ] ;
 	
 exe test_runner : test_runner.cpp : <library>filesystem <dependency>interpreter_mi2 ;
 run test_runner : : /dbg-runner//mw-dbg-runner plugin target target.cpp : : ~test_runner_test_exec ;
