@@ -392,7 +392,8 @@ template<> src_and_asm_line parse_result(const std::vector<result> & r)
 
     lai.line     = std::stoi(find(r, "line").as_string());
     lai.file     = find(r, "file").as_string();
-    lai.fullname = find(r, "fullname").as_string();
+    if (auto val = find_if(r, "fullname"))
+        lai.fullname = val->as_string();
 
     if (auto val = find_if(r, "line_asm_insn"))
     {

@@ -77,7 +77,7 @@ struct address_info
 {
     std::string file; ///<The name of the file the code was generated from
     std::size_t line; ///<The line in the file
-    std::string full_name; ///<The absolute path of the file
+    boost::optional<std::string> full_name; ///<The absolute path of the file
     boost::optional<std::string> function;  ///<The function this piece of code is part of
     boost::optional<std::uint64_t> offset; ///<The offset in the containing function, if available.
 };

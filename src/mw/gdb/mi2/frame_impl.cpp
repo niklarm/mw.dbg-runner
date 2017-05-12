@@ -443,7 +443,7 @@ boost::optional<mw::debug::address_info> frame_impl::addr2line(std::uint64_t add
                 mi2::disassemble_mode::mixed_source_and_disassembly_with_raw_opcodes_deprecated,
                 addr, addr+1);
 
-        if (dd.file.empty() && dd.fullname.empty() && !dd.line_asm_insn)
+        if (dd.file.empty() && (!dd.fullname || dd.fullname->empty()) && !dd.line_asm_insn)
             return boost::none;
 
         mw::debug::address_info ai;

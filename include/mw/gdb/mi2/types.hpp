@@ -498,7 +498,7 @@ struct src_and_asm_line
 {
     int line;
     std::string file;
-    std::string fullname;
+    boost::optional<std::string> fullname;
     boost::optional<std::vector<struct line_asm_insn>> line_asm_insn;
 };
 
