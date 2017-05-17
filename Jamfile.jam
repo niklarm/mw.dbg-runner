@@ -69,3 +69,6 @@ lib mw-exitcode        : mw-exitcode.cpp : <link>shared <library>/boost//system 
 
 alias dependency : mw-dbg-core mw-gdb-mi2 mw-dbg-runner mw-newlib-syscalls mw-exitcode ../example/mw_newlib_syscalls.c ;
 
+alias headers         : [ glob ../include/mw/debug/*.hpp ] ;
+alias headers-gdb     : [ glob ../include/mw/gdb/process.hpp ] ;
+alias headers-gdb-mi2 : [ glob ../include/mw/gdb/mi2/*.hpp ] ;

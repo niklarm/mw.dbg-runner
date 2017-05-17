@@ -5,10 +5,10 @@ This tool allows you to automatize running a debugger and add functionality thro
 
 ### Test results
 
-Branches        | Build         |
-----------------|-------------- | 
-Develop:        | [![Build Status](https://travis-ci.org/mw-sc/mw.dbg-runner.svg?branch=develop)](https://travis-ci.org/mw-sc/mw.dbg-runner) |
-Master:         | [![Build Status](https://travis-ci.org/mw-sc/mw.dbg-runner.svg?branch=master)](https://travis-ci.org/mw-sc/mw.dbg-runner)  |
+Branches        | Build        | Coverage Status |
+----------------|--------------|-----------------|
+Develop:        | [![Build Status](https://travis-ci.org/mw-sc/mw.dbg-runner.svg?branch=develop)](https://travis-ci.org/mw-sc/mw.dbg-runner) | [![Coverage Status](https://coveralls.io/repos/github/mw-sc/mw.dbg-runner/badge.svg?branch=develop)](https://coveralls.io/github/mw-sc/mw.dbg-runner?branch=develop) |
+Master:         | [![Build Status](https://travis-ci.org/mw-sc/mw.dbg-runner.svg?branch=master)](https://travis-ci.org/mw-sc/mw.dbg-runner)  | [![Coverage Status](https://coveralls.io/repos/github/mw-sc/mw.dbg-runner/badge.svg?branch=master)](https://coveralls.io/github/mw-sc/mw.dbg-runner?branch=master)   |
 
 [Open Issues](https://github.com/mw-sc/mw.dbg-runner/issues)
 
