@@ -64,7 +64,7 @@ after_success:
     - GCOV_VERSION="--gcov-tool gcov-6"
     - LCOV="$MW_TEST/dbg-runner/test/lcov_dir/bin/lcov $GCOV_VERSION --compat-libtool"
     - $LCOV --directory ./coverals --base-directory ./ --capture --output-file ./coverals/coverage.info
-    - $LCOV --remove ./coverals/coverage.info "$MW_TEST/dbg-runner/test/*" "*boost*" "/usr/*" "$MW_TEST/libs/*" "$MW_TEST/dbg-runner/*" -o ./coverals/coverage.info
+    - $LCOV --remove ./coverals/coverage.info "$MW_TEST/dbg-runner/test/*" "*boost*" "/usr/*" "$MW_TEST/libs/*" -o ./coverals/coverage.info
 
     # Sending data to Coveralls
     - gem install coveralls-lcov
