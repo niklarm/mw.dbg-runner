@@ -59,6 +59,8 @@ protected:
     std::string _remote;
     std::string _program;
 
+    std::vector<std::string> _init_scripts;
+
     int _pid = -1;
     std::vector<std::uint64_t> _thread_id;
     std::vector<std::string> _args;
@@ -72,6 +74,10 @@ protected:
     virtual void _run_impl(boost::asio::yield_context &yield) = 0;
 
 public:
+
+    void set_init_script(      std::vector<std::string> && init_scripts) {_init_scripts = std::move(init_scripts);}
+    void set_init_scripts(const std::vector<std::string> &  init_scripts) {_init_scripts = init_scripts;}
+
     bool running() {return _child.running();}
     void set_exit(int code)
     {

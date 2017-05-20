@@ -147,8 +147,12 @@ void process::_start(mi2::interpreter & interpreter)
 
     if (!_remote.empty())
         interpreter.target_select_remote(_remote);
-    else
+
+    if (_init_scripts.empty())
         interpreter.exec_run();
+
+    for (auto & init : _init_scripts)
+        interpreter.interpreter_exec("console", init);
 }
 
 void process::_handle_bps  (mi2::interpreter & interpreter)
