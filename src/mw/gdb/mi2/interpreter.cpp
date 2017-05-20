@@ -2591,7 +2591,7 @@ std::string interpreter::add_inferior()
 void interpreter::interpreter_exec(const std::string & interpreter, const std::string & command)
 {
     _in_buf = std::to_string(_token_gen) + "-interpreter-exec " + interpreter + " " + quote_if(command) + '\n';
-    _work(_token_gen++, result_class::done);
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output &){});
 }
 
 /// Set terminal for future runs of the program being debugged.
