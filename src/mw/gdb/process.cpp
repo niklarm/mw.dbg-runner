@@ -139,18 +139,16 @@ void process::_init_bps(mi2::interpreter & interpreter)
 
 void process::_start(mi2::interpreter & interpreter)
 {
+    if (!_program.empty()) //empty means it was not changed since starting
+        interpreter.file_exec_and_symbols(_program);
+
     if (!_args.empty())
         interpreter.exec_arguments(_args);
 
-    if (_remote.empty())
-    {
-        if (!_program.empty()) //empty means it was not changed since starting
-            interpreter.file_exec_and_symbols(_program);
-    }
-    else
+    if (!_remote.empty())
         interpreter.target_select_remote(_remote);
-
-    interpreter.exec_run();
+    else
+        interpreter.exec_run();
 }
 
 void process::_handle_bps  (mi2::interpreter & interpreter)

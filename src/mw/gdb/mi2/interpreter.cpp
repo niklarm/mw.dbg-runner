@@ -2590,7 +2590,7 @@ std::string interpreter::add_inferior()
 ///Execute the specified command in the given interpreter.
 void interpreter::interpreter_exec(const std::string & interpreter, const std::string & command)
 {
-    _in_buf = std::to_string(_token_gen) + "-interpreter-exec " + interpreter + " " + command + '\n';
+    _in_buf = std::to_string(_token_gen) + "-interpreter-exec " + interpreter + " " + quote_if(command) + '\n';
     _work(_token_gen++, result_class::done);
 }
 
