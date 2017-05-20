@@ -268,7 +268,7 @@ int main(int argc, char * argv[])
             fs::path fl = is;
             if (!fs::exists(is))
             {
-                fl = opt.my_path / fl;
+                fl = opt.my_path / "init-scripts" / fl;
                 if (!fs::exists(fl))
                 {
                     std::cerr << "init-script " << is << "not found" << std::endl;
