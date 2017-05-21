@@ -137,7 +137,7 @@ before `gdb` and will be terminated after `gdb` exits.
 In order to properly initialize a gdb-server such as `openocd` a initialization script can be provided. Several of those can be passed with `--init-script` and
 will be executed in that order. The dbg-server provides some builtins, currently one for the `openocd`. 
 
-[important If no init-script is provided the dbg-runner will just call `run` which might fail on some gdb-servers.]
+[important If no init-script is provided the dbg-runner will just call `run` for a local session and `continue` with a remote server.]
 
 [endsect]
 

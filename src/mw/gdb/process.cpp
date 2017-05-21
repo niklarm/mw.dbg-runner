@@ -148,8 +148,10 @@ void process::_init_bps(mi2::interpreter & interpreter)
 
 void process::_start(mi2::interpreter & interpreter)
 {
-    if (_init_scripts.empty())
+    if (_init_scripts.empty() && _remote.empty())
         interpreter.exec_run();
+    else if (_init_scripts.empty())
+        interpreter.exec_continue();
 
     for (auto & init : _init_scripts)
         interpreter.interpreter_exec("console", init);
