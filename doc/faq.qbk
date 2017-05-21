@@ -4,7 +4,7 @@
 Semihosting is a feature in many embedded development toolsets, that allows stubbing for the syscalls similar to what we described in a prior
 [link dbg-runner.plugins.newlib section].
 
-The main problem is that semihosting is provided by the gdb-server, e.g. openocd or st-link, and the console output will be written into the `stdout`/ `stderr` 
+The main problem is that semihosting is provided by the gdb-server, e.g. openocd or st-link, and the console output will can be written into the `stdout`/ `stderr` 
 of the server.
 The debug-runner does not capture that, to keep the logs seperate, thus semihosting output will not be received in the the gdb-output. In addition,
 out solution will run faster, because it uses a small buffer.
