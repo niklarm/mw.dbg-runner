@@ -677,15 +677,17 @@ template<> connection_notification parse_result(const std::vector<result> & r)
 {
     connection_notification cn;
 
-    cn.addr = my_stoull(find(r, "addr").as_string(), nullptr, 16);
-    cn.func = find(r, "func").as_string();
+    if (auto val = find_if(r, "addr")) cn.addr = my_stoull(val->as_string(), nullptr, 16);
+    if (auto val = find_if(r, "func")) cn.func = val->as_string();
 
-    auto v = find(r, "args").as_list().as_values();
+    if (auto val = find_if(r, "args"))
+    {
+        auto v = val->as_list().as_values();
 
-    cn.args.reserve(v.size());
-    for (auto & x : v)
-        cn.args.push_back(x.as_string());
-
+        cn.args.reserve(v.size());
+        for (auto & x : v)
+            cn.args.push_back(x.as_string());
+    }
     return cn;
 }
 

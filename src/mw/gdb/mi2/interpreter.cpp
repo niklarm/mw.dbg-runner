@@ -2315,8 +2315,8 @@ connection_notification interpreter::target_select(const std::string & type, con
                rc = std::move(rc_in);
            });
 
-    if (rc.class_ != result_class::done)
-       _throw_unexpected_result(result_class::done, rc);
+    if (rc.class_ != result_class::connected)
+       _throw_unexpected_result(result_class::connected, rc);
 
     return parse_result<connection_notification>(rc.results);
 }
@@ -2590,8 +2590,8 @@ std::string interpreter::add_inferior()
 ///Execute the specified command in the given interpreter.
 void interpreter::interpreter_exec(const std::string & interpreter, const std::string & command)
 {
-    _in_buf = std::to_string(_token_gen) + "-interpreter-exec " + interpreter + " " + command + '\n';
-    _work(_token_gen++, result_class::done);
+    _in_buf = std::to_string(_token_gen) + "-interpreter-exec " + interpreter + " " + quote_if(command) + '\n';
+    _work(_token_gen++, [&](const mw::gdb::mi2::result_output &){});
 }
 
 /// Set terminal for future runs of the program being debugged.

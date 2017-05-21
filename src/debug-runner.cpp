@@ -55,15 +55,19 @@ struct options_t
     vector<fs::path> dlls;
 
     string remote;
-    std::vector<boost::dll::shared_library> plugins;
+    vector<boost::dll::shared_library> plugins;
 
-    std::string source_folder;
+    vector<string> init_scripts;
+
+
+    string source_folder;
     po::options_description desc;
     po::variables_map vm;
 
     int time_out = -1;
 
     po::positional_options_description pos;
+
 
 
     static pair<string, string> at_option_parser(string const&s)
@@ -108,12 +112,15 @@ struct options_t
     void parse(int argc, char** argv)
     {
         my_binary = argv[0];
+        if (!fs::exists(my_binary))
+            my_binary = bp::search_path(my_binary);
+        
         my_path = my_binary.parent_path();
 
         using namespace boost::program_options;
 
         desc.add_options()
-           ("lib,B",         value<vector<fs::path>>(&dlls)->multitoken(), "break-point libraries")
+           ("lib,P",         value<vector<fs::path>>(&dlls)->multitoken(), "break-point libraries")
            ("response-file", value<string>(), "can be specified with '@name', too")
            ("config-file,C", value<string>(), "config file")
             ;
@@ -159,17 +166,18 @@ struct options_t
         vm.clear();
 
         desc.add_options()
-            ("help,H",      bool_switch(&help),                               "produce help message")
-            ("exe,E",       value<string>(&exe),                              "executable to run")
-            ("args,A",      value<vector<string>>(&args),                     "Arguments passed to the target")
-            ("dbg,G",       value<string>(&dbg)->default_value("gdb"),        "dbg command"  )
-            ("dbg-args,U",  value<vector<string>>(&dbg_args)->multitoken(),   "dbg arguments")
-            ("source-dir,S", value<string>(&source_folder),                   "directory to look for source source folder")
-            ("other,O",     value<vector<string>>(&other_cmds)->multitoken(), "other arguments")
-            ("timeout,T",   value<int>(&time_out),                            "time_out")
-            ("log,L",       value<string>(&log),                              "log file")
-            ("debug,D",     bool_switch(&debug),                              "output the log data to stderr")
-            ("remote,R",    value<string>(&remote),                           "Remote settings")
+            ("help,H",        bool_switch(&help),                                 "produce help message")
+            ("exe,E",         value<string>(&exe),                                "executable to run")
+            ("args,A",        value<vector<string>>(&args),                       "Arguments passed to the target")
+            ("dbg,G",         value<string>(&dbg)->default_value("gdb"),          "dbg command"  )
+            ("dbg-args,U",    value<vector<string>>(&dbg_args)->multitoken(),     "dbg arguments")
+            ("source-dir,S",  value<string>(&source_folder),                      "directory to look for source source folder")
+            ("other,O",       value<vector<string>>(&other_cmds)->multitoken(),   "other arguments")
+            ("timeout,T",     value<int>(&time_out),                              "time_out")
+            ("log,L",         value<string>(&log),                                "log file")
+            ("debug,D",       bool_switch(&debug),                                "output the log data to stderr")
+            ("remote,R",      value<string>(&remote),                             "Remote settings")
+            ("init-script,I", value<vector<string>>(&init_scripts)->multitoken(), "Init-Scripts for the debugger")
             ;
 
         pos.add("dbg", 1).add("exe", 1);
@@ -253,6 +261,36 @@ int main(int argc, char * argv[])
 
     if (!opt.remote.empty())
         proc.set_remote(opt.remote);
+
+    if (!opt.init_scripts.empty())
+    {
+        vector<string> init_script;
+
+        for (auto & is : opt.init_scripts)
+        {
+            fs::path fl = is;
+            if (!fs::exists(is))
+            {
+                fl = opt.my_path / "init-scripts" / fl;
+                if (!fs::exists(fl))
+                {
+                    std::cerr << "init-script " << is << " not found" << std::endl;
+                    return 1;
+                }
+            }
+
+            fs::ifstream fstr{fl};
+            std::string line;
+            while (fstr && std::getline(fstr, line))
+            {
+                boost::trim(line);
+                init_script.push_back(std::move(line));
+            }
+        }
+
+        proc.set_init_script(std::move(init_script));
+
+    }
 
     for (auto & lib : opt.plugins)
     {

@@ -18,6 +18,7 @@ addons:
     - gcc-6
     - g++-6
     - gdb
+    - valgrind
 before_script:
     - PROJECT_TO_TEST=`basename $TRAVIS_BUILD_DIR`
     - cd $HOME
@@ -51,4 +52,30 @@ before_script:
     - cp user-config.travis.jam user-config.jam
     - cd ./dbg-runner/test
 script:
-- $BOOST/b2 -sBOOST_ROOT=$BOOST define=MW_TRAVISCI_BUILD toolset=gcc-6 linkflags="-ldl -pthread" -sBOOST_BUILD_PATH=. -j4 address-model=$ADDRESS_MODEL
+- $BOOST/b2 -sBOOST_ROOT=$BOOST define=MW_TRAVISCI_BUILD toolset=gcc-6 linkflags="-ldl -pthread" -sBOOST_BUILD_PATH=. -j4 address-model=$ADDRESS_MODEL  testing.launcher=valgrind valgrind=on cxxflags=--coverage cflags=--coverage linkflags=--coverage 
+#for coverage, i.e. check what the other things libraries use.
+- cd $MW_TEST/backend/test
+- $BOOST/b2 -sBOOST_ROOT=$BOOST define=MW_TRAVISCI_BUILD toolset=gcc-6 linkflags="-ldl -pthread" -sBOOST_BUILD_PATH=. -j4 address-model=$ADDRESS_MODEL  testing.launcher=valgrind valgrind=on cxxflags=--coverage cflags=--coverage linkflags=--coverage || true
+- cd $MW_TEST/calltrace/test
+- $BOOST/b2 -sBOOST_ROOT=$BOOST define=MW_TRAVISCI_BUILD toolset=gcc-6 linkflags="-ldl -pthread" -sBOOST_BUILD_PATH=. -j4 address-model=$ADDRESS_MODEL  testing.launcher=valgrind valgrind=on cxxflags=--coverage cflags=--coverage linkflags=--coverage || true
+
+
+
+after_success:
+    # Copying Coveralls data to a separate folder
+    - cd $MW_TEST/dbg-runner/test
+    - mkdir -p ./coverals
+    - find ../../bin.mw/dbg-runner -name *.gcda -exec cp "{}" ./coverals/ \;
+    - find ../../bin.mw/dbg-runner -name *.gcno -exec cp "{}" ./coverals/ \;
+
+    # Preparing Coveralls data by changind data format to a readable one
+    - git clone https://github.com/linux-test-project/lcov.git lcov_dir
+    - GCOV_VERSION="--gcov-tool gcov-6"
+    - LCOV="$MW_TEST/dbg-runner/test/lcov_dir/bin/lcov $GCOV_VERSION --compat-libtool"
+    - $LCOV --directory ./coverals --base-directory ./ --capture --output-file ./coverals/coverage.info
+    - $LCOV --remove ./coverals/coverage.info "$MW_TEST/dbg-runner/test/*" "*boost*" "/usr/*" "$MW_TEST/libs/*" -o ./coverals/coverage.info
+
+    # Sending data to Coveralls
+    - gem install coveralls-lcov
+    # https://github.com/okkez/coveralls-lcov/issues/2
+    - coveralls-lcov  --source-encoding=ISO-8859-1 ./coverals/coverage.info
