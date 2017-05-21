@@ -222,7 +222,11 @@ struct mw_func_stub : break_point
         auto fd = std::stoi(fr.arg_list().at(3).value);
 
 #if defined (BOOST_WINDOWS_API)
+ #if defined (_WIN64)
         struct _stat64i32 st;
+ #else
+        struct _stat st;
+ #endif
 #else
         struct stat st;
 #endif
@@ -338,7 +342,11 @@ struct mw_func_stub : break_point
     {
         auto file = fr.arg_list().at(1).value;
 #if defined (BOOST_WINDOWS_API)
+ #if defined (_WIN64)
         struct _stat64i32 st;
+ #else
+        struct _stat st;
+ #endif
 #else
         struct stat st;
 #endif

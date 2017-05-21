@@ -1,16 +1,13 @@
 [section:faq Frequently Asked Questions]
 [section:semihosting Why not use semihosting?]
 
-Semihosting is a feature in many embedded development toolsets, that allows stubbing for the syscalls as we described in a prior [link dbg-runner.plugins.newlib section].
+Semihosting is a feature in many embedded development toolsets, that allows stubbing for the syscalls similar to what we described in a prior
+[link dbg-runner.plugins.newlib section].
 
-Our tool does call the debugger, but executes it completely automatically, so no input is required. That way it can be integrated into a CI-System.
-This tool also goes further than semihosting: it extendible and can be used with code that also works fine without the hosting environment. 
-Thereby the empty stubs can be left in the final code. 
-Additionally this system allows access to more information than just output without any code overhead, just through the debug-symbols.
-
-So even though it looks similar to ['semihosting] when used with the newlibs stubs, it works differently and provides more features.
-
-[*We have currently no test support for semihosting, but this will be added in the future.]
+The main problem is that semihosting is provided by the gdb-server, e.g. openocd or st-link, and the console output will can be written into the `stdout`/ `stderr` 
+of the server.
+The debug-runner does not capture that, to keep the logs seperate, thus semihosting output will not be received in the the gdb-output. In addition,
+out solution will run faster, because it uses a small buffer.
 
 For more information on semihosting see
  

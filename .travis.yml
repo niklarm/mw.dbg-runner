@@ -53,8 +53,17 @@ before_script:
     - cd ./dbg-runner/test
 script:
 - $BOOST/b2 -sBOOST_ROOT=$BOOST define=MW_TRAVISCI_BUILD toolset=gcc-6 linkflags="-ldl -pthread" -sBOOST_BUILD_PATH=. -j4 address-model=$ADDRESS_MODEL  testing.launcher=valgrind valgrind=on cxxflags=--coverage cflags=--coverage linkflags=--coverage 
+#for coverage, i.e. check what the other things libraries use.
+- cd $MW_TEST/backend/test
+- $BOOST/b2 -sBOOST_ROOT=$BOOST define=MW_TRAVISCI_BUILD toolset=gcc-6 linkflags="-ldl -pthread" -sBOOST_BUILD_PATH=. -j4 address-model=$ADDRESS_MODEL  testing.launcher=valgrind valgrind=on cxxflags=--coverage cflags=--coverage linkflags=--coverage || true
+- cd $MW_TEST/calltrace/test
+- $BOOST/b2 -sBOOST_ROOT=$BOOST define=MW_TRAVISCI_BUILD toolset=gcc-6 linkflags="-ldl -pthread" -sBOOST_BUILD_PATH=. -j4 address-model=$ADDRESS_MODEL  testing.launcher=valgrind valgrind=on cxxflags=--coverage cflags=--coverage linkflags=--coverage || true
+
+
+
 after_success:
     # Copying Coveralls data to a separate folder
+    - cd $MW_TEST/dbg-runner/test
     - mkdir -p ./coverals
     - find ../../bin.mw/dbg-runner -name *.gcda -exec cp "{}" ./coverals/ \;
     - find ../../bin.mw/dbg-runner -name *.gcno -exec cp "{}" ./coverals/ \;

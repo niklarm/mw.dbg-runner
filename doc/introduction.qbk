@@ -27,7 +27,7 @@ As an example[footnote The `^` is a linebreak in the command], we take a given a
 [teletype]
 ```
 mw-gdb-runner --gdb=arm-none-eabi-gdb --exe=arm-test.elf --lib mw-newlib-syscalls mw-exitcode ^
-    --remote localhost:3333 --other "openocd -f interface/stlink-v2.cfg -f target/stm32f4x.cfg -c init"
+    --remote localhost:3333 --init-script openocd --other "openocd -f interface/stlink-v2.cfg -f target/stm32f4x.cfg -c init"
 ```
 
 

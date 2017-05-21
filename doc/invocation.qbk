@@ -17,12 +17,13 @@ Here's an overview of all parameters:
 [[`--exe`     ] [`E`] [The binary to run [*(required)]] [single string]  [['none]]]
 [[`--args`    ] [`A`] [Args to pass to the process ] [multiple strings] [['none]]]
 [[`--log`     ] [`L`] [Generate the logfile] [single string] [['none]]]
-[[`--lib`     ] [`B`] [Breakpoint plugins] [multiple strings] [['none]]]
+[[`--lib`     ] [`P`] [Breakpoint plugins] [multiple strings] [['none]]]
 [[`--remote`  ] [`R`] [Remote address of gdb-server] [single string] [['none]]]
 [[`--other`   ] [`O`] [Other processes to launch, i.e. gdb-server] [multiple strings] [['none]]]
 [[`--debug`   ] [`D`] [Enable the debug log, i.e. put the whole gdb-communication into the console ] [bool switch] [['disabled]]]
 [[`--timeout` ] [`T`] [Communication Timeout [s]] [single int] [`10`]]
 [[`--source-dir'] [`S`] [Folder to look for sources] [path] [['none]]]
+[[`--init-script'] [`I`] [The init script(s) for the debugger initialization] [multiple paths] [['none]]]
 [[[#dbg-runner.invocation.help]     `--help`   ] [`H`] [List all parameters, including those of plugins, then do nothing] [bool switch] [['disabled]]]
 ]
 
@@ -128,6 +129,15 @@ In order to simplify launching of gdb servers like `openocd`, they can be passed
 before `gdb` and will be terminated after `gdb` exits.
 
     mw-dbg-runner --exe=test.exe --other "process1 --option" "process2 --option"
+
+[endsect]
+
+[section:init-scripts Initialization Scripts]
+
+In order to properly initialize a gdb-server such as `openocd` a initialization script can be provided. Several of those can be passed with `--init-script` and
+will be executed in that order. The dbg-server provides some builtins, currently one for the `openocd`. 
+
+[important If no init-script is provided the dbg-runner will just call `run` for a local session and `continue` with a remote server.]
 
 [endsect]
 
