@@ -112,6 +112,9 @@ struct options_t
     void parse(int argc, char** argv)
     {
         my_binary = argv[0];
+        if (!fs::exists(my_binary))
+            my_binary = bp::search_path(my_binary);
+        
         my_path = my_binary.parent_path();
 
         using namespace boost::program_options;
@@ -271,7 +274,7 @@ int main(int argc, char * argv[])
                 fl = opt.my_path / "init-scripts" / fl;
                 if (!fs::exists(fl))
                 {
-                    std::cerr << "init-script " << is << "not found" << std::endl;
+                    std::cerr << "init-script " << is << " not found" << std::endl;
                     return 1;
                 }
             }

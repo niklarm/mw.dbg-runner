@@ -55,17 +55,26 @@ void process::_run_impl(boost::asio::yield_context &yield_)
     using namespace boost::asio;
     _read_info(interpreter);
 
+    if (!_program.empty()) //empty means it was not changed since starting
+        interpreter.file_exec_and_symbols(_program);
+
+    if (!_args.empty())
+        interpreter.exec_arguments(_args);
+
+    if (!_remote.empty())
+        interpreter.target_select_remote(_remote);
+
     _init_bps(interpreter);
-   _start(interpreter);
+    _start(interpreter);
 
 
-   _handle_bps(interpreter);
+    _handle_bps(interpreter);
 
-   _set_timer();
+    _set_timer();
 
-   interpreter.gdb_exit();
-   if (_enable_debug)
-       cout << "quit\n\n";
+    interpreter.gdb_exit();
+    if (_enable_debug)
+        cout << "quit\n\n";
 
 }
 
@@ -139,15 +148,6 @@ void process::_init_bps(mi2::interpreter & interpreter)
 
 void process::_start(mi2::interpreter & interpreter)
 {
-    if (!_program.empty()) //empty means it was not changed since starting
-        interpreter.file_exec_and_symbols(_program);
-
-    if (!_args.empty())
-        interpreter.exec_arguments(_args);
-
-    if (!_remote.empty())
-        interpreter.target_select_remote(_remote);
-
     if (_init_scripts.empty())
         interpreter.exec_run();
 
