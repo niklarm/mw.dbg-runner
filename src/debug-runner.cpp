@@ -48,6 +48,7 @@ struct options_t
     string dbg;
     string exe;
     string log;
+    string other_logs;
     string log_level;
     vector<string> args;
     vector<string> dbg_args;
@@ -173,7 +174,8 @@ struct options_t
             ("dbg,G",         value<string>(&dbg)->default_value("gdb"),          "dbg command"  )
             ("dbg-args,U",    value<vector<string>>(&dbg_args)->multitoken(),     "dbg arguments")
             ("source-dir,S",  value<string>(&source_folder),                      "directory to look for source source folder")
-            ("other,O",       value<vector<string>>(&other_cmds)->multitoken(),   "other arguments")
+            ("other,O",       value<vector<string>>(&other_cmds)->multitoken(),   "other processes")
+            ("other-log,F",   value<string>(&other_logs),                         "log folder for other processes")
             ("timeout,T",     value<int>(&time_out),                              "time_out")
             ("log,L",         value<string>(&log),                                "log file")
             ("debug,D",       bool_switch(&debug),                                "output the interaction with the debugger into the log.")
@@ -221,28 +223,45 @@ int main(int argc, char * argv[])
 
     {
         int cnt = 0;
-        for (auto & o : opt.other_cmds)
+        if (!opt.other_logs.empty())
         {
-            auto idx = o.find(' ');
-            std::string log;
-            if (idx == std::string::npos)
-                log = o;
-            else
-                log = o.substr(0, idx);
-
-            boost::algorithm::replace_all(log, "/", "~");
-            boost::algorithm::replace_all(log, "\\", "~");
-            log += "_" + std::to_string(cnt++);
-            try
+            for (auto & o : opt.other_cmds)
             {
-                other.emplace_back(o, bp::std_in < bp::null, bp::std_out > log, bp::std_err > log, other_group);
-            }
-            catch (boost::process::process_error & pe)
-            {
-                std::cerr << "Error launching other process'" << o << "' , " << pe.what() << std::endl;
-                return 1;
-            }
+                auto idx = o.find(' ');
+                std::string log = opt.other_logs;
+                if (idx == std::string::npos)
+                    log += o;
+                else
+                    log += o.substr(0, idx);
 
+                boost::algorithm::replace_all(log, "/", "~");
+                boost::algorithm::replace_all(log, "\\", "~");
+                log += "_" + std::to_string(cnt++);
+                try
+                {
+                    other.emplace_back(o, bp::std_in < bp::null, bp::std_out > log, bp::std_err > log, other_group);
+                }
+                catch (boost::process::process_error & pe)
+                {
+                    std::cerr << "Error launching other process'" << o << "' , " << pe.what() << std::endl;
+                    return 1;
+                }
+            }
+        }
+        else
+        {
+            for (auto & o : opt.other_cmds)
+            {
+                try
+                {
+                    other.emplace_back(o, bp::std_in < bp::null, bp::std_out > bp::null, bp::std_err > bp::null, other_group);
+                }
+                catch (boost::process::process_error & pe)
+                {
+                    std::cerr << "Error launching other process'" << o << "' , " << pe.what() << std::endl;
+                    return 1;
+                }
+            }
         }
     }
 
