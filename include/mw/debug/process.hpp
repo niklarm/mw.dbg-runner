@@ -104,7 +104,15 @@ public:
     process(const boost::filesystem::path & gdb, const std::string & exe, const std::vector<std::string> & args);
     virtual ~process() = default;
     int exit_code() {return _exit_code;}
-    void set_log(const std::string & name) {_log.open(name); }
+    void set_log(const std::string & name)
+    {
+        if (name == "stderr")
+            _log.std::ostream::rdbuf(std::cerr.rdbuf());
+        else if (name == "stdout")
+            _log.std::ostream::rdbuf(std::cout.rdbuf());
+        else
+            _log.open(name);
+    }
     void set_timeout(int value) {_time_out = value;}
     void add_break_point(std::unique_ptr<break_point> && ptr) { _break_points.push_back(std::move(ptr)); }
     void add_break_points(std::vector<std::unique_ptr<break_point>> && ptrs)

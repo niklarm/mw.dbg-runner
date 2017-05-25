@@ -46,6 +46,7 @@ void process::_set_timer()
                         _child.terminate();
                     _io_service.stop();
                     _log << "...Timeout..." << endl;
+                    _exit_code = 1;
                 });
     }
 }
