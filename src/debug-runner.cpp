@@ -114,11 +114,16 @@ struct options_t
     {
         my_binary = argv[0];
 
+#if defined(BOOST_WINDOWS_API)
+        //we assume it's an exe on windows.
+        if (my_binary.extension().empty())
+            my_binary += ".exe";
+#endif    
+        
         if (!fs::exists(my_binary))
             my_binary = bp::search_path(my_binary);
         
         my_path = my_binary.parent_path();
-
         using namespace boost::program_options;
 
         desc.add_options()
@@ -264,8 +269,13 @@ int main(int argc, char * argv[])
             }
         }
     }
-
     fs::path dbg = opt.dbg;
+#if defined(BOOST_WINDOWS_API)
+    //we assume it's an exe on windows.
+    if (dbg.extension().empty())
+        dbg += ".exe";
+#endif    
+
     if ((opt.vm.count("dbg") == 0))
         dbg = bp::search_path("gdb");
     else if (!fs::exists(dbg) && !fs::exists(dbg = bp::search_path(opt.dbg)))
