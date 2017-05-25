@@ -232,7 +232,16 @@ int main(int argc, char * argv[])
             boost::algorithm::replace_all(log, "/", "~");
             boost::algorithm::replace_all(log, "\\", "~");
             log += "_" + std::to_string(cnt++);
-            other.emplace_back(o, bp::std_in < bp::null, bp::std_out > log, bp::std_err > log, other_group);
+            try
+            {
+                other.emplace_back(o, bp::std_in < bp::null, bp::std_out > log, bp::std_err > log, other_group);
+            }
+            catch (boost::process::process_error & pe)
+            {
+                std::cerr << "Error launching other process'" << o << "' , " << pe.what() << std::endl;
+                return 1;
+            }
+
         }
     }
 
