@@ -52,6 +52,9 @@ void process::_run_impl(boost::asio::yield_context &yield_)
 {
     mi2::interpreter interpreter{_out, _in, yield_, _log};
 
+    if (_enable_debug)
+        interpreter.enable_debug();
+
     using namespace boost::asio;
     _read_info(interpreter);
 

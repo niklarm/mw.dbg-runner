@@ -112,6 +112,7 @@ struct options_t
     void parse(int argc, char** argv)
     {
         my_binary = argv[0];
+
         if (!fs::exists(my_binary))
             my_binary = bp::search_path(my_binary);
         
@@ -175,7 +176,7 @@ struct options_t
             ("other,O",       value<vector<string>>(&other_cmds)->multitoken(),   "other arguments")
             ("timeout,T",     value<int>(&time_out),                              "time_out")
             ("log,L",         value<string>(&log),                                "log file")
-            ("debug,D",       bool_switch(&debug),                                "output the log data to stderr")
+            ("debug,D",       bool_switch(&debug),                                "output the interaction with the debugger into the log.")
             ("remote,R",      value<string>(&remote),                             "Remote settings")
             ("init-script,I", value<vector<string>>(&init_scripts)->multitoken(), "Init-Scripts for the debugger")
             ;

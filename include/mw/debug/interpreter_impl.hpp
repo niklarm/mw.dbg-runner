@@ -44,7 +44,10 @@ protected:
     boost::asio::yield_context & _yield;
 
     std::ostream &_fwd;
+    bool _debug = false;
 public:
+    void enable_debug() {_debug = true;}
+
     interpreter_impl(boost::process::async_pipe & out,
                 boost::process::async_pipe & in,
                 boost::asio::yield_context & yield_,

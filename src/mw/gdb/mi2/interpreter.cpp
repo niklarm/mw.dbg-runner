@@ -60,7 +60,11 @@ template<typename ...Args>
 void interpreter::_work_impl(Args&&...args)
 {
     if (!_in_buf.empty())
+    {
         asio::async_write(_in, asio::buffer(_in_buf), _yield);
+        if (_debug)
+            _fwd << _in_buf;
+    }
     try {
         asio::async_read_until(_out, _out_buf, "(gdb)", _yield);
     }
@@ -79,6 +83,8 @@ void interpreter::_work_impl(Args&&...args)
     try {
         while (std::getline(out_str, line) && !boost::starts_with(line, "(gdb)"))
         {
+            if (_debug)
+                _fwd << line << std::endl;
             if (auto data = parse_stream_output(line))
             {
                 _handle_stream_output(*data);
@@ -104,7 +110,7 @@ void interpreter::_work_impl(Args&&...args)
                 received_record = true;
                 continue;
             }
-            else
+            else if (!_debug)
                 _fwd << line << '\n';
         }
 
