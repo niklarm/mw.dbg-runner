@@ -50,7 +50,6 @@ class process : public mw::debug::process
     void _run_impl(boost::asio::yield_context &yield) override;
 
     void _read_header(mi2::interpreter & interpreter);
-    void _set_timer();
     void _set_breakpoint(break_point & p, mi2::interpreter & interpreter, const std::regex & rx);
     void _handle_breakpoint(mi2::interpreter & interpreter, const std::vector<std::string> & buf, std::smatch & sm);
     void _err_read_handler(const boost::system::error_code & ec);
@@ -70,6 +69,8 @@ class process : public mw::debug::process
     void _handle_bps  (mi2::interpreter & interpreter);
 
 public:
+    void reset_timer();
+
     const std::map<int, break_point*> & break_point_map() const {return _break_point_map;}
 
     process(const boost::filesystem::path & gdb, const std::string & exe, const std::vector<std::string> & args = {});
