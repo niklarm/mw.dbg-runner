@@ -155,16 +155,34 @@ template<> frame parse_result(const std::vector<result> &r)
     if (auto val = find_if(r, "from")) f.from = val->as_string();
     if (auto val = find_if(r, "args"))
     {
-        auto vec = val->as_list().as_values();
-        std::vector<arg> args;
-        args.resize(vec.size());
-        std::transform(vec.begin(), vec.end(), args.begin(),
-                    [](const value & rc) -> arg
-                    {
-                        return {find(rc.as_tuple(), "name"). as_string(),
-                                find(rc.as_tuple(), "value").as_string()};
-                    });
-        f.args = std::move(args);
+        auto & l = val->as_list();
+        if (l.type() == boost::typeindex::type_id<std::vector<value>>())
+        {
+            auto vec = l.as_values();
+            std::vector<arg> args;
+            args.resize(vec.size());
+            std::transform(vec.begin(), vec.end(), args.begin(),
+                        [](const value & rc) -> arg
+                        {
+                            return {find(rc.as_tuple(), "name"). as_string(),
+                                    find(rc.as_tuple(), "value").as_string()};
+                        });
+            f.args = std::move(args);
+        }
+        else //if no value is given.
+        {
+            auto vec = l.as_results();
+            std::vector<arg> args;
+            args.resize(vec.size());
+
+            std::transform(vec.begin(), vec.end(), args.begin(),
+                        [](const result & rc) -> arg
+                        {
+                            return {rc.value_.as_string(), {}};
+                        });
+
+            f.args = std::move(args);
+        }
     }
 
     return f;
