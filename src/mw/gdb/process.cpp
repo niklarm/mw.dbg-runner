@@ -73,7 +73,7 @@ void process::_run_impl(boost::asio::yield_context &yield_)
 
     _handle_bps(interpreter);
 
-    _set_timer();
+    reset_timer();
 
     interpreter.gdb_exit();
     if (_enable_debug)
@@ -211,6 +211,7 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
                 if (itr != args_in.end())
                 {
                     auto arg = mi2::parse_var(interpreter, itr->name, itr->value);
+                    this->reset_timer();
 
                     as.ref     = arg.ref;
                     as.value   = arg.value;
@@ -255,7 +256,7 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
 }
 
 
-void process::_set_timer()
+void process::reset_timer()
 {
     if (_time_out > 0)
     {
@@ -275,13 +276,13 @@ void process::_set_timer()
 
 void process::run()
 {
-    _set_timer();
+    reset_timer();
     if (!_child.running())
     {
         _log << "Gdb not running" << endl;
         _terminate();
     }
-    _set_timer();
+    reset_timer();
     _log << "Starting run" << endl << endl;
 
     boost::asio::spawn(_io_service, [this](boost::asio::yield_context yield){_run_impl(yield);});

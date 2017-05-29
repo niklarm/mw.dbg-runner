@@ -116,7 +116,7 @@ static void flush_write()
 
 static int _buffered_write(int file, char* ptr, int len __attribute__((unused)))
 {
-    if ((file != write_fd) || (write_pos == MW_GCOV_BUFFER_SIZE))
+    if ((file != write_fd) || (write_pos == MW_GCOV_BUFFER_SIZE) || (*ptr == '\n') || (*ptr == '\r'))
     {
         flush_write();
         write_fd = file;

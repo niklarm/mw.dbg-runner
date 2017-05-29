@@ -197,11 +197,13 @@ std::unordered_map<std::string, std::uint64_t> frame_impl::regs()
 void frame_impl::set(const std::string &var, const std::string & val)
 {
     _interpreter.data_evaluate_expression('"' + var + " = " + val + '"');
+    proc.reset_timer();
 }
 
 void frame_impl::set(const std::string &var, std::size_t idx, const std::string & val)
 {
     _interpreter.data_evaluate_expression('"' + var + "[" + std::to_string(idx) + "] = " + val + '"');
+    proc.reset_timer();
 }
 
 boost::optional<mw::debug::var> frame_impl::call(const std::string & cl)
@@ -209,6 +211,8 @@ boost::optional<mw::debug::var> frame_impl::call(const std::string & cl)
     auto val = _interpreter.data_evaluate_expression(cl);
     if (val == "void")
         return boost::none;
+
+    proc.reset_timer();
 
     mw::debug::var vr;
 
@@ -224,6 +228,7 @@ boost::optional<mw::debug::var> frame_impl::call(const std::string & cl)
         return vr;
 
     vr.value = val;
+
     return vr;
 }
 
@@ -231,6 +236,8 @@ std::size_t frame_impl::get_size(const std::string pt)
 {
     //ok, we need to check if it's a variable first
     std::string size_st = _interpreter.data_evaluate_expression("sizeof(" + pt + ")");
+    proc.reset_timer();
+
     try {
         return std::stoull(size_st);
 
@@ -243,6 +250,7 @@ std::size_t frame_impl::get_size(const std::string pt)
     {
         BOOST_THROW_EXCEPTION(parser_error("stoull[sizeof(" + pt + ")] - out of range '" + size_st + "'"));
     }
+
     return 0u;
 }
 
@@ -290,6 +298,8 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
             ref_val.value.push_back(bit_to_str(v, 1));
             ref_val.value.push_back(bit_to_str(v, 0));
         }
+        proc.reset_timer();
+
         return ref_val;
     }
 
@@ -386,6 +396,7 @@ mw::debug::var parse_var(interpreter & interpreter_,  const std::string & id, st
     {
         ref_val.ref = ref_value;
         val = interpreter_.data_evaluate_expression("&*" + id); //to remove the @
+
     }
 
     if (pegtl::parse<parser::value_ref, parser::action>(mi, ref_val))
@@ -398,6 +409,7 @@ mw::debug::var parse_var(interpreter & interpreter_,  const std::string & id, st
 void frame_impl::return_(const std::string & value)
 {
     _interpreter.exec_return(value);
+    proc.reset_timer();
 }
 
 void frame_impl::set_exit(int code)
@@ -408,11 +420,13 @@ void frame_impl::set_exit(int code)
 void frame_impl::select(int frame)
 {
     _interpreter.stack_select_frame(frame);
+    proc.reset_timer();
 }
 
 std::vector<mw::debug::backtrace_elem> frame_impl::backtrace()
 {
     auto bt = _interpreter.stack_list_frames();
+    proc.reset_timer();
 
     std::vector<mw::debug::backtrace_elem> ret;
     ret.reserve(bt.size());
@@ -442,6 +456,8 @@ boost::optional<mw::debug::address_info> frame_impl::addr2line(std::uint64_t add
         auto dd = _interpreter.data_disassemble(
                 mi2::disassemble_mode::mixed_source_and_disassembly_with_raw_opcodes_deprecated,
                 addr, addr+1);
+
+        proc.reset_timer();
 
         if (dd.file.empty() && (!dd.fullname || dd.fullname->empty()) && !dd.line_asm_insn)
             return boost::none;
@@ -488,6 +504,7 @@ void frame_impl::disable(const mw::debug::break_point & bp)
 
     int num = itr->first;
     _interpreter.break_disable(num);
+    proc.reset_timer();
 }
 
 void frame_impl::enable (const mw::debug::break_point & bp)
@@ -500,7 +517,7 @@ void frame_impl::enable (const mw::debug::break_point & bp)
 
     int num = itr->first;
     _interpreter.break_enable(num);
-
+    proc.reset_timer();
 }
 
 
