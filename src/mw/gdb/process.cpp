@@ -211,6 +211,8 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
 
         _break_point_map[num]->invoke(fi, file, line);
 
+        if (_exited) //manual exit, as set by _exit breakpoint
+            return;
         interpreter.exec_continue();
 
         val = interpreter.wait_for_stop();
