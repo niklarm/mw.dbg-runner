@@ -181,7 +181,7 @@ struct options_t
             ("source-dir,S",  value<string>(&source_folder),                      "directory to look for source source folder")
             ("other,O",       value<vector<string>>(&other_cmds)->multitoken(),   "other processes")
             ("other-log,F",   value<string>(&other_logs),                         "log folder for other processes")
-            ("timeout,T",     value<int>(&time_out),                              "time_out")
+            ("timeout,T",     value<int>(&time_out)->default_value(10),           "time_out")
             ("log,L",         value<string>(&log),                                "log file")
             ("debug,D",       bool_switch(&debug),                                "output the interaction with the debugger into the log.")
             ("remote,R",      value<string>(&remote),                             "Remote settings")
@@ -351,6 +351,7 @@ int main(int argc, char * argv[])
         return 1;
     }
 
+    proc.set_timeout(opt.time_out);
     proc.run();
 
     proc.log() << "Exited with code: " << proc.exit_code() << endl;
