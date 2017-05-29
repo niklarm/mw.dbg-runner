@@ -77,7 +77,7 @@ void process::_run_impl(boost::asio::yield_context &yield_)
 
     interpreter.gdb_exit();
     if (_enable_debug)
-        cout << "quit\n\n";
+        _log << "quit\n\n";
 
 }
 
