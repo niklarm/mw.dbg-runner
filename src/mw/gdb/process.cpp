@@ -183,20 +183,45 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
 
         if (frame.args)
         {
-            auto & a = *frame.args;
-            args.reserve(a.size());
-            for (auto & aa : a)
+            std::vector<std::string> arg_names;
             {
-                auto arg = mi2::parse_var(interpreter, aa.name, aa.value);
+                //alright, the gdb can add more arguments as @entry, so we ought to read the proper argument list first.
+                auto arg_names_frames = interpreter.stack_list_arguments(mi2::print_values::no_values, std::pair<std::size_t, std::size_t>{0,0});
+                auto args = arg_names_frames.at(0).args;
+
+                if (args)
+                {
+                    arg_names.reserve(args->size());
+                    for (auto & a : *args)
+                        arg_names.push_back(a.name);
+                }
+
+            }
+
+            args.reserve(arg_names.size());
+
+            auto & args_in = *frame.args;
+
+            for (auto & a : arg_names)
+            {
+                auto itr = std::find_if(args_in.begin(), args_in.end(), [&a](auto & val){return val.name == a;});
 
                 mw::debug::arg as;
-                as.ref     = arg.ref;
-                as.value   = arg.value;
-                as.cstring = arg.cstring;
-                as.id      = aa.name;
 
-                args.push_back(as);
+                if (itr != args_in.end())
+                {
+                    auto arg = mi2::parse_var(interpreter, itr->name, itr->value);
+
+                    as.ref     = arg.ref;
+                    as.value   = arg.value;
+                    as.cstring = arg.cstring;
+                    as.id      = itr->name;
+                }
+                args.push_back(std::move(as));
+
             }
+
+
 
         }
         mi2::frame_impl fi{std::move(id), std::move(args), *this, interpreter, _log};
