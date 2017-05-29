@@ -69,7 +69,6 @@ class process : public mw::debug::process
     void _start_local (mi2::interpreter & interpreter);
     void _handle_bps  (mi2::interpreter & interpreter);
 
-    bool _exited = false;
 public:
     const std::map<int, break_point*> & break_point_map() const {return _break_point_map;}
 
