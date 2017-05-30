@@ -453,9 +453,23 @@ boost::optional<mw::debug::address_info> frame_impl::addr2line(std::uint64_t add
 {
     try
     {
-        auto dd = _interpreter.data_disassemble(
+        src_and_asm_line dd;
+
+        try {
+            dd = _interpreter.data_disassemble(
+                mi2::disassemble_mode::mixed_source_and_disassembly_with_raw_opcodes,
+                addr, addr+1);
+        }
+        catch (mi2::interpreter_error & )
+        {
+            //might be necessary for some gdb
+            dd = _interpreter.data_disassemble(
                 mi2::disassemble_mode::mixed_source_and_disassembly_with_raw_opcodes_deprecated,
                 addr, addr+1);
+
+        }
+
+
 
         proc.reset_timer();
 
@@ -484,12 +498,12 @@ boost::optional<mw::debug::address_info> frame_impl::addr2line(std::uint64_t add
             }
         }
         else
-            std::cout << "no line_asm_isns" << std::endl;
+            _log << "no line_asm_isns" << std::endl;
         return ai;
     }
     catch (interpreter_error & ie)
     {
-        std::cout << "Exception [" << typeid(ie).name() << "]: " << ie.what() << std::endl;
+        _log << "Exception [" << typeid(ie).name() << "]: " << ie.what() << std::endl;
         return boost::none;
     }
 }
