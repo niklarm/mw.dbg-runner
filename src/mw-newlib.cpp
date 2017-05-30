@@ -324,12 +324,11 @@ struct mw_func_stub : break_point
         auto fd  = std::stoi(fr.arg_list().at(3).value);
         auto len = std::stoi(fr.arg_list().at(4).value);
         auto ptr = std::stoull(fr.arg_list(6).value, nullptr, 16);
-
         std::vector<std::uint8_t> buf(len, static_cast<char>(0));
 
         auto ret = call(read, fd, buf.data(), len);
-
-        fr.write_memory(ptr, buf);
+        if (len > 0) //zero can only check if it's open.
+            fr.write_memory(ptr, buf);
 
         fr.log() << "***mw_newlib*** Log: Invoking read(" << fd << ", ***local pointer***, " << len << ") -> " << ret << std::endl;
         fr.return_(std::to_string(ret));
@@ -409,7 +408,7 @@ struct mw_func_stub : break_point
         auto fd  = std::stoi(fr.arg_list().at(3).value);
         auto len = std::stoi(fr.arg_list().at(4).value);
         auto ptr = std::stoull(fr.arg_list(6).value, nullptr, 16);
-
+    
         auto data = fr.read_memory(ptr, len);
         auto ret = call(write, fd, data.data(), len);
 
