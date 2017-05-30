@@ -163,6 +163,9 @@ void process::_start(mi2::interpreter & interpreter)
 void process::_handle_bps  (mi2::interpreter & interpreter)
 {
     auto val = interpreter.wait_for_stop();
+
+    std::unordered_map<std::uint64_t, std::vector<std::string>> arg_name_map;
+
     while(val.reason != "exited")
     {
         reset_timer();
@@ -181,10 +184,11 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
             id = *frame.func;
 
         std::vector<mw::debug::arg> args;
-
         if (frame.args)
         {
             std::vector<std::string> arg_names;
+
+            if (!frame.addr || (arg_name_map.count(*frame.addr) == 0))
             {
                 //alright, the gdb can add more arguments as @entry, so we ought to read the proper argument list first.
                 auto arg_names_frames = interpreter.stack_list_arguments(mi2::print_values::no_values, std::pair<std::size_t, std::size_t>{0,0});
@@ -196,8 +200,11 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
                     for (auto & a : *args)
                         arg_names.push_back(a.name);
                 }
-
+                if (frame.addr)
+                    arg_name_map[*frame.addr] = arg_names;
             }
+            else
+                arg_names = arg_name_map[*frame.addr];
 
             args.reserve(arg_names.size());
 
