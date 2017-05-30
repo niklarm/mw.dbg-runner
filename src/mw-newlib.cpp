@@ -323,18 +323,15 @@ struct mw_func_stub : break_point
     {
         auto fd  = std::stoi(fr.arg_list().at(3).value);
         auto len = std::stoi(fr.arg_list().at(4).value);
-        auto ptr_id = fr.arg_list().at(6).id;
+        auto ptr = std::stoull(fr.arg_list(6).value, nullptr, 16);
 
-        std::vector<char> buf(len, static_cast<char>(0));
+        std::vector<std::uint8_t> buf(len, static_cast<char>(0));
 
         auto ret = call(read, fd, buf.data(), len);
 
-        for (int i = 0; i<ret; i++)
-            fr.set(ptr_id, i, std::to_string(buf[i]));
+        fr.write_memory(ptr, buf);
 
         fr.log() << "***mw_newlib*** Log: Invoking read(" << fd << ", ***local pointer***, " << len << ") -> " << ret << std::endl;
-
-
         fr.return_(std::to_string(ret));
     }
 
@@ -411,14 +408,9 @@ struct mw_func_stub : break_point
     {
         auto fd  = std::stoi(fr.arg_list().at(3).value);
         auto len = std::stoi(fr.arg_list().at(4).value);
-        auto ptr_id = fr.arg_list().at(6).id;
+        auto ptr = std::stoull(fr.arg_list(6).value, nullptr, 16);
 
-        std::vector<char> data(len, static_cast<char>(0));
-        for (int i = 0u; i<len; i++)
-        {
-            auto val = fr.print(ptr_id + '[' + std::to_string(i) + ']');
-            data[i] = std::stoi(val.value);
-        }
+        auto data = fr.read_memory(ptr, len);
         auto ret = call(write, fd, data.data(), len);
 
         fr.log() << "***mw_newlib*** Log: Invoking write(" << fd << ", ***local pointer***, " << len << ") -> " << ret << std::endl;

@@ -49,6 +49,10 @@ struct frame_impl : mw::debug::frame
     void disable(const mw::debug::break_point & bp) override;
     void enable (const mw::debug::break_point & bp) override;
 
+    std::vector<std::uint8_t> read_memory(std::uint64_t addr, std::size_t size) override;
+    void write_memory(std::uint64_t addr, const std::vector<std::uint8_t> &vec) override;
+
+
     std::ostream & log() override { return _log; }
 
     mw::debug::interpreter & interpreter() override {return _interpreter; }

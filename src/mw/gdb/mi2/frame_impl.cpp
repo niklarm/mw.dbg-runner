@@ -520,6 +520,29 @@ void frame_impl::enable (const mw::debug::break_point & bp)
     proc.reset_timer();
 }
 
+std::vector<std::uint8_t> frame_impl::read_memory(std::uint64_t addr, std::size_t size)
+{
+    auto data = _interpreter.data_read_memory_bytes(std::to_string(addr), size);
+
+    std::vector<std::uint8_t> vec;
+
+    for (auto & d : data)
+    {
+        auto size = d.offset + d.contents.size();
+        vec.resize(size);
+
+        std::copy(d.contents.begin(), d.contents.end(), vec.begin() + d.offset);
+    }
+
+    return vec;
+}
+
+void frame_impl::write_memory(std::uint64_t addr, const std::vector<std::uint8_t> &vec)
+{
+    _interpreter.data_write_memory_bytes(std::to_string(addr), vec);
+}
+
+
 
 }}}
 

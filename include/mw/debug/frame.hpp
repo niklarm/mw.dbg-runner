@@ -196,6 +196,10 @@ struct frame
     virtual void disable(const break_point & bp) = 0;
     ///Reenable a breakpoint
     virtual void enable(const break_point & bp) = 0;
+    ///Read a chunk of memory
+    virtual std::vector<std::uint8_t> read_memory(std::uint64_t addr, std::size_t size) = 0;
+    ///Write a chunk of memory
+    virtual void write_memory(std::uint64_t addr, const std::vector<std::uint8_t> &vec) = 0;
 protected:
 #if !defined(MW_GDB_DOXYGEN)
     frame(std::string && id, std::vector<arg> && args)
