@@ -84,7 +84,7 @@ void interpreter::_work_impl(Args&&...args)
         while (std::getline(out_str, line) && !boost::starts_with(line, "(gdb)"))
         {
             if (_debug)
-                _fwd << line << std::endl;
+                _fwd << line ;
             if (auto data = parse_stream_output(line))
             {
                 _handle_stream_output(*data);
