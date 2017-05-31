@@ -268,39 +268,44 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
 
     if (bitwise && !is_var(pt))
     {
-        auto size = get_size(pt);
-        auto addr = _interpreter.data_evaluate_expression("&" + pt);
-        //addr might be inside ""
-        auto idx = addr.find(' ');
-        if (idx != std::string::npos)
-            addr = addr.substr(0, idx);
+        try {
+            auto size = get_size(pt);
+            auto addr = _interpreter.data_evaluate_expression("&" + pt);
+            //addr might be inside ""
+            auto idx = addr.find(' ');
+            if (idx != std::string::npos)
+                addr = addr.substr(0, idx);
 
-        auto vv  = _interpreter.data_read_memory_bytes(addr, size);
-        auto & val = vv.at(0);
+            auto vv  = _interpreter.data_read_memory_bytes(addr, size);
+            auto & val = vv.at(0);
 
-        ref_val.ref = val.begin + val.offset;
-        ref_val.value.reserve(val.contents.size() * 8);
+            ref_val.ref = val.begin + val.offset;
+            ref_val.value.reserve(val.contents.size() * 8);
 
-        auto bit_to_str =
-                [](char c, int pos)
-                {
-                    return ((c >> pos) & 0b1) ? '1' : '0';
-                };
+            auto bit_to_str =
+                    [](char c, int pos)
+                    {
+                        return ((c >> pos) & 0b1) ? '1' : '0';
+                    };
 
-        for (auto & v : boost::make_iterator_range(val.contents.rbegin(), val.contents.rend()))
-        {
-            ref_val.value.push_back(bit_to_str(v, 7));
-            ref_val.value.push_back(bit_to_str(v, 6));
-            ref_val.value.push_back(bit_to_str(v, 5));
-            ref_val.value.push_back(bit_to_str(v, 4));
-            ref_val.value.push_back(bit_to_str(v, 3));
-            ref_val.value.push_back(bit_to_str(v, 2));
-            ref_val.value.push_back(bit_to_str(v, 1));
-            ref_val.value.push_back(bit_to_str(v, 0));
+            for (auto & v : boost::make_iterator_range(val.contents.rbegin(), val.contents.rend()))
+            {
+                ref_val.value.push_back(bit_to_str(v, 7));
+                ref_val.value.push_back(bit_to_str(v, 6));
+                ref_val.value.push_back(bit_to_str(v, 5));
+                ref_val.value.push_back(bit_to_str(v, 4));
+                ref_val.value.push_back(bit_to_str(v, 3));
+                ref_val.value.push_back(bit_to_str(v, 2));
+                ref_val.value.push_back(bit_to_str(v, 1));
+                ref_val.value.push_back(bit_to_str(v, 0));
+            }
+            proc.reset_timer();
+
+            return ref_val;
         }
-        proc.reset_timer();
-
-        return ref_val;
+        catch (unexpected_result_class & urc) //not possible this way.
+        {
+        }
     }
 
     auto val = _interpreter.data_evaluate_expression(pt);
