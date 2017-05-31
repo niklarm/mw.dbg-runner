@@ -276,12 +276,12 @@ public:
             const boost::optional<std::pair<std::size_t, std::size_t>> & frame_range = boost::none,
             bool no_frame_filters = false);
 
-    std::vector<frame> stack_list_locals(
+    std::vector<arg> stack_list_locals(
             print_values print_values_,
             bool no_frame_filters = false,
             bool skip_unavailable = false);
 
-    std::vector<frame> stack_list_variables(
+    std::vector<arg> stack_list_variables(
             print_values print_values_,
             bool no_frame_filters = false,
             bool skip_unavailable = false);

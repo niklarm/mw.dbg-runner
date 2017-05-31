@@ -262,6 +262,7 @@ struct arg
 {
     std::string name;
     std::string value;
+    boost::optional<std::string> type;
 };
 
 struct varobj

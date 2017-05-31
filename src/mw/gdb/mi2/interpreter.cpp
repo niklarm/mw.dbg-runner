@@ -1247,7 +1247,7 @@ std::vector<frame> interpreter::stack_list_frames(
     return fr;
 }
 
-std::vector<frame> interpreter::stack_list_locals(
+std::vector<arg> interpreter::stack_list_locals(
         enum print_values print_values,
         bool no_frame_filters,
         bool skip_unavailable)
@@ -1273,17 +1273,17 @@ std::vector<frame> interpreter::stack_list_locals(
     if (rc.class_ != result_class::done)
        _throw_unexpected_result(result_class::done, rc);
 
-    std::vector<frame> fr;
-    auto val = find(rc.results, "locals").as_list().as_results();
+    std::vector<arg> fr;
+    auto val = find(rc.results, "locals").as_list().as_values();
     fr.reserve(val.size());
 
     for (const auto & v : val)
-        fr.push_back(parse_result<frame>(v.value_.as_tuple()));
+        fr.push_back(parse_result<arg>(v.as_tuple()));
 
     return fr;
 }
 
-std::vector<frame> interpreter::stack_list_variables(
+std::vector<arg> interpreter::stack_list_variables(
         enum print_values print_values,
         bool no_frame_filters,
         bool skip_unavailable)
@@ -1309,12 +1309,12 @@ std::vector<frame> interpreter::stack_list_variables(
     if (rc.class_ != result_class::done)
        _throw_unexpected_result(result_class::done, rc);
 
-    std::vector<frame> fr;
-    auto val = find(rc.results, "variables").as_list().as_results();
+    std::vector<arg> fr;
+    auto val = find(rc.results, "variables").as_list().as_values();
     fr.reserve(val.size());
 
     for (const auto & v : val)
-        fr.push_back(parse_result<frame>(v.value_.as_tuple()));
+        fr.push_back(parse_result<arg>(v.as_tuple()));
 
     return fr;
 }

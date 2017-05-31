@@ -137,8 +137,19 @@ template<> watchpoint parse_result(const std::vector<result> &r)
     wp.number = std::stoi(find(r, "number").as_string());
     wp.exp = find(r, "exp").as_string();
     return wp;
-
 }
+
+template<> arg parse_result(const std::vector<result> & r)
+{
+    arg a;
+
+    a.name  = find(r, "name").as_string();
+    if (auto val = find_if(r, "value")) a.value = val->as_string();
+    if (auto val = find_if(r,  "type")) a.type = val->as_string();
+
+    return a;
+}
+
 
 template<> frame parse_result(const std::vector<result> &r)
 {
