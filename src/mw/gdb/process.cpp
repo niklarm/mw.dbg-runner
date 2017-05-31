@@ -168,6 +168,7 @@ void process::_handle_bps  (mi2::interpreter & interpreter)
 
     while(val.reason != "exited")
     {
+        reset_timer();
         if (val.reason != "breakpoint-hit") //temporary
         {
             _log << "unknown stop reason" << std::endl;
