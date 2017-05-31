@@ -1273,14 +1273,35 @@ std::vector<arg> interpreter::stack_list_locals(
     if (rc.class_ != result_class::done)
        _throw_unexpected_result(result_class::done, rc);
 
-    std::vector<arg> fr;
-    auto val = find(rc.results, "locals").as_list().as_values();
-    fr.reserve(val.size());
 
-    for (const auto & v : val)
-        fr.push_back(parse_result<arg>(v.as_tuple()));
+    auto lst = find(rc.results, "locals").as_list();
 
-    return fr;
+    struct visitor_t : boost::static_visitor<>
+    {
+        std::vector<arg> fr;
+
+        void operator()(const std::vector<result> & res)
+        {
+            fr.reserve(res.size());
+            for (const auto & r : res)
+            {
+                arg a;
+                a.name = r.value_.as_string();
+                fr.push_back(std::move(a));
+            }
+        }
+
+        void operator()(const std::vector<value> & val)
+        {
+            fr.reserve(val.size());
+            for (const auto & v : val)
+                fr.push_back(parse_result<arg>(v.as_tuple()));
+        }
+    } visitor;
+
+    lst.apply_visitor(visitor);
+
+    return visitor.fr;
 }
 
 std::vector<arg> interpreter::stack_list_variables(
@@ -1309,14 +1330,33 @@ std::vector<arg> interpreter::stack_list_variables(
     if (rc.class_ != result_class::done)
        _throw_unexpected_result(result_class::done, rc);
 
-    std::vector<arg> fr;
-    auto val = find(rc.results, "variables").as_list().as_values();
-    fr.reserve(val.size());
+    auto lst = find(rc.results, "variables").as_list();
 
-    for (const auto & v : val)
-        fr.push_back(parse_result<arg>(v.as_tuple()));
+    struct visitor_t : boost::static_visitor<>
+    {
+        std::vector<arg> fr;
 
-    return fr;
+        void operator()(const std::vector<result> & res)
+        {
+            fr.reserve(res.size());
+            for (const auto & r : res)
+            {
+                arg a;
+                a.name = r.value_.as_string();
+                fr.push_back(std::move(a));
+            }
+        }
+
+        void operator()(const std::vector<value> & val)
+        {
+            fr.reserve(val.size());
+            for (const auto & v : val)
+                fr.push_back(parse_result<arg>(v.as_tuple()));
+        }
+    } visitor;
+
+    lst.apply_visitor(visitor);
+    return visitor.fr;
 }
 
 
