@@ -333,10 +333,13 @@ mw::debug::var frame_impl::print(const std::string & pt, bool bitwise)
     if (pegtl::parse<parser::char_t, parser::action>(mi_ref,  char_v))
         ref_val.value = char_v; 
 
-    if (bitwise) //turn the int into a binary.
+    if (bitwise //turn the int into a binary.
+        && !((ref_val.value.front() == '<') && (ref_val.value.back() == '>'))) //if it's not meta information e.g. <optimized out>
     {
         auto size = get_size(pt);
         std::size_t val = 0u;
+        
+        
         try {
             val = std::stoull(ref_val.value);
         }
