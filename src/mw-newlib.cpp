@@ -56,6 +56,9 @@ struct open_flags
     int o_wronly   = 0;
     int o_rdwr     = 0;
 
+    int s_iread  = 0;
+    int s_iwrite = 0;
+    
     int s_irwxu = 0;
     int s_irusr = 0;
     int s_iwusr = 0;
@@ -96,7 +99,9 @@ struct open_flags
         o_wronly   = std::stoi(fr.print("O_WRONLY")  .value);
         o_rdwr     = std::stoi(fr.print("O_RDWR")    .value);
 
-
+        try { s_iread =  std::stoi(fr.print("S_IREAD"). value); } catch (mw::debug::interpreter_error&) {}
+        try { s_iwrite = std::stoi(fr.print("S_IWRITE").value); } catch (mw::debug::interpreter_error&) {}
+        
         s_iwusr = std::stoi(fr.print("S_IWUSR").value);
         s_ixusr = std::stoi(fr.print("S_IXUSR").value);
         s_irwxg = std::stoi(fr.print("S_IRWXG").value);
@@ -152,6 +157,8 @@ struct open_flags
         if (in & s_irusr) out |= flag(S_IREAD);
         if (in & s_iwusr) out |= flag(S_IWRITE);
 #else
+        if (in & s_iread) out |= flag(S_IREAD);
+        if (in & s_iwrite)out |= flag(S_IWRITE);
         if (in & s_irwxu) out |= flag(S_IRWXU);
         if (in & s_irusr) out |= flag(S_IRUSR);
         if (in & s_iwusr) out |= flag(S_IWUSR);
