@@ -44,13 +44,12 @@ struct open_flags
     int o_async    = 0;
     int o_cloexec  = 0;
     int o_direct   = 0;
-    int o_directoy = 0;
+    int o_directory= 0;
     int o_dsync    = 0;
     int o_largefile= 0;
     int o_noatime  = 0;
     int o_ndelay   = 0;
     int o_path     = 0;
-    int o_tmpfile  = 0;
 
     int o_trunc    = 0;
     int o_rdonly   = 0;
@@ -85,13 +84,12 @@ struct open_flags
         o_async    = std::stoi(fr.print("O_ASYNC")    .value);
         o_cloexec  = std::stoi(fr.print("O_CLOEXEC")  .value);
         o_direct   = std::stoi(fr.print("O_DIRECT")   .value);
-        o_directoy = std::stoi(fr.print("O_DIRECTOY") .value);
+        o_directory= std::stoi(fr.print("O_DIRECTORY").value);
         o_dsync    = std::stoi(fr.print("O_DSYNC")    .value);
         o_largefile= std::stoi(fr.print("O_LARGEFILE").value);
         o_noatime  = std::stoi(fr.print("O_NOATIME")  .value);
         o_ndelay   = std::stoi(fr.print("O_NDELAY")   .value);
         o_path     = std::stoi(fr.print("O_PATH")     .value);
-        o_tmpfile  = std::stoi(fr.print("O_TMPFILE")  .value);
 #endif
         o_trunc    = std::stoi(fr.print("O_TRUNC")   .value);
         o_rdonly   = std::stoi(fr.print("O_RDONLY")  .value);
@@ -134,13 +132,12 @@ struct open_flags
         if (in & o_async    ) out |= flag(O_ASYNC);
         if (in & o_cloexec  ) out |= flag(O_CLOEXEC);
         if (in & o_direct   ) out |= flag(O_DIRECT);
-        if (in & o_directoy ) out |= flag(O_DIRECTOY);
+        if (in & o_directory) out |= flag(O_DIRECTORY);
         if (in & o_dsync    ) out |= flag(O_DSYNC);
         if (in & o_largefile) out |= flag(O_LARGEFILE);
         if (in & o_noatime  ) out |= flag(O_NOATIME);
         if (in & o_ndelay   ) out |= flag(O_NDELAY);
         if (in & o_path     ) out |= flag(O_PATH);
-        if (in & o_tmpfile  ) out |= flag(O_TMPFILE);
 #endif
         if (in & o_trunc   ) out |= flag(O_TRUNC);
 
