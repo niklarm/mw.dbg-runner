@@ -78,18 +78,18 @@ struct open_flags
         o_creat    = std::stoi(fr.print("O_CREAT")    .value);
         o_excl     = std::stoi(fr.print("O_EXCL")     .value);
 #if defined (BOOST_POSIX_API)
-        try {o_noctty   = std::stoi(fr.print("O_NOCTTY")   .value); catch (mw::debug::interpreter_error&) {}
-        try {o_nonblock = std::stoi(fr.print("O_NONBLOCK") .value); catch (mw::debug::interpreter_error&) {}
-        try {o_sync     = std::stoi(fr.print("O_SYNC")     .value); catch (mw::debug::interpreter_error&) {}
-        try {o_async    = std::stoi(fr.print("O_ASYNC")    .value); catch (mw::debug::interpreter_error&) {}
-        try {o_cloexec  = std::stoi(fr.print("O_CLOEXEC")  .value); catch (mw::debug::interpreter_error&) {}
-        try {o_direct   = std::stoi(fr.print("O_DIRECT")   .value); catch (mw::debug::interpreter_error&) {}
-        try {o_directory= std::stoi(fr.print("O_DIRECTORY").value); catch (mw::debug::interpreter_error&) {}
-        try {o_dsync    = std::stoi(fr.print("O_DSYNC")    .value); catch (mw::debug::interpreter_error&) {}
-        try {o_largefile= std::stoi(fr.print("O_LARGEFILE").value); catch (mw::debug::interpreter_error&) {}
-        try {o_noatime  = std::stoi(fr.print("O_NOATIME")  .value); catch (mw::debug::interpreter_error&) {}
-        try {o_ndelay   = std::stoi(fr.print("O_NDELAY")   .value); catch (mw::debug::interpreter_error&) {}
-        try {o_path     = std::stoi(fr.print("O_PATH")     .value); catch (mw::debug::interpreter_error&) {}
+        try { o_noctty   = std::stoi(fr.print("O_NOCTTY")   .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_nonblock = std::stoi(fr.print("O_NONBLOCK") .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_sync     = std::stoi(fr.print("O_SYNC")     .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_async    = std::stoi(fr.print("O_ASYNC")    .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_cloexec  = std::stoi(fr.print("O_CLOEXEC")  .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_direct   = std::stoi(fr.print("O_DIRECT")   .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_directory= std::stoi(fr.print("O_DIRECTORY").value); } catch (mw::debug::interpreter_error&) {}
+        try { o_dsync    = std::stoi(fr.print("O_DSYNC")    .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_largefile= std::stoi(fr.print("O_LARGEFILE").value); } catch (mw::debug::interpreter_error&) {}
+        try { o_noatime  = std::stoi(fr.print("O_NOATIME")  .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_ndelay   = std::stoi(fr.print("O_NDELAY")   .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_path     = std::stoi(fr.print("O_PATH")     .value); } catch (mw::debug::interpreter_error&) {}
 #endif
         o_trunc    = std::stoi(fr.print("O_TRUNC")   .value);
         o_rdonly   = std::stoi(fr.print("O_RDONLY")  .value);
