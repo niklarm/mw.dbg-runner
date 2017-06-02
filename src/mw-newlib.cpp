@@ -341,7 +341,16 @@ struct mw_func_stub : break_point
         auto file  = fr.get_cstring(1);
         auto flags_in = std::stoi(fr.arg_list().at(3).value);
         auto mode_in  = std::stoi(fr.arg_list().at(4).value);
-        boost::algorithm::replace_all(file, "\\\\", "/");
+
+#if defined(BOOST_POSIX_API)
+        boost::algorithm::replace_all(file, "\\", "/");
+        boost::algorithm::replace_all(file, "//", "/");
+        boost::algorithm::replace_all(file, "//", "/");
+#else
+        boost::algorithm::replace_all(file, "/", "\\");
+        boost::algorithm::replace_all(file, "\\\\", "\\");
+        boost::algorithm::replace_all(file, "\\\\", "\\");
+#endif 
 
         if (!of.inited)
             of.load(fr);
@@ -350,7 +359,7 @@ struct mw_func_stub : break_point
         auto mode  = of.get_mode (mode_in);
 
         auto ret = call(open, file.c_str(), flags, mode);
-
+        
         fr.log() << std::oct;
         fr.log() << "***mw_newlib*** Log: Invoking open(\"" << file << "\", 0" << flags << ", 0" << mode << ") -> " << ret << std::endl;
         fr.log() << std::dec;
