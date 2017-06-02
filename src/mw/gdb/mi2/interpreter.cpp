@@ -2009,7 +2009,7 @@ void interpreter::data_write_memory_bytes(const std::string & address, const std
     constexpr static char arr_conv[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
     for (auto & c : contents)
-        ss << arr_conv[(c & 0xFF00) >> 8] << arr_conv[c & 0xFF];
+        ss << arr_conv[(c & 0xF0) >> 4] << arr_conv[c & 0x0F];
 
     if (count)
         ss << " " << std::hex << *count;
