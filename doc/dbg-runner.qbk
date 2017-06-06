@@ -6,11 +6,10 @@
     https://www.apache.org/licenses/LICENSE-2.0)
 ]
 
-[library Debug Runner
+[library mw.dbg-runner
     [quickbook 1.6]
     [id dbg-runner] 
     [dirname dbg-runner]
-    [version 0.1]
     [authors [Morgenstern, Klemens David], [Walther, Timon]]
     [copyright 2016 Klemens D. Morgenstern, Timon Walther]
     [license Distributed under the Apache License, Version 2.0.

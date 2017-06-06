@@ -7,10 +7,6 @@ using boostbook ;
 using quickbook ;
 using doxygen ;
 
-local father-path = [ path-constant TOP : .. ] ;
-local strip-path = $(father-path:T)/include ;
-
-
 import modules ;
 
 local headers = break_point frame location plugin ;
@@ -27,7 +23,7 @@ doxygen autodoc
   <doxygen:param>PREDEFINED=DBG_RUNNER_DOXYGEN
   <doxygen:param>HIDE_UNDOC_CLASSES=YES
   <doxygen:param>HIDE_UNDOC_MEMBERS=YES
-  <doxygen:param>STRIP_FROM_PATH=$(strip-path)
+  <doxygen:param>STRIP_FROM_PATH=../include
   <doxygen:param>PREDEFINED=MW_GDB_DOXYGEN
   <xsl:param>boost.doxygen.header.prefix=mw
   
