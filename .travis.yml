@@ -20,6 +20,9 @@ addons:
     - g++-6
     - gdb
     - valgrind
+    - xsltproc
+    - docbook-xsl
+    - doxygen
 before_script:
     - PROJECT_TO_TEST=`basename $TRAVIS_BUILD_DIR`
     - cd $HOME
