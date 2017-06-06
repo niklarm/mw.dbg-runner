@@ -1,6 +1,7 @@
 env:
   global:
   - BRANCH_TO_TEST=$TRAVIS_BRANCH
+  - secure: "c06kdEKxqePnw4Zplx+VyGex/OzvEO5vzAVpiOgVvYzgTn/Fv4Gzweej5uHtkCvX3TzSV5bOJgoB1l9/ytC0SqyeMtQN7Qcv99p9zuXC+D/4hqFmQZNUvztBv6F6cSy5W5hs5VBzqv6vGC8Yxqm9SJOxXCKvt8ly67m942STmxAUDYg1yfIQTYLOxd2ci8+KpvDaaC1SZo9y3B7vNKMxQ8SqE5RDvTC14mBHLY2ly1EBpRiKKpDr0wuoirYTT/+pmEHTaCD11PztMRSRVwY5VNQBV2hNYd3G6h9FrblmS6gucvu/b1LYiKLt6DVpkA4HDZQlcHW7b4IC3sEknzCgym+j7dljircbJ+PeuaVQrzjhTelK4SOVQhYelu7GvWus/xFi6/Th+V/TQGVd/5aEt+73EzSMu/9s2k+QdEdpUPl8vBqwVLSbVxsVdgWr2ZeB2lP2EgO5bMXzfeKYfn1B9sMtEtzA2LfaDcpnqJU7D3QpihkhSw8PSAkiJwjzPVXkD/QSI1voF7gAduO2umMkXkcyI9OOCmqK4BCqqrGsCh+02qoLb57BOFdAsotPn59h6WSPlr5tWyabgHBrhdyM9KDX/CGS3x0WTfPg+NWK3DdI7My0P5RZ1917h2n9jqXbmD047e3QxAtKrODvdncz6hepCxR5Zv0qElDIR0GI9qg="
   matrix:
   #- ADDRESS_MODEL=32
   - ADDRESS_MODEL=64
@@ -79,3 +80,14 @@ after_success:
     - gem install coveralls-lcov
     # https://github.com/okkez/coveralls-lcov/issues/2
     - coveralls-lcov  --source-encoding=ISO-8859-1 ./coverals/coverage.info
+    - if [ $BRANCH_TO_TEST = "develop" ]; then 
+         cd ../doc; $BOOST/b2 -j4 -sBOOST_ROOT=$BOOST linkflags="-ldl -pthread" -sBOOST_BUILD_PATH=.;
+         git clone https://$GH_TOKEN@github.com/mw-sc/mw-sc.github.io.git -b master $HOME/pages > /dev/null 2>&1 ;
+         cd html; cp -r * $HOME/pages/dbg-runner;
+         cd $HOME/pages;
+         git config user.email "travis@travis-ci.og";
+         git config user.name "Travis";
+         git commit -am "Updated dbg-runner documentation"; 
+         git remote add origin-pages https://${GH_TOKEN}@github.com/mw-sc/mw-sc.github.io.git > /dev/null 2>&1;
+         git push --quiet --set-upstream origin-pages master;
+         fi 
