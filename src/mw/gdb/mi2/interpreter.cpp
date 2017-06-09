@@ -244,7 +244,7 @@ void interpreter::break_after(int number, int count)
 
 void interpreter::break_commands(int number, const std::vector<std::string> & commands)
 {
-    _in_buf = std::to_string(_token_gen) + "-break-command " + std::to_string(number);
+    _in_buf = std::to_string(_token_gen) + "-break-commands " + std::to_string(number);
 
     for (const auto & cmd : commands)
     {
