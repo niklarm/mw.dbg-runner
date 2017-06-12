@@ -152,14 +152,20 @@ MW_TEST_CASE( create_bp )
 
         auto bp = bp1.front();
 
+        BOOST_CHECK_NO_THROW(mi.break_condition(2, "42"));
         BOOST_CHECK_NO_THROW(mi.break_after(bp.number, 2));
         BOOST_CHECK_NO_THROW(mi.break_disable(bp.number));
         BOOST_CHECK_NO_THROW(BOOST_CHECK_EQUAL(mi.break_info(bp.number).number, bp.number));
         BOOST_CHECK_NO_THROW(mi.break_enable(bp.number));
+        BOOST_CHECK_NO_THROW(mi.break_disable({bp.number})); //so we have the vector version tested.
+
+        BOOST_CHECK_NO_THROW(mi.break_commands(bp.number, {"print argc"}));
 
         BOOST_REQUIRE_GE(bp2.size(), 1u);
 
-        BOOST_CHECK_NO_THROW(mi.break_delete({bp.number, bp2.front().number}));
+        BOOST_CHECK_NO_THROW(mi.break_delete(bp.number));
+
+        BOOST_CHECK_NO_THROW(mi.break_delete({bp2.front().number}));
 
         BOOST_CHECK_NO_THROW(mi.exec_run());
 

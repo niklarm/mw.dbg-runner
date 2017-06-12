@@ -13,6 +13,7 @@ project dbg-runner :
 	: requirements
 	<include>./include
 	<toolset>gcc:<cxxflags>-ftemplate-depth=512
+    <define>BOOST_COROUTINE_NO_DEPRECATION_WARNING
 	;
 	
 
