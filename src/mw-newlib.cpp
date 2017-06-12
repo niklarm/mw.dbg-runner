@@ -33,53 +33,57 @@ using namespace mw::debug;
 struct open_flags
 {
     bool inited = false;
+ 
+    int o_append   = flag(O_APPEND);
+    int o_creat    = flag(O_CREAT);
+    int o_excl     = flag(O_EXCL);
 
-    int o_append   = 0;
-    int o_creat    = 0;
-    int o_excl     = 0;
+#if defined (BOOST_POSIX_API)
+    int o_noctty   = flag(O_NOCTTY);;
+    int o_nonblock = flag(O_NONBLOCK);
+    int o_sync     = flag(O_SYNC);
+    int o_async    = flag(O_ASYNC);
+    int o_cloexec  = flag(O_CLOEXEC);
+    int o_direct   = flag(O_DIRECT);
+    int o_directory= flag(O_DIRECTORY);
+    int o_dsync    = flag(O_DSYNC);
+    int o_largefile= flag(O_LARGEFILE);
+    int o_noatime  = flag(O_NOATIME);
+    int o_ndelay   = flag(O_NDELAY);
+    int o_path     = flag(O_PATH);
+#endif 
+    int o_trunc    = flag(O_TRUNC);
+    int o_rdonly   = flag(O_RDONLY);
+    int o_wronly   = flag(O_WRONLY);
+    int o_rdwr     = flag(O_RDWR);
 
-    int o_noctty   = 0;
-    int o_nonblock = 0;
-    int o_sync     = 0;
-    int o_async    = 0;
-    int o_cloexec  = 0;
-    int o_direct   = 0;
-    int o_directory= 0;
-    int o_dsync    = 0;
-    int o_largefile= 0;
-    int o_noatime  = 0;
-    int o_ndelay   = 0;
-    int o_path     = 0;
+    int s_iread  = flag(S_IREAD);
+    int s_iwrite = flag(S_IWRITE);
 
-    int o_trunc    = 0;
-    int o_rdonly   = 0;
-    int o_wronly   = 0;
-    int o_rdwr     = 0;
-
-    int s_iread  = 0;
-    int s_iwrite = 0;
+    int s_irwxu = flag(S_IRWXU);
+    int s_irusr = flag(S_IRUSR);
+    int s_iwusr = flag(S_IWUSR);
+    int s_ixusr = flag(S_IXUSR);
     
-    int s_irwxu = 0;
-    int s_irusr = 0;
-    int s_iwusr = 0;
-    int s_ixusr = 0;
-    int s_irwxg = 0;
-    int s_irgrp = 0;
-    int s_iwgrp = 0;
-    int s_ixgrp = 0;
-    int s_irwxo = 0;
-    int s_iroth = 0;
-    int s_iwoth = 0;
-    int s_ixoth = 0;
-    int s_isuid = 0;
-    int s_isgid = 0;
-    int s_isvtx = 0;
+#if defined (BOOST_POSIX_API)
+    int s_irwxg = flag(S_IRWXG);
+    int s_irgrp = flag(S_IRGRP);
+    int s_iwgrp = flag(S_IWGRP);
+    int s_ixgrp = flag(S_IXGRP);
+    int s_irwxo = flag(S_IRWXO);
+    int s_iroth = flag(S_IROTH);
+    int s_iwoth = flag(S_IWOTH);
+    int s_ixoth = flag(S_IXOTH);
+    int s_isuid = flag(S_ISUID);
+    int s_isgid = flag(S_ISGID);
+    int s_isvtx = flag(S_ISVTX);
+#endif
 
     void load(frame & fr)
     {
-        o_append   = std::stoi(fr.print("O_APPEND")   .value);
-        o_creat    = std::stoi(fr.print("O_CREAT")    .value);
-        o_excl     = std::stoi(fr.print("O_EXCL")     .value);
+        try { o_append   = std::stoi(fr.print("O_APPEND")   .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_creat    = std::stoi(fr.print("O_CREAT")    .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_excl     = std::stoi(fr.print("O_EXCL")     .value); } catch (mw::debug::interpreter_error&) {}
 #if defined (BOOST_POSIX_API)
         try { o_noctty   = std::stoi(fr.print("O_NOCTTY")   .value); } catch (mw::debug::interpreter_error&) {}
         try { o_nonblock = std::stoi(fr.print("O_NONBLOCK") .value); } catch (mw::debug::interpreter_error&) {}
@@ -94,28 +98,29 @@ struct open_flags
         try { o_ndelay   = std::stoi(fr.print("O_NDELAY")   .value); } catch (mw::debug::interpreter_error&) {}
         try { o_path     = std::stoi(fr.print("O_PATH")     .value); } catch (mw::debug::interpreter_error&) {}
 #endif
-        o_trunc    = std::stoi(fr.print("O_TRUNC")   .value);
-        o_rdonly   = std::stoi(fr.print("O_RDONLY")  .value);
-        o_wronly   = std::stoi(fr.print("O_WRONLY")  .value);
-        o_rdwr     = std::stoi(fr.print("O_RDWR")    .value);
+        try { o_trunc    = std::stoi(fr.print("O_TRUNC")   .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_rdonly   = std::stoi(fr.print("O_RDONLY")  .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_wronly   = std::stoi(fr.print("O_WRONLY")  .value); } catch (mw::debug::interpreter_error&) {}
+        try { o_rdwr     = std::stoi(fr.print("O_RDWR")    .value); } catch (mw::debug::interpreter_error&) {}
 
         try { s_iread =  std::stoi(fr.print("S_IREAD"). value); } catch (mw::debug::interpreter_error&) {}
         try { s_iwrite = std::stoi(fr.print("S_IWRITE").value); } catch (mw::debug::interpreter_error&) {}
         
-        s_iwusr = std::stoi(fr.print("S_IWUSR").value);
-        s_ixusr = std::stoi(fr.print("S_IXUSR").value);
-        s_irwxg = std::stoi(fr.print("S_IRWXG").value);
-        s_irgrp = std::stoi(fr.print("S_IRGRP").value);
-        s_iwgrp = std::stoi(fr.print("S_IWGRP").value);
-        s_ixgrp = std::stoi(fr.print("S_IXGRP").value);
-        s_irwxo = std::stoi(fr.print("S_IRWXO").value);
-        s_iroth = std::stoi(fr.print("S_IROTH").value);
-        s_iwoth = std::stoi(fr.print("S_IWOTH").value);
-        s_ixoth = std::stoi(fr.print("S_IXOTH").value);
-        s_isuid = std::stoi(fr.print("S_ISUID").value);
-        s_isgid = std::stoi(fr.print("S_ISGID").value);
-        s_isvtx = std::stoi(fr.print("S_ISVTX").value);
-
+        try { s_iwusr = std::stoi(fr.print("S_IWUSR").value); } catch (mw::debug::interpreter_error&) {}
+        try { s_ixusr = std::stoi(fr.print("S_IXUSR").value); } catch (mw::debug::interpreter_error&) {}
+#if defined (BOOST_POSIX_API)
+        try { s_irwxg = std::stoi(fr.print("S_IRWXG").value); } catch (mw::debug::interpreter_error&) {}
+        try { s_irgrp = std::stoi(fr.print("S_IRGRP").value); } catch (mw::debug::interpreter_error&) {}
+        try { s_iwgrp = std::stoi(fr.print("S_IWGRP").value); } catch (mw::debug::interpreter_error&) {}
+        try { s_ixgrp = std::stoi(fr.print("S_IXGRP").value); } catch (mw::debug::interpreter_error&) {}
+        try { s_irwxo = std::stoi(fr.print("S_IRWXO").value); } catch (mw::debug::interpreter_error&) {}
+        try { s_iroth = std::stoi(fr.print("S_IROTH").value); } catch (mw::debug::interpreter_error&) {}
+        try { s_iwoth = std::stoi(fr.print("S_IWOTH").value); } catch (mw::debug::interpreter_error&) {}
+        try { s_ixoth = std::stoi(fr.print("S_IXOTH").value); } catch (mw::debug::interpreter_error&) {}
+        try { s_isuid = std::stoi(fr.print("S_ISUID").value); } catch (mw::debug::interpreter_error&) {}
+        try { s_isgid = std::stoi(fr.print("S_ISGID").value); } catch (mw::debug::interpreter_error&) {}
+        try { s_isvtx = std::stoi(fr.print("S_ISVTX").value); } catch (mw::debug::interpreter_error&) {}
+#endif
         inited = true;
     }
     int get_flags(int in)
