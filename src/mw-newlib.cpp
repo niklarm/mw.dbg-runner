@@ -192,15 +192,15 @@ struct seek_flags
     bool inited = false;
 
 
-    int seek_set = 0;
-    int seek_cur = 0;
-    int seek_end = 0;
+    int seek_set = SEEK_SET;
+    int seek_cur = SEEK_CUR;
+    int seek_end = SEEK_END;
 
     void load(frame & fr)
     {
-        seek_set = std::stoi(fr.print("SEEK_SET").value);
-        seek_cur = std::stoi(fr.print("SEEK_CUR").value);
-        seek_end = std::stoi(fr.print("SEEK_END").value);
+        try { seek_set = std::stoi(fr.print("SEEK_SET").value); } catch (mw::debug::interpreter_error&) {}
+        try { seek_cur = std::stoi(fr.print("SEEK_CUR").value); } catch (mw::debug::interpreter_error&) {}
+        try { seek_end = std::stoi(fr.print("SEEK_END").value); } catch (mw::debug::interpreter_error&) {}
         inited = true;
     }
     int get_flags(int in)
