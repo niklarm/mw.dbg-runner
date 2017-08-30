@@ -29,6 +29,13 @@ using namespace mw::debug;
 #define flag(Name) _##Name
 #endif
 
+#if defined (BOOST_OS_MACOS)
+// These flags don't exist on OS X
+#define O_DIRECT 0
+#define O_LARGEFILE 0
+#define O_NOATIME 0
+#define O_PATH 0
+#endif
 
 struct open_flags
 {
